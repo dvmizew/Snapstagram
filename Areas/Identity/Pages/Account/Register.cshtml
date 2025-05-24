@@ -1,0 +1,54 @@
+﻿@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Join Snapstagram";
+    Layout = "/Pages/Shared/_AuthLayout.cshtml";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-logo">
+                <i class="fas fa-camera text-gradient"></i>
+                <span class="brand-text">Snapstagram</span>
+            </h1>
+            <p class="auth-subtitle">Sign up to see photos and videos from your friends.</p>
+        </div>
+
+        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="auth-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+            
+            <div class="form-group">
+                <input asp-for="Input.Email" class="auth-input" autocomplete="username" aria-required="true" placeholder="Email" />
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <input asp-for="Input.DisplayName" class="auth-input" aria-required="true" placeholder="Full Name" />
+                <span asp-validation-for="Input.DisplayName" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <input asp-for="Input.Password" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="Password" type="password" />
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <input asp-for="Input.ConfirmPassword" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="Confirm Password" type="password" />
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+            </div>
+            
+            <button id="registerSubmit" type="submit" class="auth-button">Sign up</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>By signing up, you agree to our Terms, Data Policy and Cookies Policy.</p>
+        </div>
+    </div>    <div class="auth-switch">
+        <p>Have an account? <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl">Log in</a></p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
