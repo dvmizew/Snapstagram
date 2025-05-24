@@ -7,44 +7,91 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Snapstagram.styles.css" asp-append-version="true" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Snapstagram</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+    <!-- Main Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-left">
+                <a class="brand-logo" asp-area="" asp-page="/Index">
+                    <i class="fas fa-camera text-gradient me-2"></i>
+                    <span class="brand-text">Snapstagram</span>
+                </a>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - Snapstagram - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            
+            <div class="nav-center">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search users, posts, and more..." />
+                    </div>
+                }
+            </div>
+            
+            <div class="nav-right">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="nav-icons">
+                        <a href="/Feed" class="nav-icon" title="Home">
+                            <i class="fas fa-home"></i>
+                        </a>
+                        <a href="/Messages" class="nav-icon" title="Messages">
+                            <i class="fas fa-paper-plane"></i>
+                            <span class="notification-badge" id="messageNotifications" style="display: none;">0</span>
+                        </a>
+                        <a href="/Create" class="nav-icon" title="Create">
+                            <i class="fas fa-plus-square"></i>
+                        </a>
+                        <a href="/Explore" class="nav-icon" title="Explore">
+                            <i class="fas fa-compass"></i>
+                        </a>
+                        <div class="nav-icon notification-icon" title="Notifications">
+                            <i class="fas fa-heart"></i>
+                            <span class="notification-badge" id="likeNotifications" style="display: none;">0</span>
+                        </div>
+                        <div class="profile-dropdown">
+                            <div class="nav-icon profile-icon">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="dropdown-menu">
+                                <a href="/Profile" class="dropdown-item">
+                                    <i class="fas fa-user me-2"></i>Profile
+                                </a>
+                                <a href="/Settings" class="dropdown-item">
+                                    <i class="fas fa-cog me-2"></i>Settings
+                                </a>
+                                <hr class="dropdown-divider">
+                                <form method="post" asp-area="Identity" asp-page="/Account/Logout" class="d-inline">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="auth-buttons">
+                        <a class="btn btn-outline-primary me-2" asp-area="Identity" asp-page="/Account/Login">Login</a>
+                        <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Sign Up</a>
+                    </div>
+                }
+            </div>
         </div>
-    </footer>
+    </nav>
+
+    <main role="main">
+        @RenderBody()
+    </main>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

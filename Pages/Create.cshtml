@@ -1,0 +1,150 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Create Post";
+    Layout = "_Layout";
+}
+
+<div class="create-container">
+    <div class="create-header">
+        <h2><i class="fas fa-plus-circle me-2"></i>Create New Post</h2>
+        <p class="text-muted">Share your moment with the world</p>
+    </div>
+    
+    <div class="create-content">
+        <div class="create-tabs">
+            <button class="tab-btn active" onclick="showTab('post')">
+                <i class="fas fa-image me-2"></i>Post
+            </button>
+            <button class="tab-btn" onclick="showTab('story')">
+                <i class="fas fa-bolt me-2"></i>Story
+            </button>
+        </div>
+        
+        <!-- Post Creation Tab -->
+        <div id="postTab" class="tab-content active">
+            <form method="post" enctype="multipart/form-data" class="create-form" id="createForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+                
+                <!-- Media Upload Section -->
+                <div class="media-upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                            <h4>Drag and drop your photo or video here</h4>
+                            <p class="text-muted">or click to browse from your device</p>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('mediaFile').click()">
+                                <i class="fas fa-folder-open me-2"></i>Choose File
+                            </button>
+                        </div>
+                        
+                        <div class="media-preview" id="mediaPreview" style="display: none;">
+                            <div class="preview-container">
+                                <div class="preview-media" id="previewMedia"></div>
+                                <button type="button" class="btn-remove-media" onclick="removeMedia()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="mediaFile" name="ImageFile" accept="image/*,video/*" style="display: none;" />
+                    <input type="file" name="VideoFile" style="display: none;" />
+                    <span asp-validation-for="ImageFile" class="text-danger"></span>
+                </div>
+                
+                <!-- Caption Section -->
+                <div class="caption-section">
+                    <div class="form-group">
+                        <label for="Caption" class="form-label">
+                            <i class="fas fa-pen me-2"></i>Caption
+                        </label>
+                        <textarea id="Caption" name="Caption" class="form-control caption-input" 
+                                  placeholder="Write a caption..." rows="4" maxlength="2200"></textarea>
+                        <div class="caption-counter">
+                            <span id="captionCount">0</span>/2200
+                        </div>
+                        <span asp-validation-for="Caption" class="text-danger"></span>
+                    </div>
+                    
+                    <!-- Hashtag suggestions -->
+                    <div class="hashtag-suggestions">
+                        <div class="suggestion-label">Popular hashtags:</div>
+                        <div class="hashtag-chips">
+                            <span class="hashtag-chip" onclick="addHashtag('#photography')">#photography</span>
+                            <span class="hashtag-chip" onclick="addHashtag('#nature')">#nature</span>
+                            <span class="hashtag-chip" onclick="addHashtag('#food')">#food</span>
+                            <span class="hashtag-chip" onclick="addHashtag('#travel')">#travel</span>
+                            <span class="hashtag-chip" onclick="addHashtag('#lifestyle')">#lifestyle</span>
+                            <span class="hashtag-chip" onclick="addHashtag('#art')">#art</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="form-actions">
+                    <a href="/Feed" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="publishBtn" disabled>
+                        <i class="fas fa-share me-2"></i>Share Post
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Story Creation Tab -->
+        <div id="storyTab" class="tab-content">
+            <form method="post" asp-page-handler="Story" enctype="multipart/form-data" class="story-form">
+                <div class="story-upload-section">
+                    <div class="story-upload-area" id="storyUploadArea">
+                        <div class="story-placeholder" id="storyPlaceholder">
+                            <i class="fas fa-camera fa-3x mb-3"></i>
+                            <h4>Create Your Story</h4>
+                            <p class="text-muted">Share a moment that disappears in 24 hours</p>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('storyFile').click()">
+                                <i class="fas fa-plus me-2"></i>Add Photo/Video
+                            </button>
+                        </div>
+                        
+                        <div class="story-preview" id="storyPreviewContainer" style="display: none;">
+                            <div class="story-media-container">
+                                <div id="storyMediaPreview"></div>
+                                <button type="button" class="btn-remove-story" onclick="removeStoryMedia()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="storyFile" name="storyFile" accept="image/*,video/*" style="display: none;" />
+                </div>
+                
+                <div class="story-text-section">
+                    <label for="storyText" class="form-label">
+                        <i class="fas fa-font me-2"></i>Add Text (Optional)
+                    </label>
+                    <input name="storyText" id="storyText" class="form-control" 
+                           placeholder="Add text to your story..." maxlength="100" />
+                    <div class="story-text-counter">
+                        <span id="storyTextCount">0</span>/100
+                    </div>
+                </div>
+                
+                <div class="story-actions">
+                    <a href="/Feed" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="shareStoryBtn" disabled>
+                        <i class="fas fa-clock me-2"></i>Share to Story
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/create.js"></script>
+}

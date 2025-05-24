@@ -1,0 +1,295 @@
+@page
+@model FeedModel
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<Snapstagram.Models.User> UserManager
+@{
+    ViewData["Title"] = "Feed";
+    Layout = "_Layout";
+}
+
+<div class="main-container">
+    <!-- Left Sidebar -->
+    <div class="sidebar-left">
+        <div class="sidebar-card">
+            <div class="sidebar-title">Quick Actions</div>
+            <div class="quick-actions">
+                <a href="/Create" class="quick-action-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Post</span>
+                </a>
+                <a href="/Create?type=story" class="quick-action-btn">
+                    <i class="fas fa-bolt"></i>
+                    <span>Add Story</span>
+                </a>
+                <a href="/Messages" class="quick-action-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Messages</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="sidebar-card">
+            <div class="sidebar-title">Trending</div>
+            <div class="trending-topics">
+                <div class="trending-item">#TechNews</div>
+                <div class="trending-item">#Photography</div>
+                <div class="trending-item">#Travel</div>
+                <div class="trending-item">#Food</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feed Content -->
+    <div class="feed-content">
+        <!-- Stories Section -->
+        <div class="stories-container">
+            <div class="stories-scroll">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="story-item add-story" onclick="openStoryCreator()">
+                        <div class="story-avatar">
+                            <div class="add-story-icon">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                        </div>
+                        <div class="story-username">Your Story</div>
+                    </div>
+                }
+                @foreach (var story in Model.Stories)
+                {
+                    <div class="story-item @(story.Views.Any(v => v.UserId == UserManager.GetUserId(User)) ? "viewed" : "")" 
+                         onclick="viewStory(@story.Id)">
+                        <div class="story-avatar">
+                            <img src="@(story.User.ProfileImageUrl ?? FeedModel.GetDefaultAvatar(story.User.DisplayName))" 
+                                 alt="@story.User.DisplayName" />
+                            @if (story.MediaType == "video")
+                            {
+                                <div class="story-type-indicator">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="story-username">@story.User.DisplayName</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Posts Feed -->
+        <div class="posts-container">
+            @foreach (var post in Model.Posts)
+            {
+                <div class="post-card slide-up">
+                    <!-- Post Header -->
+                    <div class="post-header">
+                        <div class="post-user-info">
+                            <img src="@(post.User.ProfileImageUrl ?? FeedModel.GetDefaultAvatar(post.User.DisplayName))" 
+                                 alt="@post.User.DisplayName" class="post-avatar" />
+                            <div>
+                                <a href="/Profile/@post.User.UserName" class="post-username">@post.User.DisplayName</a>
+                                <div class="post-time">@FeedModel.GetRelativeTime(post.CreatedAt)</div>
+                            </div>
+                        </div>
+                        <button class="post-menu" onclick="showPostMenu(@post.Id)">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+
+                    <!-- Post Caption (if above image) -->
+                    @if (!string.IsNullOrEmpty(post.Caption))
+                    {
+                        <div class="post-caption-top">
+                            @post.Caption
+                        </div>
+                    }
+
+                    <!-- Post Media -->
+                    <div class="post-media-container">
+                        @if (!string.IsNullOrEmpty(post.VideoUrl))
+                        {
+                            <video class="post-media" controls preload="metadata" onclick="handleMediaClick(this, @post.Id)">
+                                <source src="@post.VideoUrl" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <div class="media-overlay">
+                                <div class="play-button">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@post.ImageUrl" alt="Post image" class="post-media" 
+                                 onclick="handleMediaClick(this, @post.Id)" />
+                        }
+                        
+                        <!-- Instagram-style double-tap heart -->
+                        <div class="double-tap-heart" id="heart-@post.Id">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+
+                    <!-- Post Actions -->
+                    <div class="post-actions">
+                        <div class="action-group-left">
+                            <button class="action-btn like-btn @(Model.UserLikes.Contains(post.Id) ? "liked" : "")" 
+                                    onclick="toggleLike(@post.Id)" data-post-id="@post.Id">
+                                <i class="@(Model.UserLikes.Contains(post.Id) ? "fas" : "far") fa-heart"></i>
+                                <span class="action-count" id="likes-count-@post.Id">@post.LikesCount</span>
+                            </button>
+                            <button class="action-btn comment-btn" onclick="focusCommentInput(@post.Id)">
+                                <i class="far fa-comment"></i>
+                                <span class="action-count">@post.CommentsCount</span>
+                            </button>
+                            <button class="action-btn share-btn" onclick="sharePost(@post.Id)">
+                                <i class="far fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <button class="action-btn bookmark-btn" onclick="toggleBookmark(@post.Id)">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Post Content -->
+                    <div class="post-content">
+                        <div class="post-likes">
+                            <span id="likes-@post.Id">@post.LikesCount</span> likes
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(post.Caption))
+                        {
+                            <div class="post-caption">
+                                <span class="username">@post.User.DisplayName</span>
+                                <span class="caption-text">@post.Caption</span>
+                            </div>
+                        }
+                        
+                        @if (post.CommentsCount > 0)
+                        {
+                            <button class="view-comments" onclick="toggleComments(@post.Id)">
+                                View all @post.CommentsCount comments
+                            </button>
+                        }
+                        
+                        <!-- Comments Section -->
+                        <div class="comments-section" id="comments-@post.Id" style="display: none;">
+                            <div class="comments-list" id="comments-list-@post.Id">
+                                @foreach (var comment in post.Comments.Take(3))
+                                {
+                                    <div class="comment">
+                                        <img src="@(comment.User.ProfileImageUrl ?? FeedModel.GetDefaultAvatar(comment.User.DisplayName))" 
+                                             alt="@comment.User.DisplayName" class="comment-avatar" />
+                                        <div class="comment-content">
+                                            <div class="comment-text">
+                                                <span class="comment-username">@comment.User.DisplayName</span>
+                                                @comment.Text
+                                            </div>
+                                            <div class="comment-time">@FeedModel.GetRelativeTime(comment.CreatedAt)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        <!-- Add Comment -->
+                        <form class="comment-form" onsubmit="addComment(event, @post.Id)">
+                            <img src="@Model.CurrentUserAvatar" 
+                                 alt="You" class="comment-avatar" />
+                            <input type="text" class="comment-input" id="comment-input-@post.Id" 
+                                   placeholder="Add a comment..." autocomplete="off" />
+                            <button type="submit" class="comment-submit" disabled id="comment-submit-@post.Id">Post</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!Model.Posts.Any())
+        {
+            <div class="empty-feed">
+                <div class="empty-feed-icon">
+                    <i class="fas fa-camera fa-3x"></i>
+                </div>
+                <h3>Welcome to Snapstagram!</h3>
+                <p>Start following people to see their posts in your feed.</p>
+                <a href="/Explore" class="btn btn-primary">Discover People</a>
+            </div>
+        }
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar-right">
+        <div class="sidebar-card">
+            <div class="sidebar-title">Suggested for you</div>
+            <div class="suggested-users">
+                <!-- This would be populated with suggested users -->
+                <div class="suggested-user">
+                    <img src="https://via.placeholder.com/32x32/6c757d/ffffff?text=U" alt="User" class="suggested-avatar" />
+                    <div class="suggested-info">
+                        <div class="suggested-name">john_doe</div>
+                        <div class="suggested-mutual">2 mutual friends</div>
+                    </div>
+                    <button class="follow-btn">Follow</button>
+                </div>
+                <div class="suggested-user">
+                    <img src="https://via.placeholder.com/32x32/6c757d/ffffff?text=J" alt="User" class="suggested-avatar" />
+                    <div class="suggested-info">
+                        <div class="suggested-name">jane_smith</div>
+                        <div class="suggested-mutual">5 mutual friends</div>
+                    </div>
+                    <button class="follow-btn">Follow</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-card">
+            <div class="sidebar-title">Recent Activity</div>
+            <div class="activity-feed">
+                <div class="activity-item">
+                    <i class="fas fa-heart text-danger"></i>
+                    <span><strong>alex_photo</strong> liked your post</span>
+                    <span class="activity-time">2m</span>
+                </div>
+                <div class="activity-item">
+                    <i class="fas fa-comment text-primary"></i>
+                    <span><strong>sarah_k</strong> commented on your post</span>
+                    <span class="activity-time">5m</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Story Viewer Modal -->
+<div class="story-modal" id="storyModal" style="display: none;">
+    <div class="story-viewer">
+        <div class="story-header">
+            <div class="story-user-info">
+                <img src="" alt="" class="story-user-avatar" id="storyUserAvatar" />
+                <span class="story-user-name" id="storyUserName"></span>
+                <span class="story-time" id="storyTime"></span>
+            </div>
+            <button class="story-close" onclick="closeStoryViewer()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="story-content">
+            <div class="story-progress">
+                <div class="progress-bar" id="storyProgress"></div>
+            </div>
+            <div class="story-media" id="storyMedia"></div>
+        </div>
+        <div class="story-controls">
+            <button class="story-nav story-prev" onclick="previousStory()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="story-nav story-next" onclick="nextStory()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/feed.js"></script>
+}

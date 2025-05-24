@@ -1,0 +1,257 @@
+@page
+@model MessagesModel
+@{
+    ViewData["Title"] = "Messages";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid" style="height: 90vh;">
+    <div class="row h-100">
+        <!-- Chat List -->
+        <div class="col-md-4 border-end">
+            <div class="p-3 border-bottom">
+                <h5 class="mb-0">Messages</h5>
+            </div>
+            
+            <div class="chat-list">
+                <!-- Search -->
+                <div class="p-3 border-bottom">
+                    <input type="text" class="form-control" placeholder="Search conversations..." id="searchInput">
+                </div>
+                
+                <!-- Conversations -->
+                <div class="conversations-list">
+                    @foreach (var user in Model.RecentChats)
+                    {
+                        <div class="conversation-item p-3 border-bottom" 
+                             data-user-id="@user.Id" 
+                             onclick="selectConversation('@user.Id', '@user.DisplayName')">
+                            <div class="d-flex align-items-center">
+                                <img src="@(user.ProfileImageUrl ?? "https://via.placeholder.com/40x40/6c757d/ffffff?text=" + user.DisplayName.Substring(0, 1))" 
+                                     alt="@user.DisplayName" 
+                                     class="rounded-circle me-3" 
+                                     style="width: 40px; height: 40px; object-fit: cover;" />
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@user.DisplayName</div>
+                                    <div class="text-muted small">@user.UserName</div>
+                                </div>
+                                <div class="status-indicator online"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="col-md-8 d-flex flex-column">
+            <div id="chatHeader" class="p-3 border-bottom bg-white" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <img id="chatUserAvatar" src="" alt="" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" />
+                    <div>
+                        <div class="fw-semibold" id="chatUserName"></div>
+                        <div class="text-muted small">Active now</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Messages Container -->
+            <div id="messagesContainer" class="flex-grow-1 p-3 overflow-auto bg-light" style="display: none;">
+                <div id="messagesList">
+                    <!-- Messages will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Message Input -->
+            <div id="messageInput" class="p-3 border-top bg-white" style="display: none;">
+                <form id="messageForm" class="d-flex">
+                    <input type="text" id="messageText" class="form-control me-2" placeholder="Type a message..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- No Chat Selected -->
+            <div id="noChatSelected" class="d-flex align-items-center justify-content-center h-100">
+                <div class="text-center text-muted">
+                    <i class="fas fa-comments fa-4x mb-3"></i>
+                    <h4>Select a conversation</h4>
+                    <p>Choose a conversation from the list to start messaging.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let connection;
+        let currentChatUserId = null;
+        
+        // Initialize SignalR connection
+        async function initializeSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chathub")
+                .build();
+
+            connection.start().then(function () {
+                console.log("Connected to chat hub");
+            }).catch(function (err) {
+                console.error(err.toString());
+            });
+
+            // Receive messages
+            connection.on("ReceiveMessage", function (senderId, message) {
+                if (senderId === currentChatUserId) {
+                    appendMessage(message, false, 'Just now');
+                    scrollToBottom();
+                }
+            });
+
+            // Message sent confirmation
+            connection.on("MessageSent", function (receiverId, message) {
+                // Message sent successfully
+            });
+        }
+
+        function selectConversation(userId, userName) {
+            currentChatUserId = userId;
+            
+            // Update UI
+            document.getElementById('chatUserName').textContent = userName;
+            document.getElementById('chatUserAvatar').src = `https://via.placeholder.com/40x40/6c757d/ffffff?text=${userName.charAt(0)}`;
+            
+            // Show chat interface
+            document.getElementById('noChatSelected').style.display = 'none';
+            document.getElementById('chatHeader').style.display = 'block';
+            document.getElementById('messagesContainer').style.display = 'block';
+            document.getElementById('messageInput').style.display = 'block';
+            
+            // Load messages
+            loadMessages(userId);
+            
+            // Update active conversation
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-user-id="${userId}"]`).classList.add('active');
+        }
+
+        async function loadMessages(userId) {
+            // TODO: Load message history from server
+            document.getElementById('messagesList').innerHTML = '';
+            
+            // Sample messages for demo
+            appendMessage("Hey! How are you doing?", false, "2 hours ago");
+            appendMessage("I'm doing great! Just posted a new photo on my feed.", true, "2 hours ago");
+            appendMessage("That's awesome! I'll check it out.", false, "1 hour ago");
+            
+            scrollToBottom();
+        }
+
+        function appendMessage(text, isSent, time) {
+            const messagesList = document.getElementById('messagesList');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'} mb-3`;
+            
+            messageDiv.innerHTML = `
+                <div class="d-flex ${isSent ? 'justify-content-end' : 'justify-content-start'}">
+                    <div class="message-bubble" style="max-width: 70%; padding: 12px 16px; border-radius: 18px; 
+                         background-color: ${isSent ? '#007bff' : '#f1f3f4'}; 
+                         color: ${isSent ? 'white' : 'black'};">
+                        <div>${text}</div>
+                        <div class="text-${isSent ? 'light' : 'muted'} small mt-1" style="font-size: 0.75rem;">${time}</div>
+                    </div>
+                </div>
+            `;
+            
+            messagesList.appendChild(messageDiv);
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send message
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const messageText = document.getElementById('messageText').value.trim();
+            if (!messageText || !currentChatUserId) return;
+            
+            // Send via SignalR
+            try {
+                await connection.invoke("SendMessage", currentChatUserId, messageText);
+                
+                // Add message to UI
+                appendMessage(messageText, true, 'Just now');
+                scrollToBottom();
+                
+                // Clear input
+                document.getElementById('messageText').value = '';
+            } catch (err) {
+                console.error(err.toString());
+            }
+        });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSignalR();
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const conversations = document.querySelectorAll('.conversation-item');
+            
+            conversations.forEach(conv => {
+                const userName = conv.querySelector('.fw-semibold').textContent.toLowerCase();
+                const userHandle = conv.querySelector('.text-muted').textContent.toLowerCase();
+                
+                if (userName.includes(searchTerm) || userHandle.includes(searchTerm)) {
+                    conv.style.display = 'block';
+                } else {
+                    conv.style.display = 'none';
+                }
+            });
+        });
+    </script>
+    
+    <style>
+        .conversation-item {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .conversation-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .conversation-item.active {
+            background-color: #e3f2fd;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4caf50;
+        }
+        
+        .status-indicator.offline {
+            background-color: #9e9e9e;
+        }
+        
+        .chat-list {
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .conversations-list {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+    </style>
+}

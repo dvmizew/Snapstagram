@@ -1,10 +1,119 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Welcome to Snapstagram";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container-fluid p-0">
+    <!-- Landing page for non-authenticated users -->
+    <div class="row min-vh-100">
+            <!-- Left side - Hero content -->
+            <div class="col-lg-6 d-flex align-items-center justify-content-center bg-light">
+                <div class="text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-camera fa-4x text-primary mb-3"></i>
+                        <h1 class="display-4 fw-bold">
+                            <span style="background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                                Snapstagram
+                            </span>
+                        </h1>
+                    </div>
+                    <h2 class="h4 mb-4">Share moments, connect with friends</h2>
+                    <p class="lead text-muted mb-4">
+                        The best of both worlds - share your life through photos and videos, 
+                        create disappearing stories, and stay connected with the people you care about.
+                    </p>
+                    
+                    <div class="row text-center mb-4">
+                        <div class="col-4">
+                            <i class="fas fa-images fa-2x text-primary mb-2"></i>
+                            <h6>Share Photos</h6>
+                            <small class="text-muted">Beautiful moments</small>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                            <h6>Stories</h6>
+                            <small class="text-muted">24-hour updates</small>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-comments fa-2x text-primary mb-2"></i>
+                            <h6>Messages</h6>
+                            <small class="text-muted">Real-time chat</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right side - Auth forms -->
+            <div class="col-lg-6 d-flex align-items-center justify-content-center">
+                <div class="card shadow-lg border-0" style="max-width: 400px; width: 100%;">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h3 class="fw-bold">Get Started</h3>
+                            <p class="text-muted">Join millions of users sharing their stories</p>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="/Identity/Account/Register" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Sign Up
+                            </a>
+                            <a href="/Identity/Account/Login" class="btn btn-outline-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Log In
+                            </a>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Already have friends on Snapstagram? 
+                                <a href="/Identity/Account/Login" class="text-primary text-decoration-none">Log in</a> 
+                                to see their latest updates.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features section -->
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h2 class="fw-bold">Why Choose Snapstagram?</h2>
+                    <p class="text-muted">Experience the best social media features in one place</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-heart fa-3x text-danger mb-3"></i>
+                            <h5>Express Yourself</h5>
+                            <p class="text-muted">Share your favorite moments with beautiful photos and engaging captions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                            <h5>Stories That Disappear</h5>
+                            <p class="text-muted">Share quick updates that vanish after 24 hours, just like real conversations</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-users fa-3x text-success mb-3"></i>
+                            <h5>Stay Connected</h5>
+                            <p class="text-muted">Chat with friends in real-time and never miss important moments</p>
+                        </div>
+                    </div>            </div>
+        </div>
+    </div>
 </div>

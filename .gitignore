@@ -6,8 +6,26 @@
 bin/
 obj/
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE files
+.vs/
+.vscode/
+
 # Common node modules locations
 /node_modules
 /wwwroot/node_modules
+
+# Upload folders (user content)
+/wwwroot/uploads/
 
 # End of https://www.toptal.com/developers/gitignore/api/dotnetcore
