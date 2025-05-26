@@ -1,0 +1,9 @@
+@page
+@model LoginModel
+<form method="post">
+    <input asp-for="Email" placeholder="Email" />
+    <input asp-for="Password" type="password" placeholder="Password" />
+    <input asp-for="RememberMe" type="checkbox" /> Remember me
+    <button type="submit">Login</button>
+    <span>@Model.ErrorMessage</span>
+</form>
