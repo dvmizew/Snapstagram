@@ -4,6 +4,8 @@
     ViewData["Title"] = Model.ProfileUser?.DisplayName ?? "Profile";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="container mt-4">
     <div class="row">
         <!-- Profile Header -->
@@ -33,10 +35,10 @@
                                 <h2 class="mb-0 me-3">@@(Model.ProfileUser?.UserName)</h2>
                                 @if (Model.IsOwnProfile)
                                 {
-                                    <button type="button" class="btn btn-outline-primary btn-sm me-2" data-bs-toggle="collapse" data-bs-target="#editProfileSection">
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="openEditProfileModal()">
                                         <i class="fas fa-edit me-1"></i>Edit Profile
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#profileImageModal">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openProfileImageModal()">
                                         <i class="fas fa-camera me-1"></i>Change Photo
                                     </button>
                                 }
@@ -60,12 +62,12 @@
                                     <strong>@Model.PostsCount</strong> posts
                                 </div>
                                 <div class="me-4">
-                                    <a href="#" class="text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#followersModal">
+                                    <a href="#" class="text-decoration-none text-dark" onclick="openFollowersModal()">
                                         <strong>@Model.FollowersCount</strong> followers
                                     </a>
                                 </div>
                                 <div>
-                                    <a href="#" class="text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#followingModal">
+                                    <a href="#" class="text-decoration-none text-dark" onclick="openFollowingModal()">
                                         <strong>@Model.FollowingCount</strong> following
                                     </a>
                                 </div>
@@ -91,165 +93,26 @@
         </div>
     </div>
 
-    <!-- Edit Profile Section (Collapsible) -->
+    <!-- Settings Modal Buttons for Own Profile -->
     @if (Model.IsOwnProfile)
     {
         <div class="row mt-4">
             <div class="col-12">
-                <div class="collapse" id="editProfileSection">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-user me-2"></i>Edit Profile</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (!string.IsNullOrEmpty(Model.Message))
-                            {
-                                <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
-                                    @Model.Message
-                                </div>
-                            }
-
-                            <form method="post" asp-page-handler="UpdateProfile">
-                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label asp-for="Username" class="form-label"></label>
-                                        <input asp-for="Username" class="form-control" readonly />
-                                        <small class="form-text text-muted">Username cannot be changed.</small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label asp-for="Email" class="form-label"></label>
-                                        <input asp-for="Email" class="form-control" readonly />
-                                        <small class="form-text text-muted">Email cannot be changed.</small>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="DisplayName" class="form-label"></label>
-                                    <input asp-for="DisplayName" class="form-control" />
-                                    <span asp-validation-for="DisplayName" class="text-danger"></span>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="Bio" class="form-label"></label>
-                                    <textarea asp-for="Bio" class="form-control" rows="3" placeholder="Tell us about yourself..." maxlength="500"></textarea>
-                                    <span asp-validation-for="Bio" class="text-danger"></span>
-                                    <small class="form-text text-muted">
-                                        <span id="bioCount">@(Model.Bio?.Length ?? 0)</span>/500 characters
-                                    </small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input asp-for="IsPrivate" class="form-check-input" type="checkbox" />
-                                        <label asp-for="IsPrivate" class="form-check-label">
-                                            Private Account
-                                        </label>
-                                    </div>
-                                    <small class="form-text text-muted">
-                                        When your account is private, only people you approve can see your photos and videos.
-                                    </small>
-                                </div>
-
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-2"></i>Save Changes
-                                    </button>
-                                </div>
-                            </form>
-
-                            <!-- Additional Settings Accordion -->
-                            <div class="accordion mt-4" id="settingsAccordion">
-                                <!-- Change Password -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#changePasswordSection">
-                                            <i class="fas fa-lock me-2"></i>Change Password
-                                        </button>
-                                    </h2>
-                                    <div id="changePasswordSection" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
-                                        <div class="accordion-body">
-                                            <form method="post" asp-page-handler="ChangePassword">
-                                                <div class="mb-3">
-                                                    <label asp-for="CurrentPassword" class="form-label"></label>
-                                                    <input asp-for="CurrentPassword" class="form-control" type="password" />
-                                                    <span asp-validation-for="CurrentPassword" class="text-danger"></span>
-                                                </div>
-
-                                                <div class="mb-3">
-                                                    <label asp-for="NewPassword" class="form-label"></label>
-                                                    <input asp-for="NewPassword" class="form-control" type="password" />
-                                                    <span asp-validation-for="NewPassword" class="text-danger"></span>
-                                                </div>
-
-                                                <div class="mb-3">
-                                                    <label asp-for="ConfirmNewPassword" class="form-label"></label>
-                                                    <input asp-for="ConfirmNewPassword" class="form-control" type="password" />
-                                                    <span asp-validation-for="ConfirmNewPassword" class="text-danger"></span>
-                                                </div>
-
-                                                <div class="d-grid">
-                                                    <button type="submit" class="btn btn-warning">
-                                                        <i class="fas fa-key me-2"></i>Change Password
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Data Export -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dataExportSection">
-                                            <i class="fas fa-download me-2"></i>Download Data
-                                        </button>
-                                    </h2>
-                                    <div id="dataExportSection" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
-                                        <div class="accordion-body">
-                                            <p class="text-muted mb-3">
-                                                Download a copy of all your data including profile information, posts, followers, and following lists.
-                                            </p>
-                                            <form method="post" asp-page-handler="DownloadData">
-                                                <div class="d-grid">
-                                                    <button type="submit" class="btn btn-info">
-                                                        <i class="fas fa-download me-2"></i>Download My Data
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Delete Account -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#deleteAccountSection">
-                                            <i class="fas fa-trash me-2"></i>Delete Account
-                                        </button>
-                                    </h2>
-                                    <div id="deleteAccountSection" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
-                                        <div class="accordion-body">
-                                            <div class="alert alert-danger">
-                                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
-                                                <p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>
-                                            </div>
-                                            <form method="post" asp-page-handler="DeleteAccount" onsubmit="return confirmAccountDeletion()">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Confirm your password to delete account:</label>
-                                                    <input type="password" name="confirmPassword" class="form-control" required />
-                                                </div>
-                                                <div class="d-grid">
-                                                    <button type="submit" class="btn btn-danger">
-                                                        <i class="fas fa-trash me-2"></i>Delete My Account
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-cog me-2"></i>Account Settings
+                        </h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openChangePasswordModal()">
+                                <i class="fas fa-lock me-1"></i>Change Password
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="openDataExportModal()">
+                                <i class="fas fa-download me-1"></i>Download Data
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="openDeleteAccountModal()">
+                                <i class="fas fa-trash me-1"></i>Delete Account
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -330,201 +193,17 @@
     </div>
 </div>
 
-<!-- Profile Image Upload Modal -->
-@if (Model.IsOwnProfile)
-{
-    <div class="modal fade" id="profileImageModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Change Profile Photo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="post" asp-page-handler="UploadProfileImage" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Choose a new profile picture:</label>
-                            <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
-                            <small class="form-text text-muted">
-                                Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
-                            </small>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-upload me-2"></i>Upload Photo
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
-<!-- Followers Modal -->
-<div class="modal fade" id="followersModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Followers</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-                <div id="followersList"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Following Modal -->
-<div class="modal fade" id="followingModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Following</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-                <div id="followingList"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Profile Image Upload Modal -->
-@if (Model.IsOwnProfile)
-{
-    <div class="modal fade" id="profileImageModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Change Profile Photo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="post" asp-page-handler="UploadProfileImage" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Choose a new profile picture:</label>
-                            <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
-                            <small class="form-text text-muted">
-                                Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
-                            </small>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-upload me-2"></i>Upload
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Post Detail Modal -->
-<div class="modal fade" id="postModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-body p-0">
-                <div class="row g-0">
-                    <div class="col-md-8">
-                        <div id="postMediaContainer" class="d-flex align-items-center justify-content-center bg-black" style="height: 600px;">
-                            <!-- Post media will be loaded here -->
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex flex-column h-100">
-                            <!-- Post Header -->
-                            <div class="border-bottom p-3">
-                                <div class="d-flex align-items-center">
-                                    <img id="postUserAvatar" src="" alt="" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
-                                    <div class="flex-grow-1">
-                                        <h6 id="postUserName" class="mb-0 fw-semibold"></h6>
-                                        <small id="postTime" class="text-muted"></small>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                            </div>
-                            
-                            <!-- Post Caption -->
-                            <div class="p-3 border-bottom">
-                                <div class="d-flex align-items-start">
-                                    <img id="postCaptionAvatar" src="" alt="" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
-                                    <div>
-                                        <span id="postCaptionUser" class="fw-semibold"></span>
-                                        <span id="postCaption" class="ms-2"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Comments -->
-                            <div class="flex-grow-1 overflow-auto p-3" id="postComments" style="max-height: 400px;">
-                                <!-- Comments will be loaded here -->
-                            </div>
-                            
-                            <!-- Post Actions -->
-                            <div class="border-top p-3">
-                                <div class="d-flex justify-content-between mb-3">
-                                    <div class="d-flex gap-3">
-                                        <button id="postLikeBtn" class="btn p-0 border-0 bg-transparent fs-5" onclick="togglePostLike()">
-                                            <i class="far fa-heart"></i>
-                                        </button>
-                                        <button class="btn p-0 border-0 bg-transparent fs-5" onclick="focusPostComment()">
-                                            <i class="far fa-comment"></i>
-                                        </button>
-                                        <button class="btn p-0 border-0 bg-transparent fs-5" onclick="sharePostModal()">
-                                            <i class="far fa-paper-plane"></i>
-                                        </button>
-                                    </div>
-                                    <button id="postBookmarkBtn" class="btn p-0 border-0 bg-transparent fs-5" onclick="togglePostBookmark()">
-                                        <i class="far fa-bookmark"></i>
-                                    </button>
-                                </div>
-                                
-                                <div class="mb-2">
-                                    <span id="postLikesCount" class="fw-semibold">0</span> likes
-                                </div>
-                                
-                                <!-- Add Comment -->
-                                <div class="d-flex">
-                                    <input type="text" id="postCommentInput" class="form-control border-0 bg-transparent" placeholder="Add a comment..." style="outline: none; box-shadow: none;">
-                                    <button id="postCommentSubmit" class="btn btn-link text-primary p-0 ms-2" onclick="addPostComment()" disabled>Post</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 @section Scripts {
     <script>
         let currentPostId = null;
         
-        // Bio character counter
-        $('#Bio').on('input', function() {
-            const count = $(this).val().length;
-            $('#bioCount').text(count);
-        });
-
-        // Account deletion confirmation
         function confirmAccountDeletion() {
             return confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.');
         }
-        
-        // Load followers
-        $('#followersModal').on('show.bs.modal', function () {
-            loadUserList('followers', '@Model.ProfileUser?.Id', '#followersList');
-        });
-
-        // Load following
-        $('#followingModal').on('show.bs.modal', function () {
-            loadUserList('following', '@Model.ProfileUser?.Id', '#followingList');
-        });
 
         function loadUserList(type, userId, container) {
             fetch(`/api/profile/${type}/${userId}`)
@@ -601,7 +280,6 @@
                 });
         });
 
-        // Post Modal Functions
         async function openPostModal(postId) {
             currentPostId = postId;
             
@@ -610,51 +288,105 @@
                 if (response.ok) {
                     const post = await response.json();
                     loadPostIntoModal(post);
-                    $('#postModal').modal('show');
                 } else {
-                    console.error('Failed to load post details');
+                    showAlert({ message: 'Failed to load post details' });
                 }
             } catch (error) {
                 console.error('Error loading post:', error);
+                showAlert({ message: 'Error loading post' });
             }
         }
 
         function loadPostIntoModal(post) {
-            // Load media
-            const mediaContainer = document.getElementById('postMediaContainer');
-            if (post.videoUrl) {
-                mediaContainer.innerHTML = `
-                    <video controls class="w-100 h-100" style="object-fit: contain;">
-                        <source src="${post.videoUrl}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                `;
-            } else {
-                mediaContainer.innerHTML = `
-                    <img src="${post.imageUrl}" alt="Post" class="w-100 h-100" style="object-fit: contain;">
-                `;
-            }
-            
-            // Load user info
-            document.getElementById('postUserAvatar').src = post.user.profileImageUrl || '/images/default-avatar.svg';
-            document.getElementById('postUserName').textContent = post.user.displayName;
-            document.getElementById('postTime').textContent = getRelativeTime(new Date(post.createdAt));
-            
-            // Load caption
-            document.getElementById('postCaptionAvatar').src = post.user.profileImageUrl || '/images/default-avatar.svg';
-            document.getElementById('postCaptionUser').textContent = post.user.displayName;
-            document.getElementById('postCaption').textContent = post.caption || '';
-            
-            // Load stats
-            document.getElementById('postLikesCount').textContent = post.likesCount;
-            
-            // Update like button
-            const likeBtn = document.getElementById('postLikeBtn');
-            likeBtn.className = post.isLiked ? 'btn p-0 border-0 bg-transparent fs-5 text-danger' : 'btn p-0 border-0 bg-transparent fs-5';
-            likeBtn.querySelector('i').className = post.isLiked ? 'fas fa-heart' : 'far fa-heart';
-            
-            // Load comments
+            const mediaContent = post.videoUrl ? 
+                `<video controls class="w-100 h-100" style="object-fit: contain;">
+                    <source src="${post.videoUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>` :
+                `<img src="${post.imageUrl}" alt="Post" class="w-100 h-100" style="object-fit: contain;">`;
+
+            const modalContent = `
+                <div class="row g-0">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center justify-content-center bg-black" style="height: 600px;">
+                            ${mediaContent}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column h-100">
+                            <div class="border-bottom p-3">
+                                <div class="d-flex align-items-center">
+                                    <img src="${post.user.profileImageUrl || '/images/default-avatar.svg'}" 
+                                         alt="${post.user.displayName}" 
+                                         class="rounded-circle me-3" 
+                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 fw-semibold">${post.user.displayName}</h6>
+                                        <small class="text-muted">${getRelativeTime(new Date(post.createdAt))}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <img src="${post.user.profileImageUrl || '/images/default-avatar.svg'}" 
+                                         alt="${post.user.displayName}" 
+                                         class="rounded-circle me-3" 
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                    <div>
+                                        <span class="fw-semibold">${post.user.displayName}</span>
+                                        <span class="ms-2">${post.caption || ''}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-grow-1 overflow-auto p-3" id="postComments" style="max-height: 400px;">
+                            </div>
+                            
+                            <div class="border-top p-3">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex gap-3">
+                                        <button class="btn p-0 border-0 bg-transparent fs-5 ${post.isLiked ? 'text-danger' : ''}" onclick="togglePostLike()">
+                                            <i class="${post.isLiked ? 'fas' : 'far'} fa-heart"></i>
+                                        </button>
+                                        <button class="btn p-0 border-0 bg-transparent fs-5" onclick="focusPostComment()">
+                                            <i class="far fa-comment"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <span id="postLikesCount" class="fw-semibold">${post.likesCount}</span> likes
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <input type="text" id="postCommentInput" class="form-control border-0 bg-transparent" placeholder="Add a comment..." style="outline: none; box-shadow: none;">
+                                    <button id="postCommentSubmit" class="btn btn-link text-primary p-0 ms-2" onclick="addPostComment()" disabled>Post</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.show({
+                title: '',
+                body: modalContent,
+                footer: '',
+                size: 'extra-large',
+                closable: true
+            });
+
             loadPostComments(post.id);
+            
+            setTimeout(() => {
+                const commentInput = document.getElementById('postCommentInput');
+                const submitBtn = document.getElementById('postCommentSubmit');
+                
+                commentInput.addEventListener('input', function() {
+                    submitBtn.disabled = !this.value.trim();
+                });
+            }, 100);
         }
 
         async function loadPostComments(postId) {
@@ -814,6 +546,339 @@
                 }
             }
         });
+
+        window.openFollowersModal = function() {
+            modal.show({
+                title: 'Followers',
+                body: '<div id="followersList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
+                footer: '',
+                size: 'default'
+            });
+            
+            loadUserList('followers', '@Model.ProfileUser?.Id', '#followersList');
+        };
+
+        window.openFollowingModal = function() {
+            modal.show({
+                title: 'Following',
+                body: '<div id="followingList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
+                footer: '',
+                size: 'default'
+            });
+            
+            loadUserList('following', '@Model.ProfileUser?.Id', '#followingList');
+        };
+
+        window.openProfileImageModal = function() {
+            const formContent = `
+                <form method="post" asp-page-handler="UploadProfileImage" enctype="multipart/form-data" id="profileImageForm">
+                    <div class="mb-3">
+                        <label class="form-label">Choose a new profile picture:</label>
+                        <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
+                        <small class="form-text text-muted">
+                            Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
+                        </small>
+                    </div>
+                </form>
+            `;
+
+            modal.show({
+                title: 'Change Profile Photo',
+                body: formContent,
+                footer: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitProfileImage()"><i class="fas fa-upload me-2"></i>Upload</button>
+                `,
+                size: 'default'
+            });
+        };
+
+        window.submitProfileImage = function() {
+            const form = document.getElementById('profileImageForm');
+            const formData = new FormData(form);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch(window.location.pathname + '?handler=UploadProfileImage', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    modal.hide();
+                    showNotification('Profile image updated successfully!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification('Error uploading image. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error uploading image. Please try again.', 'error');
+            });
+        };
+        window.openEditProfileModal = function() {
+            const formContent = `
+                <form method="post" class="edit-profile-form" id="editProfileForm">
+                    <div class="form-group mb-3">
+                        <label for="editDisplayName" class="form-label">Display Name</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="editDisplayName" 
+                               name="DisplayName" 
+                               value="@Model.DisplayName"
+                               maxlength="50">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="editBio" class="form-label">Bio</label>
+                        <textarea class="form-control" 
+                                  id="editBio" 
+                                  name="Bio" 
+                                  rows="3" 
+                                  maxlength="150" 
+                                  placeholder="Tell us about yourself...">@(Model.Bio ?? "")</textarea>
+                        <small class="form-text text-muted">
+                            <span id="bioCharCount">@(Model.Bio?.Length ?? 0)</span>/150 characters
+                        </small>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   class="form-check-input" 
+                                   id="editIsPrivate" 
+                                   name="IsPrivate" 
+                                   @(Model.IsPrivate ? "checked" : "")>
+                            <label class="form-check-label" for="editIsPrivate">
+                                Private Account
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                When your account is private, only people you approve can see your photos and videos.
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            `;
+
+            modal.show({
+                title: 'Edit Profile',
+                body: formContent,
+                footer: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitEditProfile()">Save Changes</button>
+                `,
+                size: 'default'
+            });
+
+            setTimeout(() => {
+                const bioInput = document.getElementById('editBio');
+                const charCount = document.getElementById('bioCharCount');
+                
+                bioInput.addEventListener('input', function() {
+                    const count = this.value.length;
+                    charCount.textContent = count;
+                    
+                    if (count > 140) {
+                        charCount.style.color = '#dc3545';
+                    } else if (count > 120) {
+                        charCount.style.color = '#ffc107';
+                    } else {
+                        charCount.style.color = '#6c757d';
+                    }
+                });
+            }, 100);
+        };
+
+        window.submitEditProfile = function() {
+            const form = document.getElementById('editProfileForm');
+            const formData = new FormData(form);
+            
+            const params = new URLSearchParams();
+            params.append('DisplayName', formData.get('DisplayName') || '');
+            params.append('Bio', formData.get('Bio') || '');
+            params.append('IsPrivate', formData.get('IsPrivate') ? 'true' : 'false');
+            params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch(window.location.pathname + '?handler=UpdateProfile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params
+            })
+            .then(response => {
+                if (response.ok) {
+                    modal.hide();
+                    showNotification('Profile updated successfully!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification('Error updating profile. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error updating profile. Please try again.', 'error');
+            });
+        };
+
+        window.openChangePasswordModal = function() {
+            const formContent = `
+                <form method="post" id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" name="CurrentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmNewPassword" name="ConfirmNewPassword" required>
+                    </div>
+                </form>
+            `;
+
+            modal.show({
+                title: 'Change Password',
+                body: formContent,
+                footer: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="submitChangePassword()">Change Password</button>
+                `,
+                size: 'default'
+            });
+        };
+
+        window.submitChangePassword = function() {
+            const form = document.getElementById('changePasswordForm');
+            const formData = new FormData(form);
+            
+            if (formData.get('NewPassword') !== formData.get('ConfirmNewPassword')) {
+                showNotification('New passwords do not match.', 'error');
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('CurrentPassword', formData.get('CurrentPassword'));
+            params.append('NewPassword', formData.get('NewPassword'));
+            params.append('ConfirmNewPassword', formData.get('ConfirmNewPassword'));
+            params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch(window.location.pathname + '?handler=ChangePassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params
+            })
+            .then(response => {
+                if (response.ok) {
+                    modal.hide();
+                    showNotification('Password changed successfully!', 'success');
+                } else {
+                    showNotification('Error changing password. Please check your current password.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error changing password. Please try again.', 'error');
+            });
+        };
+
+        window.openDataExportModal = function() {
+            modal.confirm({
+                title: 'Download Your Data',
+                message: 'This will download a copy of all your data including profile information, posts, followers, and following lists. This may take a few moments to prepare.',
+                confirmText: 'Download Data',
+                cancelText: 'Cancel',
+                confirmClass: 'btn-info',
+                onConfirm: function() {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = window.location.pathname + '?handler=DownloadData';
+                    
+                    const token = document.createElement('input');
+                    token.type = 'hidden';
+                    token.name = '__RequestVerificationToken';
+                    token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    form.appendChild(token);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                    
+                    showNotification('Preparing your data for download...', 'success');
+                }
+            });
+        };
+
+        window.openDeleteAccountModal = function() {
+            const formContent = `
+                <div class="alert alert-danger mb-3">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
+                    <p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>
+                </div>
+                <form id="deleteAccountForm">
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm your password to delete account:</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                </form>
+            `;
+
+            modal.show({
+                title: 'Delete Account',
+                body: formContent,
+                footer: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="submitDeleteAccount()">Delete My Account</button>
+                `,
+                size: 'default'
+            });
+        };
+
+        window.submitDeleteAccount = function() {
+            const password = document.getElementById('confirmPassword').value;
+            
+            if (!password) {
+                showNotification('Please enter your password to confirm account deletion.', 'error');
+                return;
+            }
+
+            modal.confirm({
+                title: 'Final Confirmation',
+                message: 'Are you absolutely sure? This will permanently delete your account and cannot be undone.',
+                confirmText: 'Yes, Delete Forever',
+                cancelText: 'Cancel',
+                confirmClass: 'btn-danger',
+                onConfirm: function() {
+                    const params = new URLSearchParams();
+                    params.append('confirmPassword', password);
+                    params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                    fetch(window.location.pathname + '?handler=DeleteAccount', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: params
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            showNotification('Account deleted successfully. Redirecting...', 'success');
+                            setTimeout(() => window.location.href = '/', 2000);
+                        } else {
+                            showNotification('Error deleting account. Please check your password.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('Error deleting account. Please try again.', 'error');
+                    });
+                }
+            });
+        };
     </script>
 }
 
