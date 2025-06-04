@@ -61,6 +61,14 @@ public class RegisterModel : PageModel
             return Page();
         }
 
+        // Check if email already exists
+        var existingUserByEmail = await _userManager.FindByEmailAsync(Email);
+        if (existingUserByEmail != null)
+        {
+            ErrorMessage = "An account with this email already exists.";
+            return Page();
+        }
+
         var user = new User
         {
             UserName = Username,
