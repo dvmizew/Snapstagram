@@ -1,0 +1,23 @@
+@page
+@model LogoutModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Logout";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-logo">Snapstagram</h1>
+            <p class="auth-subtitle">You have been logged out successfully.</p>
+        </div>
+
+        <div class="auth-links">
+            <a asp-page="Login" class="btn btn-primary auth-btn">Log in again</a>
+        </div>
+    </div>
+
+    <div class="auth-switch">
+        <p>Don't have an account? <a asp-page="Register">Sign up</a></p>
+    </div>
+</div>
