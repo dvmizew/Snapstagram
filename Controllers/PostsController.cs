@@ -9,6 +9,38 @@ namespace Snapstagram.Controllers;
 [ApiController, Route("api/[controller]"), Authorize]
 public class PostsController(IPostService postService, UserManager<User> userManager) : ControllerBase
 {
+    [HttpGet("{postId}")]
+    public async Task<IActionResult> GetPost(int postId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var post = await postService.GetPostByIdAsync(postId);
+        if (post == null) return NotFound();
+
+        // Check if user has liked this post
+        var isLiked = await postService.HasUserLikedPostAsync(postId, user.Id);
+
+        return Ok(new
+        {
+            id = post.Id,
+            imageUrl = post.ImageUrl,
+            videoUrl = post.VideoUrl,
+            caption = post.Caption,
+            likesCount = post.LikesCount,
+            commentsCount = post.CommentsCount,
+            createdAt = post.CreatedAt,
+            isLiked = isLiked,
+            user = new
+            {
+                id = post.User.Id,
+                displayName = post.User.DisplayName,
+                userName = post.User.UserName,
+                profileImageUrl = post.User.ProfileImageUrl
+            }
+        });
+    }
+
     [HttpPost("{postId}/like")]
     public async Task<IActionResult> ToggleLike(int postId)
     {

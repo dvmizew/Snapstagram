@@ -23,6 +23,9 @@ body { padding-top: 60px; }
 .search-input { width: 100%; padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 40px; border: 1px solid var(--border-light); border-radius: var(--radius-lg); background: var(--bg-secondary); font-size: 14px; outline: none; transition: all 0.2s ease; }
 .search-input:focus { border-color: var(--primary-blue); background: var(--bg-primary); box-shadow: 0 0 0 3px rgba(24,119,242,.1); }
 .search-icon { position: absolute; left: var(--spacing-md); top: 50%; transform: translateY(-50%); color: var(--text-tertiary); font-size: 14px; }
+.search-results { background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-lg); box-shadow: var(--shadow-medium); margin-top: 4px; overflow: hidden; }
+.search-results a:hover { background: var(--bg-secondary); }
+.search-results a:last-child { border-bottom: none; }
 .nav-right { flex: 1; display: flex; justify-content: flex-end; }
 .nav-icons { display: flex; align-items: center; gap: var(--spacing-md); }
 .nav-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-full); color: var(--text-primary); text-decoration: none; transition: all 0.2s ease; font-size: 18px; }
@@ -276,6 +279,89 @@ body { padding-top: 60px; }
   
   .stat-number {
     font-size: 18px;
+  }
+  
+  /* Profile page mobile optimizations */
+  .nav-center {
+    display: none;
+  }
+  
+  .nav-icons {
+    gap: var(--spacing-sm);
+  }
+  
+  .nav-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  .main-container {
+    padding: var(--spacing-sm);
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .sidebar-left,
+  .sidebar-right {
+    display: none;
+  }
+  
+  /* Profile view mobile */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-md);
+  }
+  
+  .profile-image-container {
+    margin: 0 auto;
+  }
+  
+  .profile-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .profile-actions .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  /* Post grid mobile */
+  .post-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  
+  .post-thumbnail {
+    aspect-ratio: 1;
+  }
+  
+  /* Modal mobile */
+  .modal-xl .modal-dialog {
+    max-width: 100%;
+    margin: 0;
+    height: 100vh;
+  }
+  
+  .modal-xl .modal-content {
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  /* Settings page mobile */
+  .settings-container {
+    padding: var(--spacing-sm);
+  }
+  
+  .settings-nav {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .settings-content {
+    padding: var(--spacing-md);
   }
 }
 
