@@ -11,6 +11,7 @@ public interface IPostService
     Task<Post> CreatePostAsync(string userId, string imageUrl, string caption, string? videoUrl = null);
     Task<bool> ToggleLikeAsync(int postId, string userId);
     Task<Comment> AddCommentAsync(int postId, string userId, string text);
+    Task<bool> HasUserLikedPostAsync(int postId, string userId);
 }
 
 public class PostService(ApplicationDbContext context) : IPostService
@@ -92,5 +93,11 @@ public class PostService(ApplicationDbContext context) : IPostService
 
         await context.SaveChangesAsync();
         return comment;
+    }
+
+    public async Task<bool> HasUserLikedPostAsync(int postId, string userId)
+    {
+        return await context.Likes
+            .AnyAsync(l => l.PostId == postId && l.UserId == userId);
     }
 }

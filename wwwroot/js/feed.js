@@ -371,11 +371,6 @@ const toggleBookmark = async (postId) => {
     }
 };
 
-const getDefaultAvatar = (name) => {
-    const initial = name ? name[0].toUpperCase() : 'U';
-    return `https://via.placeholder.com/40x40/6c757d/ffffff?text=${initial}`;
-};
-
 function getRelativeTime(date) {
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
