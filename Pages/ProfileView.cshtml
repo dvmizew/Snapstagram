@@ -24,7 +24,7 @@
                                     <button type="button" class="btn btn-sm btn-primary position-absolute" 
                                             style="bottom: 0; right: 0; border-radius: 50%; width: 30px; height: 30px;"
                                             title="Change profile image"
-                                            data-bs-toggle="modal" data-bs-target="#profileImageModal">
+                                            onclick="openProfileImageModal()">
                                         <i class="fas fa-camera" style="font-size: 12px;"></i>
                                     </button>
                                 }
@@ -200,10 +200,7 @@
 @section Scripts {
     <script>
         let currentPostId = null;
-        
-        function confirmAccountDeletion() {
-            return confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.');
-        }
+        let currentPage = 1;
 
         function loadUserList(type, userId, container) {
             fetch(`/api/profile/${type}/${userId}`)
@@ -233,7 +230,6 @@
         }
 
         // Load more posts
-        let currentPage = 1;
         $('#loadMorePosts').click(function() {
             const button = $(this);
             button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Loading...');
@@ -346,7 +342,7 @@
                             <div class="border-top p-3">
                                 <div class="d-flex justify-content-between mb-3">
                                     <div class="d-flex gap-3">
-                                        <button class="btn p-0 border-0 bg-transparent fs-5 ${post.isLiked ? 'text-danger' : ''}" onclick="togglePostLike()">
+                                        <button id="postLikeBtn" class="btn p-0 border-0 bg-transparent fs-5 ${post.isLiked ? 'text-danger' : ''}" onclick="togglePostLike()">
                                             <i class="${post.isLiked ? 'fas' : 'far'} fa-heart"></i>
                                         </button>
                                         <button class="btn p-0 border-0 bg-transparent fs-5" onclick="focusPostComment()">
@@ -519,22 +515,17 @@
             }
         }
 
-        function getRelativeTime(date) {
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-            const diffMinutes = Math.floor(diffTime / (1000 * 60));
-            
-            if (diffDays > 0) return `${diffDays}d`;
-            if (diffHours > 0) return `${diffHours}h`;
-            if (diffMinutes > 0) return `${diffMinutes}m`;
-            return 'now';
-        }
-
         // Enable/disable comment submit button
-        document.getElementById('postCommentInput').addEventListener('input', function() {
-            document.getElementById('postCommentSubmit').disabled = !this.value.trim();
+        document.addEventListener('DOMContentLoaded', function() {
+            const commentInput = document.getElementById('postCommentInput');
+            if (commentInput) {
+                commentInput.addEventListener('input', function() {
+                    const submitBtn = document.getElementById('postCommentSubmit');
+                    if (submitBtn) {
+                        submitBtn.disabled = !this.value.trim();
+                    }
+                });
+            }
         });
 
         // Handle clicking on existing posts
@@ -547,338 +538,365 @@
             }
         });
 
-        window.openFollowersModal = function() {
-            modal.show({
-                title: 'Followers',
-                body: '<div id="followersList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
-                footer: '',
-                size: 'default'
-            });
-            
-            loadUserList('followers', '@Model.ProfileUser?.Id', '#followersList');
-        };
+        // Profile modal functions using centralized modal system
+        const ProfileModals = {
+            // Show followers list
+            showFollowers() {
+                modal.show({
+                    title: 'Followers',
+                    body: '<div id="followersList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
+                    footer: '<button type="button" class="btn btn-secondary" onclick="modal.hide()">Close</button>',
+                    size: 'default'
+                });
+                
+                loadUserList('followers', '@Model.ProfileUser?.Id', '#followersList');
+            },
 
-        window.openFollowingModal = function() {
-            modal.show({
-                title: 'Following',
-                body: '<div id="followingList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
-                footer: '',
-                size: 'default'
-            });
-            
-            loadUserList('following', '@Model.ProfileUser?.Id', '#followingList');
-        };
+            // Show following list
+            showFollowing() {
+                modal.show({
+                    title: 'Following',
+                    body: '<div id="followingList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
+                    footer: '<button type="button" class="btn btn-secondary" onclick="modal.hide()">Close</button>',
+                    size: 'default'
+                });
+                
+                loadUserList('following', '@Model.ProfileUser?.Id', '#followingList');
+            },
 
-        window.openProfileImageModal = function() {
-            const formContent = `
-                <form method="post" asp-page-handler="UploadProfileImage" enctype="multipart/form-data" id="profileImageForm">
-                    <div class="mb-3">
-                        <label class="form-label">Choose a new profile picture:</label>
-                        <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
-                        <small class="form-text text-muted">
-                            Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
-                        </small>
-                    </div>
-                </form>
-            `;
-
-            modal.show({
-                title: 'Change Profile Photo',
-                body: formContent,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitProfileImage()"><i class="fas fa-upload me-2"></i>Upload</button>
-                `,
-                size: 'default'
-            });
-        };
-
-        window.submitProfileImage = function() {
-            const form = document.getElementById('profileImageForm');
-            const formData = new FormData(form);
-            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-            fetch(window.location.pathname + '?handler=UploadProfileImage', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    modal.hide();
-                    showNotification('Profile image updated successfully!', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showNotification('Error uploading image. Please try again.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Error uploading image. Please try again.', 'error');
-            });
-        };
-        window.openEditProfileModal = function() {
-            const formContent = `
-                <form method="post" class="edit-profile-form" id="editProfileForm">
-                    <div class="form-group mb-3">
-                        <label for="editDisplayName" class="form-label">Display Name</label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="editDisplayName" 
-                               name="DisplayName" 
-                               value="@Model.DisplayName"
-                               maxlength="50">
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <label for="editBio" class="form-label">Bio</label>
-                        <textarea class="form-control" 
-                                  id="editBio" 
-                                  name="Bio" 
-                                  rows="3" 
-                                  maxlength="150" 
-                                  placeholder="Tell us about yourself...">@(Model.Bio ?? "")</textarea>
-                        <small class="form-text text-muted">
-                            <span id="bioCharCount">@(Model.Bio?.Length ?? 0)</span>/150 characters
-                        </small>
-                    </div>
-                    
-                    <div class="form-group mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" 
-                                   class="form-check-input" 
-                                   id="editIsPrivate" 
-                                   name="IsPrivate" 
-                                   @(Model.IsPrivate ? "checked" : "")>
-                            <label class="form-check-label" for="editIsPrivate">
-                                Private Account
-                            </label>
-                            <small class="form-text text-muted d-block">
-                                When your account is private, only people you approve can see your photos and videos.
+            // Show profile image upload modal
+            showProfileImageUpload() {
+                const formContent = `
+                    <form method="post" enctype="multipart/form-data" id="profileImageForm">
+                        <div class="mb-3">
+                            <label class="form-label">Choose a new profile picture:</label>
+                            <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
+                            <small class="form-text text-muted">
+                                Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
                             </small>
                         </div>
-                    </div>
-                </form>
-            `;
+                    </form>
+                `;
 
-            modal.show({
-                title: 'Edit Profile',
-                body: formContent,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitEditProfile()">Save Changes</button>
-                `,
-                size: 'default'
-            });
+                modal.form({
+                    title: 'Change Profile Photo',
+                    formContent: formContent,
+                    submitText: 'Upload',
+                    onSubmit: this.submitProfileImage
+                });
+            },
 
-            setTimeout(() => {
-                const bioInput = document.getElementById('editBio');
-                const charCount = document.getElementById('bioCharCount');
-                
-                bioInput.addEventListener('input', function() {
-                    const count = this.value.length;
-                    charCount.textContent = count;
-                    
-                    if (count > 140) {
-                        charCount.style.color = '#dc3545';
-                    } else if (count > 120) {
-                        charCount.style.color = '#ffc107';
+            // Submit profile image upload
+            submitProfileImage() {
+                const form = document.getElementById('profileImageForm');
+                const formData = new FormData(form);
+                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                return fetch(window.location.pathname + '?handler=UploadProfileImage', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('Profile image updated successfully!', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                        return true; // Close modal
                     } else {
-                        charCount.style.color = '#6c757d';
+                        showNotification('Error uploading image. Please try again.', 'error');
+                        return false; // Keep modal open
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error uploading image. Please try again.', 'error');
+                    return false; // Keep modal open
+                });
+            },
+
+            // Show edit profile modal
+            showEditProfile() {
+                const formContent = `
+                    <form method="post" class="edit-profile-form" id="editProfileForm">
+                        <div class="form-group mb-3">
+                            <label for="editDisplayName" class="form-label">Display Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="editDisplayName" 
+                                   name="DisplayName" 
+                                   value="@(Model.ProfileUser?.DisplayName ?? "")"
+                                   maxlength="50">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="editBio" class="form-label">Bio</label>
+                            <textarea class="form-control" 
+                                      id="editBio" 
+                                      name="Bio" 
+                                      rows="3" 
+                                      maxlength="150" 
+                                      placeholder="Tell us about yourself...">@(Model.ProfileUser?.Bio ?? "")</textarea>
+                            <small class="form-text text-muted">
+                                <span id="bioCharCount">@(Model.ProfileUser?.Bio?.Length ?? 0)</span>/150 characters
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       id="editIsPrivate" 
+                                       name="IsPrivate" 
+                                       @(Model.ProfileUser?.IsPrivate == true ? "checked" : "")>
+                                <label class="form-check-label" for="editIsPrivate">
+                                    Private Account
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    When your account is private, only people you approve can see your photos and videos.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+                modal.form({
+                    title: 'Edit Profile',
+                    formContent: formContent,
+                    submitText: 'Save Changes',
+                    onSubmit: this.submitEditProfile
+                });
+
+                // Add bio character counter after modal is shown
+                setTimeout(() => {
+                    const bioInput = document.getElementById('editBio');
+                    const charCount = document.getElementById('bioCharCount');
+                    
+                    if (bioInput && charCount) {
+                        bioInput.addEventListener('input', function() {
+                            const count = this.value.length;
+                            charCount.textContent = count;
+                            
+                            if (count > 140) {
+                                charCount.style.color = '#dc3545';
+                            } else if (count > 120) {
+                                charCount.style.color = '#ffc107';
+                            } else {
+                                charCount.style.color = '#6c757d';
+                            }
+                        });
+                    }
+                }, 100);
+            },
+
+            // Submit edit profile
+            submitEditProfile() {
+                const form = document.getElementById('editProfileForm');
+                const formData = new FormData(form);
+                
+                const params = new URLSearchParams();
+                params.append('DisplayName', formData.get('DisplayName') || '');
+                params.append('Bio', formData.get('Bio') || '');
+                params.append('IsPrivate', formData.get('IsPrivate') ? 'true' : 'false');
+                params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                return fetch(window.location.pathname + '?handler=UpdateProfile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('Profile updated successfully!', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                        return true; // Close modal
+                    } else {
+                        showNotification('Error updating profile. Please try again.', 'error');
+                        return false; // Keep modal open
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error updating profile. Please try again.', 'error');
+                    return false; // Keep modal open
+                });
+            },
+
+            // Show change password modal
+            showChangePassword() {
+                const formContent = `
+                    <form method="post" id="changePasswordForm">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="currentPassword" name="CurrentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirmNewPassword" name="ConfirmNewPassword" required>
+                        </div>
+                    </form>
+                `;
+
+                modal.form({
+                    title: 'Change Password',
+                    formContent: formContent,
+                    submitText: 'Change Password',
+                    onSubmit: this.submitChangePassword
+                });
+            },
+
+            // Submit change password
+            submitChangePassword() {
+                const form = document.getElementById('changePasswordForm');
+                const formData = new FormData(form);
+                
+                if (formData.get('NewPassword') !== formData.get('ConfirmNewPassword')) {
+                    showNotification('New passwords do not match.', 'error');
+                    return false; // Keep modal open
+                }
+
+                const params = new URLSearchParams();
+                params.append('CurrentPassword', formData.get('CurrentPassword'));
+                params.append('NewPassword', formData.get('NewPassword'));
+                params.append('ConfirmNewPassword', formData.get('ConfirmNewPassword'));
+                params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                return fetch(window.location.pathname + '?handler=ChangePassword', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('Password changed successfully!', 'success');
+                        return true; // Close modal
+                    } else {
+                        showNotification('Error changing password. Please check your current password.', 'error');
+                        return false; // Keep modal open
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error changing password. Please try again.', 'error');
+                    return false; // Keep modal open
+                });
+            },
+
+            // Show data export confirmation
+            showDataExport() {
+                modal.confirm({
+                    title: 'Download Your Data',
+                    message: 'This will download a copy of all your data including profile information, posts, followers, and following lists. This may take a few moments to prepare.',
+                    confirmText: 'Download Data',
+                    cancelText: 'Cancel',
+                    confirmClass: 'btn-info'
+                }).then(confirmed => {
+                    if (confirmed) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = window.location.pathname + '?handler=DownloadData';
+                        
+                        const token = document.createElement('input');
+                        token.type = 'hidden';
+                        token.name = '__RequestVerificationToken';
+                        token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                        form.appendChild(token);
+                        
+                        document.body.appendChild(form);
+                        form.submit();
+                        document.body.removeChild(form);
+                        
+                        showNotification('Preparing your data for download...', 'success');
                     }
                 });
-            }, 100);
-        };
+            },
 
-        window.submitEditProfile = function() {
-            const form = document.getElementById('editProfileForm');
-            const formData = new FormData(form);
-            
-            const params = new URLSearchParams();
-            params.append('DisplayName', formData.get('DisplayName') || '');
-            params.append('Bio', formData.get('Bio') || '');
-            params.append('IsPrivate', formData.get('IsPrivate') ? 'true' : 'false');
-            params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            // Show delete account modal
+            showDeleteAccount() {
+                const formContent = `
+                    <div class="alert alert-danger mb-3">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
+                        <p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>
+                    </div>
+                    <form id="deleteAccountForm">
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm your password to delete account:</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        </div>
+                    </form>
+                `;
 
-            fetch(window.location.pathname + '?handler=UpdateProfile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: params
-            })
-            .then(response => {
-                if (response.ok) {
-                    modal.hide();
-                    showNotification('Profile updated successfully!', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showNotification('Error updating profile. Please try again.', 'error');
+                modal.form({
+                    title: 'Delete Account',
+                    formContent: formContent,
+                    submitText: 'Delete My Account',
+                    onSubmit: this.submitDeleteAccount
+                });
+            },
+
+            // Submit delete account
+            submitDeleteAccount() {
+                const password = document.getElementById('confirmPassword').value;
+                
+                if (!password) {
+                    showNotification('Please enter your password to confirm account deletion.', 'error');
+                    return false; // Keep modal open
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Error updating profile. Please try again.', 'error');
-            });
-        };
 
-        window.openChangePasswordModal = function() {
-            const formContent = `
-                <form method="post" id="changePasswordForm">
-                    <div class="mb-3">
-                        <label for="currentPassword" class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="currentPassword" name="CurrentPassword" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPassword" class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6">
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirmNewPassword" name="ConfirmNewPassword" required>
-                    </div>
-                </form>
-            `;
+                return modal.confirm({
+                    title: 'Final Confirmation',
+                    message: 'Are you absolutely sure? This will permanently delete your account and cannot be undone.',
+                    confirmText: 'Yes, Delete Forever',
+                    cancelText: 'Cancel',
+                    confirmClass: 'btn-danger'
+                }).then(confirmed => {
+                    if (confirmed) {
+                        const params = new URLSearchParams();
+                        params.append('confirmPassword', password);
+                        params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
-            modal.show({
-                title: 'Change Password',
-                body: formContent,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-warning" onclick="submitChangePassword()">Change Password</button>
-                `,
-                size: 'default'
-            });
-        };
-
-        window.submitChangePassword = function() {
-            const form = document.getElementById('changePasswordForm');
-            const formData = new FormData(form);
-            
-            if (formData.get('NewPassword') !== formData.get('ConfirmNewPassword')) {
-                showNotification('New passwords do not match.', 'error');
-                return;
+                        return fetch(window.location.pathname + '?handler=DeleteAccount', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: params
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                showNotification('Account deleted successfully. Redirecting...', 'success');
+                                setTimeout(() => window.location.href = '/', 2000);
+                                return true; // Close modal
+                            } else {
+                                showNotification('Error deleting account. Please check your password.', 'error');
+                                return false; // Keep modal open
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showNotification('Error deleting account. Please try again.', 'error');
+                            return false; // Keep modal open
+                        });
+                    }
+                    return false; // Keep modal open if not confirmed
+                });
             }
-
-            const params = new URLSearchParams();
-            params.append('CurrentPassword', formData.get('CurrentPassword'));
-            params.append('NewPassword', formData.get('NewPassword'));
-            params.append('ConfirmNewPassword', formData.get('ConfirmNewPassword'));
-            params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-            fetch(window.location.pathname + '?handler=ChangePassword', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: params
-            })
-            .then(response => {
-                if (response.ok) {
-                    modal.hide();
-                    showNotification('Password changed successfully!', 'success');
-                } else {
-                    showNotification('Error changing password. Please check your current password.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Error changing password. Please try again.', 'error');
-            });
         };
 
-        window.openDataExportModal = function() {
-            modal.confirm({
-                title: 'Download Your Data',
-                message: 'This will download a copy of all your data including profile information, posts, followers, and following lists. This may take a few moments to prepare.',
-                confirmText: 'Download Data',
-                cancelText: 'Cancel',
-                confirmClass: 'btn-info',
-                onConfirm: function() {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = window.location.pathname + '?handler=DownloadData';
-                    
-                    const token = document.createElement('input');
-                    token.type = 'hidden';
-                    token.name = '__RequestVerificationToken';
-                    token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                    form.appendChild(token);
-                    
-                    document.body.appendChild(form);
-                    form.submit();
-                    document.body.removeChild(form);
-                    
-                    showNotification('Preparing your data for download...', 'success');
-                }
-            });
-        };
-
-        window.openDeleteAccountModal = function() {
-            const formContent = `
-                <div class="alert alert-danger mb-3">
-                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
-                    <p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>
-                </div>
-                <form id="deleteAccountForm">
-                    <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Confirm your password to delete account:</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                    </div>
-                </form>
-            `;
-
-            modal.show({
-                title: 'Delete Account',
-                body: formContent,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" onclick="submitDeleteAccount()">Delete My Account</button>
-                `,
-                size: 'default'
-            });
-        };
-
-        window.submitDeleteAccount = function() {
-            const password = document.getElementById('confirmPassword').value;
-            
-            if (!password) {
-                showNotification('Please enter your password to confirm account deletion.', 'error');
-                return;
-            }
-
-            modal.confirm({
-                title: 'Final Confirmation',
-                message: 'Are you absolutely sure? This will permanently delete your account and cannot be undone.',
-                confirmText: 'Yes, Delete Forever',
-                cancelText: 'Cancel',
-                confirmClass: 'btn-danger',
-                onConfirm: function() {
-                    const params = new URLSearchParams();
-                    params.append('confirmPassword', password);
-                    params.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-                    fetch(window.location.pathname + '?handler=DeleteAccount', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: params
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            showNotification('Account deleted successfully. Redirecting...', 'success');
-                            setTimeout(() => window.location.href = '/', 2000);
-                        } else {
-                            showNotification('Error deleting account. Please check your password.', 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showNotification('Error deleting account. Please try again.', 'error');
-                    });
-                }
-            });
-        };
+        // Global functions for backward compatibility
+        window.openFollowersModal = () => ProfileModals.showFollowers();
+        window.openFollowingModal = () => ProfileModals.showFollowing();
+        window.openProfileImageModal = () => ProfileModals.showProfileImageUpload();
+        window.openEditProfileModal = () => ProfileModals.showEditProfile();
+        window.openChangePasswordModal = () => ProfileModals.showChangePassword();
+        window.openDataExportModal = () => ProfileModals.showDataExport();
+        window.openDeleteAccountModal = () => ProfileModals.showDeleteAccount();
     </script>
 }
 

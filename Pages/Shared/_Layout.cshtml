@@ -48,6 +48,9 @@
                         <a href="/Explore" class="nav-icon" title="Explore">
                             <i class="fas fa-compass"></i>
                         </a>
+                        <a href="/ModalTest" class="nav-icon" title="Modal Test">
+                            <i class="fas fa-cog"></i>
+                        </a>
                         <div class="nav-icon notification-icon" title="Notifications">
                             <i class="fas fa-heart"></i>
                             <span class="notification-badge" id="likeNotifications" style="display: none;">0</span>
@@ -86,7 +89,7 @@
     </main>
 
     <!-- Modal Component -->
-    @await Html.PartialAsync("_GlobalModal")
+    @await Html.PartialAsync("_Modal")
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
