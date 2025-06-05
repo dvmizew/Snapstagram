@@ -1,0 +1,327 @@
+@page
+@model Snapstagram.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Account Settings";
+}
+
+<link rel="stylesheet" href="~/css/settings.css" asp-append-version="true" />
+
+<div class="container mt-4 settings-page">
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card settings-sidebar">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Settings</h5>
+                </div>
+                <div class="list-group list-group-flush settings-menu">
+                    <a href="?tab=general" class="list-group-item list-group-item-action @(Model.ActiveTab == "general" ? "active" : "")">
+                        <i class="fas fa-user me-2"></i>General
+                    </a>
+                    <a href="?tab=security" class="list-group-item list-group-item-action @(Model.ActiveTab == "security" ? "active" : "")">
+                        <i class="fas fa-lock me-2"></i>Security
+                    </a>
+                    <a href="?tab=notifications" class="list-group-item list-group-item-action @(Model.ActiveTab == "notifications" ? "active" : "")">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a href="?tab=privacy" class="list-group-item list-group-item-action @(Model.ActiveTab == "privacy" ? "active" : "")">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy
+                    </a>
+                    <a href="?tab=data" class="list-group-item list-group-item-action @(Model.ActiveTab == "data" ? "active" : "")">
+                        <i class="fas fa-download me-2"></i>Your Data
+                    </a>
+                    <a href="?tab=delete" class="list-group-item list-group-item-action text-danger @(Model.ActiveTab == "delete" ? "active" : "")">
+                        <i class="fas fa-trash me-2"></i>Delete Account
+                    </a>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a asp-page="/ProfileView" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Profile
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-9">
+            @if (!string.IsNullOrEmpty(Model.Message))
+            {
+                <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4" role="alert">
+                    @Model.Message
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- General Settings -->
+            <div class="card mb-4 @(Model.ActiveTab != "general" ? "d-none" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>General Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="UpdateProfile">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="mb-3 text-center">
+                                    <img src="@(Model.CurrentUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" 
+                                         alt="Profile" 
+                                         class="rounded-circle img-thumbnail mb-2" 
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                    <a asp-page="/ProfileView" class="d-block text-primary">
+                                        <i class="fas fa-camera me-1"></i>Change Photo
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="mb-3">
+                                    <label asp-for="DisplayName" class="form-label fw-bold">Display Name</label>
+                                    <input asp-for="DisplayName" class="form-control" />
+                                    <span asp-validation-for="DisplayName" class="text-danger"></span>
+                                    <div class="form-text">How your name appears across Snapstagram</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="Bio" class="form-label fw-bold">Bio</label>
+                                    <textarea asp-for="Bio" class="form-control" rows="3"></textarea>
+                                    <span asp-validation-for="Bio" class="text-danger"></span>
+                                    <div id="bioCounter" class="form-text">
+                                        <span id="bioCount">@(Model.Bio?.Length ?? 0)</span>/500 characters
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input asp-for="IsPrivate" class="form-check-input" />
+                                        <label asp-for="IsPrivate" class="form-check-label fw-bold">Private Account</label>
+                                        <div class="form-text">
+                                            When your account is private, only people you approve can see your photos and videos.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <hr class="my-4">
+                    <h6 class="mb-3">Account Information</h6>
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Username</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <span class="input-group-text">@@</span>
+                                <input type="text" class="form-control" value="@Model.Username" readonly>
+                            </div>
+                            <div class="form-text">Your username cannot be changed</div>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Email</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <input type="email" class="form-control" value="@Model.Email" id="emailInput" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="changeEmailBtn">
+                                    <i class="fas fa-pencil-alt"></i> Change
+                                </button>
+                            </div>
+                            <div class="form-text">We'll never share your email with anyone else</div>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Account Created</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" value="@Model.CurrentUser?.CreatedAt.ToString("MMMM d, yyyy")" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="card mb-4 @(Model.ActiveTab != "security" ? "d-none" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-lock me-2"></i>Security Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="ChangePassword">
+                        <h6 class="mb-3">Change Password</h6>
+                        <div class="mb-3">
+                            <label asp-for="CurrentPassword" class="form-label fw-bold">Current Password</label>
+                            <input asp-for="CurrentPassword" class="form-control" />
+                            <span asp-validation-for="CurrentPassword" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NewPassword" class="form-label fw-bold">New Password</label>
+                            <input asp-for="NewPassword" class="form-control" />
+                            <span asp-validation-for="NewPassword" class="text-danger"></span>
+                            <div class="form-text">Password must be at least 6 characters long</div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ConfirmNewPassword" class="form-label fw-bold">Confirm New Password</label>
+                            <input asp-for="ConfirmNewPassword" class="form-control" />
+                            <span asp-validation-for="ConfirmNewPassword" class="text-danger"></span>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-key me-2"></i>Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Notifications Settings -->
+            <div class="card mb-4 @(Model.ActiveTab != "notifications" ? "d-none" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notifications Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Notification settings are currently under development.
+                    </div>
+                    <form>
+                        <h6 class="mb-3">Email Notifications</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="emailLikes" checked>
+                            <label class="form-check-label" for="emailLikes">Likes on your posts</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="emailComments" checked>
+                            <label class="form-check-label" for="emailComments">Comments on your posts</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="emailFollows" checked>
+                            <label class="form-check-label" for="emailFollows">New followers</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="emailMessages">
+                            <label class="form-check-label" for="emailMessages">Direct messages</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="emailUpdates">
+                            <label class="form-check-label" for="emailUpdates">Snapstagram news and updates</label>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-primary" disabled>
+                                <i class="fas fa-save me-2"></i>Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Privacy Settings -->
+            <div class="card mb-4 @(Model.ActiveTab != "privacy" ? "d-none" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Privacy Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Additional privacy settings are under development.
+                    </div>
+                    <h6 class="mb-3">Account Privacy</h6>
+                    <form method="post" asp-page-handler="UpdateProfile">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsPrivate" class="form-check-input" />
+                                <label asp-for="IsPrivate" class="form-check-label fw-bold">Private Account</label>
+                                <div class="form-text">
+                                    When your account is private, only people you approve can see your photos and videos.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Privacy Settings
+                            </button>
+                        </div>
+                    </form>
+                    <hr class="my-4">
+                    <h6 class="mb-3">Activity Status</h6>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="activityStatus" checked disabled>
+                        <label class="form-check-label" for="activityStatus">Show Activity Status</label>
+                        <div class="form-text">Allow accounts you follow to see when you were last active</div>
+                    </div>
+                    <h6 class="mb-3">Story Sharing</h6>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="allowReshare" checked disabled>
+                        <label class="form-check-label" for="allowReshare">Allow Sharing</label>
+                        <div class="form-text">Let people share your stories</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Settings -->
+            <div class="card mb-4 @(Model.ActiveTab != "data" ? "d-none" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-download me-2"></i>Your Data</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Data Download</h6>
+                    <p>Download a copy of the information you've shared on Snapstagram. This includes your posts, comments, profile information, and more.</p>
+                    <form method="post" asp-page-handler="DownloadData" onsubmit="showDownloadingMessage()">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-cloud-download-alt me-2"></i>Download Your Data
+                        </button>
+                    </form>
+                    <div id="downloadingMessage" class="alert alert-info mt-3 d-none">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>Preparing your data for download. This might take a moment...</span>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <h6 class="mb-3">Data Storage</h6>
+                    <p>Here's what Snapstagram knows about you:</p>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Posts
+                            <span class="badge bg-primary rounded-pill">@Model.PostsCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Followers
+                            <span class="badge bg-primary rounded-pill">@Model.FollowersCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Following
+                            <span class="badge bg-primary rounded-pill">@Model.FollowingCount</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Delete Account -->
+            <div class="card mb-4 @(Model.ActiveTab != "delete" ? "d-none" : "")">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Delete Account</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-circle me-2"></i>Warning: This action cannot be undone</h6>
+                        <p class="mb-0">When you delete your account, your profile, photos, videos, comments, likes and followers will be permanently removed. This action cannot be reversed.</p>
+                    </div>
+                    <form method="post" asp-page-handler="DeleteAccount" onsubmit="return confirmDelete()">
+                        <div class="mb-3">
+                            <label asp-for="DeleteConfirmPassword" class="form-label fw-bold">Confirm your password</label>
+                            <input asp-for="DeleteConfirmPassword" class="form-control" />
+                            <span asp-validation-for="DeleteConfirmPassword" class="text-danger"></span>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirmDeleteCheck" required>
+                            <label class="form-check-label" for="confirmDeleteCheck">
+                                I understand that this will delete all my data and cannot be undone.
+                            </label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-2"></i>Delete My Account Permanently
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/settings.js" asp-append-version="true"></script>
+}
