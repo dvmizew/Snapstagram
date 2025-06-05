@@ -1,7 +1,3 @@
-// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Modal System
 class Modal {
     constructor() {
         this.modal = null;
@@ -19,7 +15,7 @@ class Modal {
     }
 
     init() {
-        // Initialize main modal elements
+        // initialize main modal elements
         this.modal = document.getElementById('appModal');
         this.modalDialog = document.getElementById('appModalDialog');
         this.modalHeader = document.getElementById('appModalHeader');
@@ -29,14 +25,13 @@ class Modal {
         this.modalClose = document.getElementById('appModalClose');
         this.modalLoader = document.getElementById('appModalLoader');
 
-        // Initialize confirm and alert modals
+        // initialize confirm and alert modals
         this.confirmModal = document.getElementById('confirmModal');
         this.alertModal = document.getElementById('alertModal');
 
         if (this.modal) {
             this.bootstrapModal = new bootstrap.Modal(this.modal);
             
-            // Add event listeners
             this.modal.addEventListener('hidden.bs.modal', () => {
                 this.reset();
             });
@@ -60,10 +55,10 @@ class Modal {
             loading = false
         } = options;
 
-        // Set modal properties
+        // set modal properties
         this.modalTitle.textContent = title;
         
-        // Handle loading state
+        // handle loading state
         if (loading) {
             this.showLoader();
             this.modalBody.innerHTML = '';
@@ -74,7 +69,7 @@ class Modal {
         
         this.modalFooter.innerHTML = footer;
 
-        // Configure modal dialog size and centering
+        // configure modal dialog size and centering
         this.modalDialog.className = 'modal-dialog';
         if (centered) this.modalDialog.classList.add('modal-dialog-centered');
         if (size === 'small') this.modalDialog.classList.add('modal-sm');
@@ -82,19 +77,19 @@ class Modal {
         else if (size === 'extra-large') this.modalDialog.classList.add('modal-xl');
         else if (size === 'fullscreen') this.modalDialog.classList.add('modal-fullscreen');
 
-        // Configure backdrop and keyboard
+        // configure backdrop and keyboard
         this.modal.setAttribute('data-bs-backdrop', backdrop ? 'true' : 'static');
         this.modal.setAttribute('data-bs-keyboard', keyboard.toString());
 
-        // Handle close button visibility
+        // handle close button visibility
         if (this.modalClose) {
             this.modalClose.style.display = closable ? 'block' : 'none';
         }
 
-        // Show/hide footer based on content
+        // show/hide footer based on content
         this.modalFooter.style.display = footer ? 'block' : 'none';
 
-        // Event handlers
+        // event handlers
         if (onShow) {
             this.modal.addEventListener('shown.bs.modal', onShow, { once: true });
         }
@@ -102,7 +97,7 @@ class Modal {
             this.modal.addEventListener('hidden.bs.modal', onHidden, { once: true });
         }
 
-        // Show the modal
+        // show the modal
         this.bootstrapModal.show();
         return this;
     }
@@ -139,7 +134,7 @@ class Modal {
     }
 
     reset() {
-        // Reset modal content
+        // reset modal content
         this.modalTitle.textContent = '';
         this.modalBody.innerHTML = '';
         this.modalFooter.innerHTML = '';
@@ -147,17 +142,17 @@ class Modal {
         this.modalFooter.style.display = 'block';
         this.hideLoader();
         
-        // Reset attributes
+        // reset attributes
         this.modal.setAttribute('data-bs-backdrop', 'true');
         this.modal.setAttribute('data-bs-keyboard', 'true');
         
-        // Show close button
+        // close button
         if (this.modalClose) {
             this.modalClose.style.display = 'block';
         }
     }
 
-    // Convenience methods for common modal types
+    // convenience methods for common modal types
     confirm(options = {}) {
         return new Promise((resolve) => {
             const {
@@ -172,7 +167,6 @@ class Modal {
             const confirmModalEl = this.confirmModal;
             const confirmModalInstance = new bootstrap.Modal(confirmModalEl);
 
-            // Set content
             document.getElementById('confirmModalLabel').textContent = title;
             document.getElementById('confirmModalBody').innerHTML = `
                 <div class="d-flex align-items-center">
@@ -181,7 +175,6 @@ class Modal {
                 </div>
             `;
 
-            // Update buttons
             const cancelBtn = document.getElementById('confirmCancelBtn');
             const confirmBtn = document.getElementById('confirmActionBtn');
             
@@ -189,7 +182,6 @@ class Modal {
             confirmBtn.textContent = confirmText;
             confirmBtn.className = `btn ${confirmClass}`;
 
-            // Event handlers
             const handleConfirm = () => {
                 confirmModalInstance.hide();
                 resolve(true);
@@ -229,7 +221,6 @@ class Modal {
             const alertModalEl = this.alertModal;
             const alertModalInstance = new bootstrap.Modal(alertModalEl);
 
-            // Set content
             document.getElementById('alertModalLabel').textContent = title;
             document.getElementById('alertModalBody').innerHTML = `
                 <div class="d-flex align-items-center">
@@ -238,12 +229,10 @@ class Modal {
                 </div>
             `;
 
-            // Update button
             const okBtn = document.getElementById('alertOkBtn');
             okBtn.textContent = buttonText;
             okBtn.className = `btn ${buttonClass}`;
 
-            // Event handler
             const handleOk = () => {
                 alertModalInstance.hide();
                 resolve();
@@ -281,7 +270,6 @@ class Modal {
             size
         });
 
-        // Add submit button handler
         setTimeout(() => {
             const submitBtn = document.getElementById('modalSubmitBtn');
             const cancelBtn = document.getElementById('modalCancelBtn');
@@ -375,7 +363,6 @@ class Modal {
         return this;
     }
 
-    // Loading modal
     showLoading(title = 'Loading...', message = 'Please wait...') {
         this.show({
             title,
@@ -396,7 +383,7 @@ class Modal {
     }
 }
 
-// Search functionality
+// search functionality
 function initializeSearch() {
     const searchInput = document.querySelector('.search-input');
     const searchContainer = document.querySelector('.search-container');
@@ -406,7 +393,6 @@ function initializeSearch() {
     let searchTimeout;
     let searchResults = null;
     
-    // Create search results dropdown
     const createSearchDropdown = () => {
         if (searchResults) return searchResults;
         
@@ -433,7 +419,7 @@ function initializeSearch() {
         return searchResults;
     };
     
-    // Search function
+    // search
     const performSearch = async (query) => {
         if (query.length < 2) {
             hideSearchResults();
@@ -451,7 +437,6 @@ function initializeSearch() {
         }
     };
     
-    // Display search results
     const displaySearchResults = (users) => {
         const dropdown = createSearchDropdown();
         
@@ -476,14 +461,12 @@ function initializeSearch() {
         dropdown.style.display = 'block';
     };
     
-    // Hide search results
     const hideSearchResults = () => {
         if (searchResults) {
             searchResults.style.display = 'none';
         }
     };
     
-    // Event listeners
     searchInput.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
         const query = e.target.value.trim();
@@ -499,14 +482,14 @@ function initializeSearch() {
         }
     });
     
-    // Hide results when clicking outside
+    // hide results when clicking outside
     document.addEventListener('click', (e) => {
         if (!searchContainer.contains(e.target)) {
             hideSearchResults();
         }
     });
     
-    // Handle keyboard navigation
+    // keyboard navigation
     searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             hideSearchResults();
@@ -515,7 +498,7 @@ function initializeSearch() {
     });
 }
 
-// Profile dropdown functionality
+// profile dropdown
 function initializeProfileDropdown() {
     const profileDropdown = document.querySelector('.profile-dropdown');
     if (!profileDropdown) return;
@@ -530,7 +513,7 @@ function initializeProfileDropdown() {
         dropdownMenu.classList.toggle('show');
     });
     
-    // Close dropdown when clicking outside
+    // close dropdown when clicking outside
     document.addEventListener('click', () => {
         dropdownMenu.classList.remove('show');
     });
@@ -547,7 +530,6 @@ function initializeNotifications() {
     }
 }
 
-// Utility functions
 const showNotification = (message, type = 'info') => {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -579,7 +561,6 @@ const showNotification = (message, type = 'info') => {
     }, 4000);
 };
 
-// Global utility to get relative time
 const getRelativeTime = (date) => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
@@ -593,21 +574,17 @@ const getRelativeTime = (date) => {
     return 'now';
 };
 
-// Global utility to get default avatar URL
 const getDefaultAvatar = (name) => {
     const initial = name ? name[0].toUpperCase() : 'U';
     return `https://via.placeholder.com/40x40/6c757d/ffffff?text=${initial}`;
 };
 
-// Initialize modal instance and make it globally accessible
 let modal;
 document.addEventListener('DOMContentLoaded', function() {
     modal = new Modal();
     
-    // Make modal globally accessible
     window.modal = modal;
     
-    // Add convenience methods to window for easy access
     window.showModal = (options) => modal.show(options);
     window.showConfirm = (options) => modal.confirm(options);
     window.showAlert = (options) => modal.alert(options);
@@ -615,12 +592,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showImageModal = (options) => modal.showImage(options);
     window.showLoadingModal = (title, message) => modal.showLoading(title, message);
     
-    // Export other utility functions
     window.showNotification = showNotification;
     window.getRelativeTime = getRelativeTime;
     window.getDefaultAvatar = getDefaultAvatar;
     
-    // Initialize other components
     initializeSearch();
     initializeProfileDropdown();
     initializeNotifications();
