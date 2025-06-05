@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Snapstagram.Models;
 using Snapstagram.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace Snapstagram.Controllers;
 
@@ -155,4 +156,213 @@ public class ProfileController : ControllerBase
             followingCount
         });
     }
+
+    [HttpPost("update")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _profileService.UpdateProfileAsync(
+                currentUser.Id, 
+                request.DisplayName, 
+                request.Bio, 
+                request.IsPrivate
+            );
+
+            if (result)
+            {
+                return Ok(new { message = "Profile updated successfully" });
+            }
+
+            return BadRequest(new { message = "Failed to update profile" });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating profile" });
+        }
+    }
+
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _userManager.ChangePasswordAsync(currentUser, request.CurrentPassword, request.NewPassword);
+            
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "Password changed successfully" });
+            }
+
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return BadRequest(new { message = "Failed to change password", errors });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while changing password" });
+        }
+    }
+
+    [HttpPost("update-image")]
+    public async Task<IActionResult> UpdateProfileImage([FromBody] UpdateProfileImageRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _profileService.UpdateProfileImageAsync(currentUser.Id, request.ProfileImageUrl);
+            
+            if (result)
+            {
+                return Ok(new { message = "Profile image updated successfully" });
+            }
+
+            return BadRequest(new { message = "Failed to update profile image" });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating profile image" });
+        }
+    }
+
+    [HttpPost("upload-image")]
+    public async Task<IActionResult> UploadProfileImage(IFormFile profileImage)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (profileImage == null || profileImage.Length == 0)
+        {
+            return BadRequest(new { message = "Please select an image file." });
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+        if (!allowedTypes.Contains(profileImage.ContentType.ToLower()))
+        {
+            return BadRequest(new { message = "Please upload a valid image file (JPEG, PNG, or GIF)." });
+        }
+
+        // Validate file size (5MB max)
+        if (profileImage.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest(new { message = "Image file must be smaller than 5MB." });
+        }
+
+        try
+        {
+            // Create uploads directory if it doesn't exist
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
+            Directory.CreateDirectory(uploadsPath);
+
+            // Delete old profile image if it exists and is not the default
+            if (!string.IsNullOrEmpty(currentUser.ProfileImageUrl) && 
+                !currentUser.ProfileImageUrl.Contains("default-avatar"))
+            {
+                var oldImagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", currentUser.ProfileImageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(oldImagePath))
+                {
+                    System.IO.File.Delete(oldImagePath);
+                }
+            }
+
+            // Generate unique filename
+            var fileExtension = Path.GetExtension(profileImage.FileName);
+            var fileName = $"{currentUser.Id}_{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            // Save the file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await profileImage.CopyToAsync(stream);
+            }
+
+            // Update user's profile image URL
+            var imageUrl = $"/uploads/profiles/{fileName}";
+            var success = await _profileService.UpdateProfileImageAsync(currentUser.Id, imageUrl);
+
+            if (success)
+            {
+                return Ok(new { 
+                    message = "Profile image updated successfully!", 
+                    imageUrl = imageUrl 
+                });
+            }
+            else
+            {
+                return BadRequest(new { message = "Failed to update profile image." });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while uploading the image.", error = ex.Message });
+        }
+    }
+}
+
+public class UpdateProfileRequest
+{
+    [Required]
+    [StringLength(50, MinimumLength = 1)]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string Bio { get; set; } = string.Empty;
+
+    public bool IsPrivate { get; set; }
+}
+
+public class ChangePasswordRequest
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 6)]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required]
+    [Compare("NewPassword")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class UpdateProfileImageRequest
+{
+    [Required]
+    [Url]
+    public string ProfileImageUrl { get; set; } = string.Empty;
 }
