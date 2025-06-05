@@ -17,79 +17,83 @@
             <div class="card profile-header-card animated-item">
                 <div class="card-body">
                     <div class="row align-items-center">
-                            <div class="col-auto">
-                                <div class="profile-image-container position-relative">
-                                    <div class="profile-pic-wrapper">
-                                        <img src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" 
-                                             alt="@(Model.ProfileUser?.DisplayName ?? "Profile")" 
-                                             class="profile-image">
-                                        @if (Model.IsOwnProfile)
-                                        {
-                                            <div class="edit-overlay" onclick="openProfileImageModal()">
-                                                <i class="fas fa-camera"></i>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        <div class="col">
-                            <div class="d-flex flex-column mb-3">
-                                <div class="d-flex align-items-center gap-3 mb-2">
-                                    <h1 class="profile-username mb-0">@(Model.ProfileUser?.UserName ?? "")</h1>
-                                    @if (Model.ProfileUser?.IsPrivate == true)
-                                    {
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-lock me-1"></i>Private
-                                        </span>
-                                    }
-                                </div>
-                                <h2 class="profile-displayname h4 mb-0 text-white">@(Model.ProfileUser?.DisplayName ?? "")</h2>
-                            </div>
-                             
-                            <div class="profile-actions mb-3">
+                        <div class="col-md-3 text-center">
+                            <div class="profile-pic-wrapper" data-user-id="@Model.ProfileUser?.Id">
                                 @if (Model.IsOwnProfile)
                                 {
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <button class="btn btn-outline-light btn-sm" onclick="openEditProfileModal()">
-                                            <i class="fas fa-edit me-2"></i>Edit Profile
-                                        </button>
+                                    <div class="edit-overlay" onclick="openProfileImageModal()">
+                                        <i class="fas fa-camera"></i>
                                     </div>
+                                }
+                                <img src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" 
+                                     alt="Profile Picture" 
+                                     class="profile-image">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="profile-info">
+                                <h2 class="profile-displayname" data-profile-displayname>@Model.ProfileUser?.DisplayName</h2>
+                                <p class="profile-username">@@@Model.ProfileUser?.UserName</p>
+                                @if (!string.IsNullOrEmpty(Model.ProfileUser?.Bio))
+                                {
+                                    <p class="profile-bio" data-profile-bio>@Model.ProfileUser.Bio</p>
+                                }
+                                @if (Model.ProfileUser?.IsPrivate == true)
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-lock me-1"></i>Private Account
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="profile-stats text-center">
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="stat-item">
+                                            <div class="fw-bold fs-5">@Model.PostsCount</div>
+                                            <div class="text-muted small">Posts</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-item" onclick="openFollowersModal()">
+                                            <a href="javascript:void(0)" class="text-decoration-none text-white">
+                                                <div class="fw-bold fs-5">@Model.FollowersCount</div>
+                                                <div class="text-muted small">Followers</div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-item" onclick="openFollowingModal()">
+                                            <a href="javascript:void(0)" class="text-decoration-none text-white">
+                                                <div class="fw-bold fs-5">@Model.FollowingCount</div>
+                                                <div class="text-muted small">Following</div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="profile-actions mt-3">
+                                @if (Model.IsOwnProfile)
+                                {
+                                    <button class="btn btn-outline-light me-2" onclick="openEditProfileModal()">
+                                        <i class="fas fa-edit me-2"></i>Edit Profile
+                                    </button>
+                                    <a href="/Settings" class="btn btn-outline-light">
+                                        <i class="fas fa-cog me-2"></i>Settings
+                                    </a>
                                 }
                                 else
                                 {
-                                    <form method="post" asp-page-handler="ToggleFollow" class="d-inline">
-                                        <input type="hidden" name="targetUserId" value="@Model.ProfileUser?.Id" />
-                                        <button type="submit" class="btn @(Model.IsFollowing ? "btn-outline-light" : "btn-primary") btn-sm">
+                                    <form method="post" asp-page-handler="ToggleFollow" asp-route-targetUserId="@Model.ProfileUser?.Id" class="d-inline">
+                                        <button type="submit" class="btn @(Model.IsFollowing ? "btn-outline-light" : "btn-light text-dark")">
                                             <i class="fas @(Model.IsFollowing ? "fa-user-minus" : "fa-user-plus") me-2"></i>
                                             @(Model.IsFollowing ? "Unfollow" : "Follow")
                                         </button>
                                     </form>
-                                }
-                            </div>
-                            
-                            <div class="profile-stats d-flex justify-content-start gap-4 mb-3">
-                                <div class="stat-item">
-                                    <span class="fw-bold text-white">@Model.PostsCount</span>
-                                    <span class="text-light">Posts</span>
-                                </div>
-                                <div class="stat-item">
-                                    <a href="#" onclick="openFollowersModal(); return false;" class="text-decoration-none text-white">
-                                        <span class="fw-bold">@Model.FollowersCount</span>
-                                        <span class="text-light">Followers</span>
-                                    </a>
-                                </div>
-                                <div class="stat-item">
-                                    <a href="#" onclick="openFollowingModal(); return false;" class="text-decoration-none text-white">
-                                        <span class="fw-bold">@Model.FollowingCount</span>
-                                        <span class="text-light">Following</span>
-                                    </a>
-                                </div>
-                            </div>
-                                
-                            <div class="profile-info">
-                                @if (!string.IsNullOrEmpty(Model.ProfileUser?.Bio))
-                                {
-                                    <p class="bio text-white mb-0">@Model.ProfileUser.Bio</p>
+                                    <button class="btn btn-outline-light ms-2">
+                                        <i class="fas fa-envelope me-2"></i>Message
+                                    </button>
                                 }
                             </div>
                         </div>
@@ -1078,6 +1082,111 @@
         window.openDataExportModal = () => ProfileModals.showDataExport();
         window.openDeleteAccountModal = () => ProfileModals.showDeleteAccount();
 
+        // Override the modal-integration.js function for this page to handle profile-specific image updates
+        const originalOpenProfileImageModal = window.openProfileImageModal;
+        window.openProfileImageModal = function() {
+            window.modal.show({
+                title: 'Update Profile Picture',
+                size: 'default',
+                body: `
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <img src="${document.querySelector('.profile-image')?.src || '/images/default-avatar.svg'}" 
+                                 alt="Current Profile" 
+                                 class="img-thumbnail rounded-circle" 
+                                 style="width: 150px; height: 150px; object-fit: cover;">
+                        </div>
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="profileImageInput" accept="image/*">
+                            <div class="form-text">Choose a JPG, PNG, or GIF file (max 5MB)</div>
+                        </div>
+                        <div id="imagePreview" style="display: none;">
+                            <img id="previewImg" class="img-thumbnail rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                        </div>
+                    </div>
+                `,
+                footer: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="uploadImageBtn" disabled>Update Picture</button>
+                `
+            });
+
+            setTimeout(() => {
+                const fileInput = document.getElementById('profileImageInput');
+                const previewContainer = document.getElementById('imagePreview');
+                const previewImg = document.getElementById('previewImg');
+                const uploadBtn = document.getElementById('uploadImageBtn');
+
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                        if (!allowedTypes.includes(file.type.toLowerCase())) {
+                            showNotification('Please select a valid image file (JPEG, PNG, or GIF)', 'error');
+                            return;
+                        }
+
+                        if (file.size > 5 * 1024 * 1024) {
+                            showNotification('Image file must be smaller than 5MB', 'error');
+                            return;
+                        }
+
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImg.src = e.target.result;
+                            previewContainer.style.display = 'block';
+                            uploadBtn.disabled = false;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                uploadBtn.addEventListener('click', async function() {
+                    const file = fileInput.files[0];
+                    if (!file) return;
+
+                    uploadBtn.disabled = true;
+                    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('profileImage', file);
+
+                        const response = await fetch('/api/profile/upload-image', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            }
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            showNotification('Profile image updated successfully!', 'success');
+                            window.modal.hide();
+                            
+                            // Update profile images on this specific page
+                            const newImageUrl = result.imageUrl + '?t=' + Date.now();
+                            const profileImages = document.querySelectorAll('.profile-image, .profile-pic-wrapper img, img[style*="width: 120px"]');
+                            profileImages.forEach(img => {
+                                img.src = newImageUrl;
+                            });
+                            
+                        } else {
+                            showNotification(result.message || 'Failed to update profile image', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        showNotification('Error uploading image', 'error');
+                    } finally {
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = 'Update Picture';
+                    }
+                });
+            }, 100);
+        };
+
         function getRelativeTime(date) {
             const now = new Date();
             const diff = now - date;
@@ -1189,28 +1298,30 @@
     /* Profile text styling */
     .profile-username {
         font-size: 1rem;
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.5rem;
         opacity: 0.9;
-        color: white !important;
+        color: rgba(255,255,255,0.9) !important;
     }
     
     .profile-displayname {
         font-weight: 600;
         font-size: 1.75rem;
         text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    .profile-email {
-        color: rgba(255,255,255,0.75) !important;
-        font-size: 0.85rem;
-    }
-
-    .profile-info .bio {
         color: white !important;
+        margin-bottom: 0.5rem;
     }
 
-    .profile-info .email {
-        color: rgba(255,255,255,0.75) !important;
+    .profile-bio {
+        color: rgba(255,255,255,0.9) !important;
+        font-size: 1rem;
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+    }
+
+    .profile-info .badge {
+        background-color: rgba(255,255,255,0.2) !important;
+        color: white !important;
+        border: 1px solid rgba(255,255,255,0.3);
     }
 
     /* Profile stats styling */

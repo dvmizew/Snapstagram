@@ -32,6 +32,19 @@ builder.Services.AddHostedService<NotificationCleanupService>();
 
 var app = builder.Build();
 
+// Ensure uploads directory exists
+var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+if (!Directory.Exists(uploadsDir))
+{
+    Directory.CreateDirectory(uploadsDir);
+}
+
+var profileImagesDir = Path.Combine(uploadsDir, "profile-images");
+if (!Directory.Exists(profileImagesDir))
+{
+    Directory.CreateDirectory(profileImagesDir);
+}
+
 // Pipeline
 if (!app.Environment.IsDevelopment()) 
     app.UseExceptionHandler("/Error").UseHsts();

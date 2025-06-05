@@ -1,4 +1,3 @@
-
 // Profile integration functions
 window.updateProfile = async function(data) {
     try {
@@ -167,13 +166,18 @@ window.openChangePasswordModal = function() {
 };
 
 window.openProfileImageModal = function() {
+    const currentImageSrc = document.querySelector('.profile-image')?.src || 
+                           document.querySelector('.profile-pic img')?.src ||
+                           document.querySelector('img[alt*="Profile"]')?.src ||
+                           '/images/default-avatar.svg';
+                           
     window.modal.show({
         title: 'Update Profile Picture',
         size: 'default',
         body: `
             <div class="text-center">
                 <div class="mb-3">
-                    <img src="${document.querySelector('.profile-image')?.src || '/images/default-avatar.svg'}" 
+                    <img src="${currentImageSrc}" 
                          alt="Current Profile" 
                          class="img-thumbnail rounded-circle" 
                          style="width: 150px; height: 150px; object-fit: cover;">
@@ -237,20 +241,102 @@ window.openProfileImageModal = function() {
                 // Create FormData for file upload
                 const formData = new FormData();
                 formData.append('profileImage', file);
-                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
-                const response = await fetch(window.location.pathname + '?handler=UploadProfileImage', {
+                console.log('Uploading profile image...');
+
+                const response = await fetch('/api/profile/upload-image', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
                 });
+
+                console.log('Upload response status:', response.status);
+                const result = await response.json();
+                console.log('Upload result:', result);
 
                 if (response.ok) {
                     window.showNotification('Profile image updated successfully!', 'success');
                     window.modal.hide();
-                    setTimeout(() => window.location.reload(), 1000);
+                    
+                    // Update all profile images on the page immediately
+                    const newImageUrl = result.imageUrl;
+                    const cacheBuster = '?t=' + Date.now();
+                    const newImageUrlWithCache = newImageUrl + cacheBuster;
+                    
+                    console.log('Updating profile images with new URL:', newImageUrlWithCache);
+                    
+                    // Find and update ALL images that could be profile images
+                    const allImages = document.querySelectorAll('img');
+                    let updatedCount = 0;
+                    
+                    allImages.forEach(img => {
+                        // Check if this looks like a profile image
+                        const isProfileImage = 
+                            img.classList.contains('profile-image') ||
+                            img.classList.contains('profile-pic') ||
+                            img.alt?.toLowerCase().includes('profile') ||
+                            img.src?.includes('profile') ||
+                            img.src?.includes('avatar') ||
+                            img.closest('.profile-pic-wrapper') ||
+                            img.closest('.profile-header-card') ||
+                            img.parentElement?.classList.contains('profile-pic-wrapper');
+                        
+                        if (isProfileImage) {
+                            console.log('Updating profile image:', img.src, '->', newImageUrlWithCache);
+                            img.src = newImageUrlWithCache;
+                            updatedCount++;
+                        }
+                    });
+                    
+                    console.log(`Updated ${updatedCount} profile images`);
+                    
+                    // Also specifically target known selectors
+                    const specificSelectors = [
+                        '.profile-image',
+                        '.profile-pic img',
+                        '.profile-pic-wrapper img',
+                        'img[alt*="Profile"]',
+                        'img[alt*="profile"]',
+                        '.profile-header-card img',
+                        '.nav-icon img',
+                        '.profile-icon img'
+                    ];
+                    
+                    specificSelectors.forEach(selector => {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(img => {
+                            console.log(`Updating via selector ${selector}:`, img.src, '->', newImageUrlWithCache);
+                            img.src = newImageUrlWithCache;
+                        });
+                    });
+                    
+                    // Force a refresh after a short delay to catch any lazy-loaded images
+                    setTimeout(() => {
+                        document.querySelectorAll('img').forEach(img => {
+                            if (img.src?.includes('profile') || img.src?.includes('avatar') || 
+                                img.alt?.toLowerCase().includes('profile')) {
+                                img.src = newImageUrlWithCache;
+                            }
+                        });
+                    }, 500);
+                    
+                    // Trigger a custom event for other components that might need to update
+                    window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
+                        detail: { imageUrl: newImageUrl } 
+                    }));
+                    
+                    // If no images were updated, reload the page as fallback
+                    if (updatedCount === 0) {
+                        console.log('No profile images found to update, reloading page...');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                    
                 } else {
-                    const result = await response.text();
-                    window.showNotification('Failed to update profile image', 'error');
+                    window.showNotification(result.message || 'Failed to update profile image', 'error');
                 }
             } catch (error) {
                 console.error('Upload error:', error);
