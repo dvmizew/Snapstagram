@@ -6,8 +6,10 @@ using Snapstagram.Models;
 using Snapstagram.Services;
 using System.ComponentModel.DataAnnotations;
 
-[Authorize]
-public class ProfileViewModel : PageModel
+namespace Snapstagram.Pages.Profile
+{
+    [Authorize]
+    public class ProfileViewModel : PageModel
 {
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
@@ -152,7 +154,7 @@ public class ProfileViewModel : PageModel
         
         // Redirect back to the profile
         var targetUser = await _profileService.GetUserProfileAsync(targetUserId);
-        return RedirectToPage("/ProfileView", new { username = targetUser?.UserName });
+        return RedirectToPage("/Profile/ProfileView", new { username = targetUser?.UserName });
     }
 
     public async Task<IActionResult> OnPostUpdateProfileAsync()
@@ -441,5 +443,5 @@ public class ProfileViewModel : PageModel
 
         return await OnGetAsync(null);
     }
-
+}
 }
