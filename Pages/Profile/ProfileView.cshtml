@@ -4,83 +4,95 @@
     ViewData["Title"] = Model.ProfileUser?.DisplayName ?? "Profile";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+
 @Html.AntiForgeryToken()
 
 <div class="container mt-4">
     <div class="row">
         <!-- Profile Header -->
         <div class="col-12">
-            <div class="card border-0 shadow-sm">
+            <div class="card profile-header-card animated-item">
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-auto">
-                            <div class="profile-image-container position-relative">
-                                <img src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" 
-                                     alt="@Model.ProfileUser?.DisplayName" 
-                                     class="rounded-circle profile-image"
-                                     style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #e9ecef;">
-                                @if (Model.IsOwnProfile)
-                                {
-                                    <button type="button" class="btn btn-sm btn-primary position-absolute" 
-                                            style="bottom: 0; right: 0; border-radius: 50%; width: 30px; height: 30px;"
-                                            title="Change profile image"
-                                            onclick="openProfileImageModal()">
-                                        <i class="fas fa-camera" style="font-size: 12px;"></i>
-                                    </button>
-                                }
+                            <div class="col-auto">
+                                <div class="profile-image-container position-relative">
+                                    <div class="profile-pic-wrapper">
+                                        <img src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" 
+                                             alt="@(Model.ProfileUser?.DisplayName ?? "Profile")" 
+                                             class="profile-image">
+                                        @if (Model.IsOwnProfile)
+                                        {
+                                            <div class="edit-overlay" onclick="openProfileImageModal()">
+                                                <i class="fas fa-camera"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                        </div>
                         <div class="col">
-                            <div class="d-flex align-items-center mb-3">
-                                <h2 class="mb-0 me-3">@@(Model.ProfileUser?.UserName)</h2>
+                            <div class="d-flex flex-column mb-3">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <h1 class="profile-username mb-0">@(Model.ProfileUser?.UserName ?? "")</h1>
+                                    @if (Model.ProfileUser?.IsPrivate == true)
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-lock me-1"></i>Private
+                                        </span>
+                                    }
+                                </div>
+                                <h2 class="profile-displayname h4 mb-0 text-white">@(Model.ProfileUser?.DisplayName ?? "")</h2>
+                            </div>
+                            
+                            <div class="profile-actions mb-3">
                                 @if (Model.IsOwnProfile)
                                 {
-                                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="openEditProfileModal()">
-                                        <i class="fas fa-edit me-1"></i>Edit Profile
-                                    </button>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-outline-light btn-sm" onclick="openEditProfileModal()">
+                                            <i class="fas fa-edit me-2"></i>Edit Profile
+                                        </button>
+                                        <button class="btn btn-outline-light btn-sm" onclick="openChangePasswordModal()">
+                                            <i class="fas fa-key me-2"></i>Change Password
+                                        </button>
+                                    </div>
                                 }
                                 else
                                 {
                                     <form method="post" asp-page-handler="ToggleFollow" class="d-inline">
                                         <input type="hidden" name="targetUserId" value="@Model.ProfileUser?.Id" />
-                                        <button type="submit" class="btn @(Model.IsFollowing ? "btn-outline-secondary" : "btn-primary") btn-sm">
-                                            <i class="fas @(Model.IsFollowing ? "fa-user-minus" : "fa-user-plus") me-1"></i>
+                                        <button type="submit" class="btn @(Model.IsFollowing ? "btn-outline-light" : "btn-primary") btn-sm">
+                                            <i class="fas @(Model.IsFollowing ? "fa-user-minus" : "fa-user-plus") me-2"></i>
                                             @(Model.IsFollowing ? "Unfollow" : "Follow")
                                         </button>
                                     </form>
-                                    <a href="#" class="btn btn-outline-primary btn-sm ms-2">
-                                        <i class="fas fa-envelope me-1"></i>Message
-                                    </a>
                                 }
                             </div>
                             
-                            <div class="d-flex mb-3">
-                                <div class="me-4">
-                                    <strong>@Model.PostsCount</strong> posts
+                            <div class="profile-stats d-flex justify-content-start gap-4 mb-3">
+                                <div class="stat-item">
+                                    <span class="fw-bold text-white">@Model.PostsCount</span>
+                                    <span class="text-light">Posts</span>
                                 </div>
-                                <div class="me-4">
-                                    <a href="#" class="text-decoration-none text-dark" onclick="openFollowersModal()">
-                                        <strong>@Model.FollowersCount</strong> followers
+                                <div class="stat-item">
+                                    <a href="#" onclick="openFollowersModal(); return false;" class="text-decoration-none text-white">
+                                        <span class="fw-bold">@Model.FollowersCount</span>
+                                        <span class="text-light">Followers</span>
                                     </a>
                                 </div>
-                                <div>
-                                    <a href="#" class="text-decoration-none text-dark" onclick="openFollowingModal()">
-                                        <strong>@Model.FollowingCount</strong> following
+                                <div class="stat-item">
+                                    <a href="#" onclick="openFollowingModal(); return false;" class="text-decoration-none text-white">
+                                        <span class="fw-bold">@Model.FollowingCount</span>
+                                        <span class="text-light">Following</span>
                                     </a>
                                 </div>
                             </div>
-                            
-                            <div>
-                                <h6 class="mb-1">@Model.ProfileUser?.DisplayName</h6>
+                                
+                            <div class="profile-info">
                                 @if (!string.IsNullOrEmpty(Model.ProfileUser?.Bio))
                                 {
-                                    <p class="text-muted mb-0">@Model.ProfileUser.Bio</p>
-                                }
-                                @if (Model.ProfileUser?.IsPrivate == true)
-                                {
-                                    <span class="badge bg-secondary mt-2">
-                                        <i class="fas fa-lock me-1"></i>Private Account
-                                    </span>
+                                    <p class="bio text-white mb-0">@Model.ProfileUser.Bio</p>
                                 }
                             </div>
                         </div>
@@ -90,49 +102,38 @@
         </div>
     </div>
 
-    <!-- Settings Modal Buttons for Own Profile -->
-    @if (Model.IsOwnProfile)
-    {
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">
-                            <i class="fas fa-cog me-2"></i>Account Settings
-                        </h5>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openChangePasswordModal()">
-                                <i class="fas fa-lock me-1"></i>Change Password
-                            </button>
-                            <button type="button" class="btn btn-outline-info btn-sm" onclick="openDataExportModal()">
-                                <i class="fas fa-download me-1"></i>Download Data
-                            </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="openDeleteAccountModal()">
-                                <i class="fas fa-trash me-1"></i>Delete Account
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
     <div class="row mt-4">
         <div class="col-12">
+            <div class="posts-header d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-th me-2"></i>Posts</h5>
+                @if (Model.IsOwnProfile)
+                {
+                    <a asp-page="/Create" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-2"></i>Create New Post
+                    </a>
+                }
+            </div>
             @if (Model.CanViewPosts)
             {
                 @if (Model.Posts.Any())
                 {
-                    <div class="row g-1">
+                    <div class="row g-3">
                         @foreach (var post in Model.Posts)
                         {
                             <div class="col-4">
-                                <div class="position-relative">
+                                <div class="post-thumbnail-container">
                                     <img src="@post.ImageUrl" 
                                          alt="Post" 
                                          class="img-fluid w-100 post-thumbnail"
-                                         style="aspect-ratio: 1; object-fit: cover; cursor: pointer;"
-                                         onclick="openPostModal(@post.Id)"
+                                         style="aspect-ratio: 1; object-fit: cover;"
                                          data-post-id="@post.Id">
+                                    
+                                    <div class="post-overlay d-flex align-items-center justify-content-center">
+                                        <div class="post-stats text-center">
+                                            <div><i class="fas fa-heart me-2"></i>@post.LikesCount</div>
+                                            <div><i class="fas fa-comment me-2"></i>@post.CommentsCount</div>
+                                        </div>
+                                    </div>
                                     
                                     @if (!string.IsNullOrEmpty(post.VideoUrl))
                                     {
@@ -140,11 +141,6 @@
                                             <i class="fas fa-play-circle text-white" style="font-size: 1.5rem; text-shadow: 0 0 5px rgba(0,0,0,0.7);"></i>
                                         </div>
                                     }
-                                    
-                                    <div class="position-absolute bottom-0 start-0 end-0 p-2 d-flex justify-content-between text-white" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                                        <span><i class="fas fa-heart me-1"></i>@post.LikesCount</span>
-                                        <span><i class="fas fa-comment me-1"></i>@post.CommentsCount</span>
-                                    </div>
                                 </div>
                             </div>
                         }
@@ -153,7 +149,7 @@
                     @if (Model.HasMorePosts)
                     {
                         <div class="text-center mt-4">
-                            <button class="btn btn-outline-primary" id="loadMorePosts">
+                            <button class="btn btn-outline-primary load-more-btn" id="loadMorePosts">
                                 <i class="fas fa-plus me-2"></i>Load More Posts
                             </button>
                         </div>
@@ -161,14 +157,16 @@
                 }
                 else
                 {
-                    <div class="text-center py-5">
-                        <i class="fas fa-camera" style="font-size: 4rem; color: #dee2e6;"></i>
+                    <div class="text-center py-5 empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
                         <h4 class="mt-3 text-muted">No Posts Yet</h4>
                         @if (Model.IsOwnProfile)
                         {
                             <p class="text-muted">Share your first photo or video!</p>
-                            <a asp-page="/Create" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Create Post
+                            <a asp-page="/Create" class="btn btn-primary btn-lg mt-2">
+                                <i class="fas fa-plus me-2"></i>Create Your First Post
                             </a>
                         }
                         else
@@ -180,10 +178,18 @@
             }
             else
             {
-                <div class="text-center py-5">
-                    <i class="fas fa-lock" style="font-size: 4rem; color: #dee2e6;"></i>
+                <div class="text-center py-5 empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
                     <h4 class="mt-3 text-muted">This Account is Private</h4>
-                    <p class="text-muted">Follow @@(Model.ProfileUser?.UserName) to see their photos and videos.</p>
+                    <p class="text-muted">Follow @(Model.ProfileUser?.UserName) to see their photos and videos.</p>
+                    <form method="post" asp-page-handler="ToggleFollow" class="mt-3">
+                        <input type="hidden" name="targetUserId" value="@Model.ProfileUser?.Id" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>Follow
+                        </button>
+                    </form>
                 </div>
             }
         </div>
@@ -200,63 +206,128 @@
         let currentPage = 1;
 
         function loadUserList(type, userId, container) {
-            fetch(`/api/profile/${type}/${userId}`)
+            fetch('/api/profile/' + type + '/' + userId)
                 .then(response => response.json())
                 .then(users => {
                     let html = '';
-                    users.forEach(user => {
-                        html += `
-                            <div class="d-flex align-items-center mb-3">
-                                <img src="${user.profileImageUrl || '/images/default-avatar.svg'}" 
-                                     class="rounded-circle me-3" 
-                                     style="width: 40px; height: 40px; object-fit: cover;">
-                                <div class="flex-grow-1">
-                                    <a href="/Profile/${user.userName}" class="text-decoration-none">
-                                        <div class="fw-bold">${user.userName}</div>
-                                        <div class="text-muted small">${user.displayName}</div>
-                                    </a>
-                                </div>
-                            </div>
-                        `;
-                    });
+                    if (users.length > 0) {
+                        html = '<div class="user-list-container">';
+                        users.forEach((user, index) => {
+                            // Determine if the current user follows this user
+                            const isFollowing = user.isFollowing === true;
+                            // Determine if this is the current user's profile
+                            const isSelf = user.isSelf === true;
+                            
+                            const profileUrl = '/Profile/' + user.userName;
+                            const profileImg = user.profileImageUrl || '/images/default-avatar.svg';
+                            const displayName = user.displayName;
+                            const username = user.userName;
+                            const bio = user.bio || '';
+                            
+                            html += 
+                                '<div class="user-list-item" style="--animation-order: ' + index + '">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<a href="' + profileUrl + '" class="me-3">' +
+                                            '<img src="' + profileImg + '" ' +
+                                                 'class="user-avatar" ' +
+                                                 'alt="' + displayName + '">' +
+                                        '</a>' +
+                                        '<div class="flex-grow-1">' +
+                                            '<a href="' + profileUrl + '" class="text-decoration-none">' +
+                                                '<div class="user-list-username">' + username + '</div>' +
+                                                '<div class="user-list-displayname">' + displayName + '</div>' +
+                                            '</a>';
+                                        
+                            if (bio) {
+                                html += '<small class="text-muted d-none d-md-block text-truncate">' + bio + '</small>';
+                            }
+                            
+                            html += '</div>' +
+                                    '<div>';
+                            
+                            if (isSelf) {
+                                html += '<span class="badge bg-light text-dark">You</span>';
+                            } else {
+                                html += '<a href="' + profileUrl + '" class="btn btn-sm ' + 
+                                    (isFollowing ? 'btn-outline-secondary' : 'btn-outline-primary') + ' user-list-action-btn">' +
+                                    '<i class="fas ' + (isFollowing ? 'fa-user-check' : 'fa-user') + ' me-1"></i>' + 
+                                    (isFollowing ? 'Following' : 'View') + '</a>';
+                            }
+                            
+                            html += '</div>' +
+                                    '</div>' +
+                                '</div>';
+                        });
+                        html += '</div>';
+                    } else {
+                        html = '<div class="user-list-empty">' +
+                                    '<i class="fas fa-users fa-2x mb-3"></i>' +
+                                    '<p>No ' + type + ' found</p>' +
+                                '</div>';
+                    }
                     $(container).html(html);
+                    
+                    // Add animation effects - staggered entrance
+                    setTimeout(() => {
+                        document.querySelectorAll('.user-list-item').forEach((item, index) => {
+                            item.style.opacity = 0;
+                            item.style.transform = 'translateX(-10px)';
+                            
+                            setTimeout(() => {
+                                item.style.transition = 'all 0.3s ease';
+                                item.style.opacity = 1;
+                                item.style.transform = 'translateX(0)';
+                            }, 50 * index);
+                        });
+                    }, 100);
                 })
                 .catch(error => {
-                    $(container).html('<p class="text-muted">Failed to load users.</p>');
+                    $(container).html('<div class="user-list-empty text-danger"><i class="fas fa-exclamation-circle fa-2x mb-3"></i><p>Failed to load users</p></div>');
                 });
         }
 
+        // Add animation order to posts
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.post-thumbnail-container').forEach((container, index) => {
+                container.style.setProperty('--animation-order', index);
+            });
+        });
+        
         // Load more posts
         $('#loadMorePosts').click(function() {
             const button = $(this);
             button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Loading...');
             
-            fetch(`/api/profile/posts/@Model.ProfileUser?.Id?page=${currentPage}`)
+            fetch('/api/profile/posts/@Model.ProfileUser?.Id?page=' + currentPage)
                 .then(response => response.json())
                 .then(posts => {
                     if (posts.length > 0) {
                         let html = '';
-                        posts.forEach(post => {
-                            html += `
-                                <div class="col-4">
-                                    <div class="position-relative">
-                                        <img src="${post.imageUrl}" 
-                                             alt="Post" 
-                                             class="img-fluid w-100 post-thumbnail"
-                                             style="aspect-ratio: 1; object-fit: cover; cursor: pointer;"
-                                             onclick="openPostModal(${post.id})">
+                        posts.forEach((post, index) => {
+                            const order = document.querySelectorAll('.post-thumbnail-container').length + index;
+                            html += 
+                                '<div class="col-4">' +
+                                    '<div class="post-thumbnail-container" style="--animation-order: ' + order + '">' +
+                                        '<img src="' + post.imageUrl + '"' +
+                                             ' alt="Post"' +
+                                             ' class="post-thumbnail"' +
+                                             ' loading="lazy">' +
                                         
-                                        ${post.videoUrl ? '<div class="position-absolute top-0 end-0 p-2"><i class="fas fa-play-circle text-white" style="font-size: 1.5rem; text-shadow: 0 0 5px rgba(0,0,0,0.7);"></i></div>' : ''}
+                                        '<div class="post-overlay d-flex align-items-center justify-content-center" onclick="openPostModal(' + post.id + ')">' +
+                                            '<div class="post-stats text-center">' +
+                                                '<div><i class="fas fa-heart me-2"></i>' + post.likesCount + '</div>' +
+                                                '<div><i class="fas fa-comment me-2"></i>' + post.commentsCount + '</div>' +
+                                            '</div>' +
+                                        '</div>';
                                         
-                                        <div class="position-absolute bottom-0 start-0 end-0 p-2 d-flex justify-content-between text-white" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                                            <span><i class="fas fa-heart me-1"></i>${post.likesCount}</span>
-                                            <span><i class="fas fa-comment me-1"></i>${post.commentsCount}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                            if (post.videoUrl) {
+                                html += '<div class="position-absolute top-0 end-0 p-2"><i class="fas fa-play-circle text-white" style="font-size: 1.5rem; text-shadow: 0 0 5px rgba(0,0,0,0.7);"></i></div>';
+                            }
+                            
+                            html += '</div>' +
+                                '</div>';
                         });
-                        $('.row.g-1').append(html);
+                        $('.row.g-2').append(html);
                         currentPage++;
                         
                         if (posts.length < 12) {
@@ -277,7 +348,7 @@
             currentPostId = postId;
             
             try {
-                const response = await fetch(`/api/posts/${postId}`);
+                const response = await fetch('/api/posts/' + postId);
                 if (response.ok) {
                     const post = await response.json();
                     loadPostIntoModal(post);
@@ -291,76 +362,91 @@
         }
 
         function loadPostIntoModal(post) {
-            const mediaContent = post.videoUrl ? 
-                `<video controls class="w-100 h-100" style="object-fit: contain;">
-                    <source src="${post.videoUrl}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>` :
-                `<img src="${post.imageUrl}" alt="Post" class="w-100 h-100" style="object-fit: contain;">`;
+            let mediaContent;
+            if (post.videoUrl) {
+                mediaContent = '<video controls class="w-100 h-100" style="object-fit: contain;">' +
+                    '<source src="' + post.videoUrl + '" type="video/mp4">' +
+                    'Your browser does not support the video tag.' +
+                '</video>';
+            } else {
+                mediaContent = '<img src="' + post.imageUrl + '" alt="Post" class="w-100 h-100 post-modal-image" style="object-fit: contain;">';
+            }
 
-            const modalContent = `
-                <div class="row g-0">
-                    <div class="col-md-8">
-                        <div class="d-flex align-items-center justify-content-center bg-black" style="height: 600px;">
-                            ${mediaContent}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex flex-column h-100">
-                            <div class="border-bottom p-3">
-                                <div class="d-flex align-items-center">
-                                    <img src="${post.user.profileImageUrl || '/images/default-avatar.svg'}" 
-                                         alt="${post.user.displayName}" 
-                                         class="rounded-circle me-3" 
-                                         style="width: 40px; height: 40px; object-fit: cover;">
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-0 fw-semibold">${post.user.displayName}</h6>
-                                        <small class="text-muted">${getRelativeTime(new Date(post.createdAt))}</small>
-                                    </div>
-                                </div>
-                            </div>
+            const profileImg = post.user.profileImageUrl || '/images/default-avatar.svg';
+            const displayName = post.user.displayName;
+            const createdAtRelative = getRelativeTime(new Date(post.createdAt));
+            const caption = post.caption || '';
+            const likesCount = post.likesCount;
+            const isLiked = post.isLiked;
+            
+            const modalContent = 
+                '<div class="row g-0">' +
+                    '<div class="col-md-8">' +
+                        '<div class="d-flex align-items-center justify-content-center bg-black post-media-view" style="height: 600px;">' +
+                            mediaContent +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-4">' +
+                        '<div class="d-flex flex-column h-100">' +
+                            '<div class="border-bottom p-3">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<img src="' + profileImg + '"' + 
+                                         ' alt="' + displayName + '"' + 
+                                         ' class="rounded-circle me-3"' + 
+                                         ' style="width: 40px; height: 40px; object-fit: cover;">' +
+                                    '<div class="flex-grow-1">' +
+                                        '<h6 class="mb-0 fw-semibold">' + displayName + '</h6>' +
+                                        '<small class="text-muted">' + createdAtRelative + '</small>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
                             
-                            <div class="p-3 border-bottom">
-                                <div class="d-flex align-items-start">
-                                    <img src="${post.user.profileImageUrl || '/images/default-avatar.svg'}" 
-                                         alt="${post.user.displayName}" 
-                                         class="rounded-circle me-3" 
-                                         style="width: 32px; height: 32px; object-fit: cover;">
-                                    <div>
-                                        <span class="fw-semibold">${post.user.displayName}</span>
-                                        <span class="ms-2">${post.caption || ''}</span>
-                                    </div>
-                                </div>
-                            </div>
+                            '<div class="p-3 border-bottom">' +
+                                '<div class="d-flex align-items-start">' +
+                                    '<img src="' + profileImg + '"' + 
+                                         ' alt="' + displayName + '"' + 
+                                         ' class="rounded-circle me-3"' + 
+                                         ' style="width: 32px; height: 32px; object-fit: cover;">' +
+                                    '<div>' +
+                                        '<span class="fw-semibold">' + displayName + '</span>' +
+                                        '<span class="ms-2">' + caption + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
                             
-                            <div class="flex-grow-1 overflow-auto p-3" id="postComments" style="max-height: 400px;">
-                            </div>
+                            '<div class="flex-grow-1 overflow-auto p-3" id="postComments" style="max-height: 400px;">' +
+                            '</div>' +
                             
-                            <div class="border-top p-3">
-                                <div class="d-flex justify-content-between mb-3">
-                                    <div class="d-flex gap-3">
-                                        <button id="postLikeBtn" class="btn p-0 border-0 bg-transparent fs-5 ${post.isLiked ? 'text-danger' : ''}" onclick="togglePostLike()">
-                                            <i class="${post.isLiked ? 'fas' : 'far'} fa-heart"></i>
-                                        </button>
-                                        <button class="btn p-0 border-0 bg-transparent fs-5" onclick="focusPostComment()">
-                                            <i class="far fa-comment"></i>
-                                        </button>
+                            '<div class="border-top p-3">' +
+                                '<div class="d-flex justify-content-between mb-3">' +
+                                    '<div class="d-flex gap-3">' +
+                                        '<button id="postLikeBtn" class="post-action-btn ' + (isLiked ? 'active' : '') + '" onclick="togglePostLike()">' +
+                                            '<i class="' + (isLiked ? 'fas' : 'far') + ' fa-heart"></i>' +
+                                        '</button>' +
+                                        '<button class="post-action-btn" onclick="focusPostComment()">' +
+                                            '<i class="far fa-comment"></i>' +
+                                        '</button>' +
+                                        '<button class="post-action-btn" onclick="sharePostModal()">' +
+                                            '<i class="far fa-paper-plane"></i>' +
+                                        '</button>'
                                     </div>
+                                    <button id="postBookmarkBtn" class="post-action-btn" onclick="togglePostBookmark()">
+                                        <i class="far fa-bookmark"></i>
+                                    </button>
                                 </div>
                                 
-                                <div class="mb-2">
-                                    <span id="postLikesCount" class="fw-semibold">${post.likesCount}</span> likes
+                                <div class="mb-3">
+                                    <span id="postLikesCount" class="fw-semibold">' + likesCount + '</span> likes
                                 </div>
                                 
-                                <div class="d-flex">
-                                    <input type="text" id="postCommentInput" class="form-control border-0 bg-transparent" placeholder="Add a comment..." style="outline: none; box-shadow: none;">
+                                <div class="d-flex post-comment-form">
+                                    <input type="text" id="postCommentInput" class="form-control" placeholder="Add a comment...">
                                     <button id="postCommentSubmit" class="btn btn-link text-primary p-0 ms-2" onclick="addPostComment()" disabled>Post</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>';
 
             modal.show({
                 title: '',
@@ -384,28 +470,32 @@
 
         async function loadPostComments(postId) {
             try {
-                const response = await fetch(`/api/posts/${postId}/comments`);
+                const response = await fetch('/api/posts/' + postId + '/comments');
                 if (response.ok) {
                     const comments = await response.json();
                     const commentsContainer = document.getElementById('postComments');
                     
                     let html = '';
                     comments.forEach(comment => {
-                        html += `
-                            <div class="d-flex mb-3">
-                                <img src="${comment.user.profileImageUrl || '/images/default-avatar.svg'}" 
-                                     alt="${comment.user.displayName}" 
-                                     class="rounded-circle me-3" 
-                                     style="width: 32px; height: 32px; object-fit: cover;">
-                                <div>
-                                    <div>
-                                        <span class="fw-semibold">${comment.user.displayName}</span>
-                                        <span class="ms-2">${comment.text}</span>
-                                    </div>
-                                    <small class="text-muted">${getRelativeTime(new Date(comment.createdAt))}</small>
-                                </div>
-                            </div>
-                        `;
+                        const profileImg = comment.user.profileImageUrl || '/images/default-avatar.svg';
+                        const displayName = comment.user.displayName;
+                        const commentText = comment.text;
+                        const timeAgo = getRelativeTime(new Date(comment.createdAt));
+                        
+                        html += 
+                            '<div class="d-flex mb-3">' +
+                                '<img src="' + profileImg + '"' + 
+                                     ' alt="' + displayName + '"' + 
+                                     ' class="rounded-circle me-3"' + 
+                                     ' style="width: 32px; height: 32px; object-fit: cover;">' +
+                                '<div>' +
+                                    '<div>' +
+                                        '<span class="fw-semibold">' + displayName + '</span>' +
+                                        '<span class="ms-2">' + commentText + '</span>' +
+                                    '</div>' +
+                                    '<small class="text-muted">' + timeAgo + '</small>' +
+                                '</div>' +
+                            '</div>';
                     });
                     
                     commentsContainer.innerHTML = html;
@@ -419,7 +509,7 @@
             if (!currentPostId) return;
             
             try {
-                const response = await fetch(`/api/posts/${currentPostId}/like`, {
+                const response = await fetch('/api/posts/' + currentPostId + '/like', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -452,7 +542,7 @@
             if (!text) return;
             
             try {
-                const response = await fetch(`/api/posts/${currentPostId}/comments`, {
+                const response = await fetch('/api/posts/' + currentPostId + '/comments', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -481,10 +571,10 @@
             if (navigator.share) {
                 navigator.share({
                     title: 'Check out this post on Snapstagram',
-                    url: `${window.location.origin}/posts/${currentPostId}`
+                    url: window.location.origin + '/posts/' + currentPostId
                 });
             } else {
-                const url = `${window.location.origin}/posts/${currentPostId}`;
+                const url = window.location.origin + '/posts/' + currentPostId;
                 navigator.clipboard.writeText(url).then(() => {
                     alert('Link copied to clipboard!');
                 });
@@ -495,7 +585,7 @@
             if (!currentPostId) return;
             
             try {
-                const response = await fetch(`/api/posts/${currentPostId}/bookmark`, {
+                const response = await fetch('/api/posts/' + currentPostId + '/bookmark', {
                     method: 'POST',
                     headers: {
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
@@ -526,54 +616,103 @@
         });
 
         // Handle clicking on existing posts
+        // Enable post overlay clicks
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('post-thumbnail')) {
-                const postId = e.target.dataset.postId;
-                if (postId) {
-                    openPostModal(parseInt(postId));
+            if (e.target.closest('.post-overlay')) {
+                const postContainer = e.target.closest('.post-thumbnail-container');
+                if (postContainer) {
+                    const thumbnail = postContainer.querySelector('.post-thumbnail');
+                    if (thumbnail && thumbnail.dataset.postId) {
+                        openPostModal(parseInt(thumbnail.dataset.postId));
+                    }
                 }
             }
         });
 
         // Profile modal functions using centralized modal system
         const ProfileModals = {
-            // Show followers list
-            showFollowers() {
+            // Show followers or following list with enhanced styling
+            showUserList(type, title) {
+                const lowercaseTitle = title.toLowerCase();
+                const bodyContent = 
+                        '<div class="user-list-header">' +
+                            '<div class="input-group">' +
+                                '<span class="input-group-text bg-light border-end-0">' +
+                                    '<i class="fas fa-search text-muted"></i>' +
+                                '</span>' +
+                                '<input type="text" class="form-control border-start-0 bg-light" ' +
+                                       'id="userListSearch" placeholder="Search ' + lowercaseTitle + '...">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div id="' + type + 'List">' +
+                            '<div class="text-center p-4">' +
+                                '<div class="spinner-border text-primary" role="status"></div>' +
+                                '<p class="mt-2 text-muted">Loading ' + lowercaseTitle + '...</p>' +
+                            '</div>' +
+                        '</div>';
+                
                 modal.show({
-                    title: 'Followers',
-                    body: '<div id="followersList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
+                    title: title,
+                    body: bodyContent,
                     footer: '<button type="button" class="btn btn-secondary" onclick="modal.hide()">Close</button>',
                     size: 'default'
                 });
                 
-                loadUserList('followers', '@Model.ProfileUser?.Id', '#followersList');
+                loadUserList(type, '@Model.ProfileUser?.Id', '#' + type + 'List');
+                
+                // Add search functionality after modal is displayed
+                setTimeout(() => {
+                    const searchInput = document.getElementById('userListSearch');
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function() {
+                            const searchTerm = this.value.toLowerCase();
+                            document.querySelectorAll('#' + type + 'List .user-list-item').forEach(item => {
+                                const username = item.querySelector('.user-list-username').textContent.toLowerCase();
+                                const displayName = item.querySelector('.user-list-displayname').textContent.toLowerCase();
+                                
+                                if (username.includes(searchTerm) || displayName.includes(searchTerm)) {
+                                    item.style.display = 'block';
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+                        });
+                        searchInput.focus();
+                    }
+                }, 300);
+            },
+            
+            // Show followers list
+            showFollowers() {
+                this.showUserList('followers', 'Followers');
             },
 
             // Show following list
             showFollowing() {
-                modal.show({
-                    title: 'Following',
-                    body: '<div id="followingList"><div class="text-center"><div class="spinner-border" role="status"></div></div></div>',
-                    footer: '<button type="button" class="btn btn-secondary" onclick="modal.hide()">Close</button>',
-                    size: 'default'
-                });
-                
-                loadUserList('following', '@Model.ProfileUser?.Id', '#followingList');
+                this.showUserList('following', 'Following');
             },
 
             // Show profile image upload modal
             showProfileImageUpload() {
-                const formContent = `
-                    <form method="post" enctype="multipart/form-data" id="profileImageForm">
-                        <div class="mb-3">
-                            <label class="form-label">Choose a new profile picture:</label>
-                            <input type="file" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />
-                            <small class="form-text text-muted">
-                                Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
-                            </small>
-                        </div>
-                    </form>
-                `;
+                const formContent = 
+                    '<form method="post" enctype="multipart/form-data" id="profileImageForm">' +
+                        '<div class="mb-3 text-center">' +
+                            '<div class="profile-preview-container mb-3" style="width: 150px; height: 150px; margin: 0 auto; position: relative;">' +
+                                '<img id="imagePreview" src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" ' +
+                                'class="img-fluid rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">' +
+                                '<div class="position-absolute w-100 h-100 top-0 start-0 d-flex align-items-center justify-content-center">' +
+                                    '<div id="previewOverlay" style="display: none; background: rgba(0,0,0,0.5); width: 100%; height: 100%; border-radius: 50%; color: white;">' +
+                                        '<i class="fas fa-check fa-2x"></i>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<label for="profileImageInput" class="form-label d-block">Choose a new profile picture:</label>' +
+                            '<input type="file" id="profileImageInput" name="profileImage" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif" required />' +
+                            '<small class="form-text text-muted d-block mt-1">' +
+                                'Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.' +
+                            '</small>' +
+                        '</div>' +
+                    '</form>';
 
                 modal.form({
                     title: 'Change Profile Photo',
@@ -581,6 +720,27 @@
                     submitText: 'Upload',
                     onSubmit: this.submitProfileImage
                 });
+                
+                // Preview the image before upload
+                setTimeout(() => {
+                    const fileInput = document.getElementById('profileImageInput');
+                    const preview = document.getElementById('imagePreview');
+                    const previewOverlay = document.getElementById('previewOverlay');
+                    
+                    fileInput.addEventListener('change', function() {
+                        if (this.files && this.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                preview.src = e.target.result;
+                                previewOverlay.style.display = 'flex';
+                                setTimeout(() => {
+                                    previewOverlay.style.display = 'none';
+                                }, 1000);
+                            }
+                            reader.readAsDataURL(this.files[0]);
+                        }
+                    });
+                }, 100);
             },
 
             // Submit profile image upload
@@ -612,48 +772,47 @@
 
             // Show edit profile modal
             showEditProfile() {
-                const formContent = `
-                    <form method="post" class="edit-profile-form" id="editProfileForm">
-                        <div class="form-group mb-3">
-                            <label for="editDisplayName" class="form-label">Display Name</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="editDisplayName" 
-                                   name="DisplayName" 
-                                   value="@(Model.ProfileUser?.DisplayName ?? "")"
-                                   maxlength="50">
-                        </div>
+                const formContent = 
+                    '<form method="post" class="edit-profile-form" id="editProfileForm">' +
+                        '<div class="form-group mb-3">' +
+                            '<label for="editDisplayName" class="form-label">Display Name</label>' +
+                            '<input type="text"' + 
+                                   ' class="form-control"' + 
+                                   ' id="editDisplayName"' + 
+                                   ' name="DisplayName"' + 
+                                   ' value="@(Model.ProfileUser?.DisplayName ?? "")"' +
+                                   ' maxlength="50">' +
+                        '</div>' +
                         
-                        <div class="form-group mb-3">
-                            <label for="editBio" class="form-label">Bio</label>
-                            <textarea class="form-control" 
-                                      id="editBio" 
-                                      name="Bio" 
-                                      rows="3" 
-                                      maxlength="150" 
-                                      placeholder="Tell us about yourself...">@(Model.ProfileUser?.Bio ?? "")</textarea>
+                        '<div class="form-group mb-3">' +
+                            '<label for="editBio" class="form-label">Bio</label>' +
+                            '<textarea class="form-control"' + 
+                                      ' id="editBio"' + 
+                                      ' name="Bio"' + 
+                                      ' rows="3"' + 
+                                      ' maxlength="150"' + 
+                                      ' placeholder="Tell us about yourself...">@(Model.ProfileUser?.Bio ?? "")</textarea>
                             <small class="form-text text-muted">
                                 <span id="bioCharCount">@(Model.ProfileUser?.Bio?.Length ?? 0)</span>/150 characters
                             </small>
-                        </div>
+                        '</div>' +
                         
-                        <div class="form-group mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" 
-                                       class="form-check-input" 
-                                       id="editIsPrivate" 
-                                       name="IsPrivate" 
-                                       @(Model.ProfileUser?.IsPrivate == true ? "checked" : "")>
-                                <label class="form-check-label" for="editIsPrivate">
-                                    Private Account
-                                </label>
-                                <small class="form-text text-muted d-block">
-                                    When your account is private, only people you approve can see your photos and videos.
-                                </small>
-                            </div>
-                        </div>
-                    </form>
-                `;
+                        '<div class="form-group mb-3">' +
+                            '<div class="form-check">' +
+                                '<input type="checkbox"' + 
+                                       ' class="form-check-input"' + 
+                                       ' id="editIsPrivate"' + 
+                                       ' name="IsPrivate"' + 
+                                       ' @(Model.ProfileUser?.IsPrivate == true ? "checked" : "")>' +
+                                '<label class="form-check-label" for="editIsPrivate">' +
+                                    'Private Account' +
+                                '</label>' +
+                                '<small class="form-text text-muted d-block">' +
+                                    'When your account is private, only people you approve can see your photos and videos.' +
+                                '</small>' +
+                            '</div>' +
+                        '</div>' +
+                    '</form>';
 
                 modal.form({
                     title: 'Edit Profile',
@@ -721,22 +880,21 @@
 
             // Show change password modal
             showChangePassword() {
-                const formContent = `
-                    <form method="post" id="changePasswordForm">
-                        <div class="mb-3">
-                            <label for="currentPassword" class="form-label">Current Password</label>
-                            <input type="password" class="form-control" id="currentPassword" name="CurrentPassword" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newPassword" class="form-label">New Password</label>
-                            <input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6">
-                        </div>
-                        <div class="mb-3">
-                            <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
-                            <input type="password" class="form-control" id="confirmNewPassword" name="ConfirmNewPassword" required>
-                        </div>
-                    </form>
-                `;
+                const formContent = 
+                    '<form method="post" id="changePasswordForm">' +
+                        '<div class="mb-3">' +
+                            '<label for="currentPassword" class="form-label">Current Password</label>' +
+                            '<input type="password" class="form-control" id="currentPassword" name="CurrentPassword" required>' +
+                        '</div>' +
+                        '<div class="mb-3">' +
+                            '<label for="newPassword" class="form-label">New Password</label>' +
+                            '<input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6">' +
+                        '</div>' +
+                        '<div class="mb-3">' +
+                            '<label for="confirmNewPassword" class="form-label">Confirm New Password</label>' +
+                            '<input type="password" class="form-control" id="confirmNewPassword" name="ConfirmNewPassword" required>' +
+                        '</div>' +
+                    '</form>';
 
                 modal.form({
                     title: 'Change Password',
@@ -816,18 +974,17 @@
 
             // Show delete account modal
             showDeleteAccount() {
-                const formContent = `
-                    <div class="alert alert-danger mb-3">
-                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
-                        <p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>
-                    </div>
-                    <form id="deleteAccountForm">
-                        <div class="mb-3">
-                            <label for="confirmPassword" class="form-label">Confirm your password to delete account:</label>
-                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                        </div>
-                    </form>
-                `;
+                const formContent = 
+                    '<div class="alert alert-danger mb-3">' +
+                        '<h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>' +
+                        '<p class="mb-0">This action cannot be undone. All your posts, followers, and account data will be permanently deleted.</p>' +
+                    '</div>' +
+                    '<form id="deleteAccountForm">' +
+                        '<div class="mb-3">' +
+                            '<label for="confirmPassword" class="form-label">Confirm your password to delete account:</label>' +
+                            '<input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>' +
+                        '</div>' +
+                    '</form>';
 
                 modal.form({
                     title: 'Delete Account',
@@ -894,12 +1051,346 @@
         window.openChangePasswordModal = () => ProfileModals.showChangePassword();
         window.openDataExportModal = () => ProfileModals.showDataExport();
         window.openDeleteAccountModal = () => ProfileModals.showDeleteAccount();
+
+        // Utility functions needed by the profile modals
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return days + 'd';
+            if (hours > 0) return hours + 'h';
+            if (minutes > 0) return minutes + 'm';
+            return 'now';
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+
+        // Modal system placeholder - assumes you have a modal system available
+        if (typeof modal === 'undefined') {
+            window.modal = {
+                show: function(options) {
+                    console.log('Modal show:', options);
+                    alert(options.title + '\n\n' + (options.body || options.message || ''));
+                },
+                form: function(options) {
+                    console.log('Modal form:', options);
+                    alert(options.title + '\n\nThis feature requires a modal system to be implemented.');
+                },
+                confirm: function(options) {
+                    console.log('Modal confirm:', options);
+                    return Promise.resolve(confirm(options.message));
+                },
+                hide: function() {
+                    console.log('Modal hide');
+                }
+            };
+        }
     </script>
 }
 
 <style>
-    .post-thumbnail:hover {
-        transform: scale(1.02);
-        transition: transform 0.2s ease;
+    /* Profile header styling */
+    .profile-header-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .profile-header-card:hover {
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    .profile-header-card .card-body {
+        padding: 2rem;
+    }
+    
+    /* Profile image styling */
+    .profile-pic-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        overflow: hidden;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        border: 4px solid rgba(255,255,255,0.2);
+    }
+
+    .profile-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: filter 0.3s ease, transform 0.3s ease;
+    }
+
+    .edit-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    
+    .edit-overlay i {
+        font-size: 1.5rem;
+        opacity: 0.9;
+    }
+
+    .profile-pic-wrapper:hover .edit-overlay {
+        opacity: 1;
+    }
+
+    .profile-pic-wrapper:hover .profile-image {
+        filter: brightness(0.7);
+        transform: scale(1.05);
+    }
+    
+    /* Profile text styling */
+    .profile-username {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+        opacity: 0.9;
+    }
+    
+    .profile-displayname {
+        font-weight: 600;
+        font-size: 1.75rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .profile-info .bio {
+        color: white !important;
+    }
+
+    .profile-info .email {
+        color: rgba(255,255,255,0.75) !important;
+    }
+
+    /* Profile stats styling */
+    .profile-stats .stat-item {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 0.5rem;
+        border-radius: 8px;
+    }
+
+    .profile-stats .stat-item:hover {
+        transform: translateY(-3px);
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .profile-stats .stat-item a {
+        font-weight: 500;
+        text-decoration: none !important;
+    }
+
+    /* Action buttons styling */
+    .profile-actions .btn {
+        border: 2px solid rgba(255,255,255,0.3);
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .profile-actions .btn:hover {
+        border-color: rgba(255,255,255,0.6);
+        background-color: rgba(255,255,255,0.1);
+        transform: translateY(-2px);
+    }
+
+    /* Post thumbnails styling */
+    .post-thumbnail-container {
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 1;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .post-thumbnail-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .post-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .post-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .post-stats {
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .post-thumbnail-container:hover .post-overlay {
+        opacity: 1;
+    }
+    
+    .post-thumbnail-container:hover .post-thumbnail {
+        transform: scale(1.1);
+    }
+    
+    /* Empty state styling */
+    .empty-state {
+        padding: 3rem;
+        text-align: center;
+    }
+    
+    .empty-state-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+        color: #adb5bd;
+        transition: all 0.3s ease;
+    }
+
+    .empty-state:hover .empty-state-icon {
+        transform: scale(1.1);
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    /* Posts header styling */
+    .posts-header {
+        padding: 1rem 0;
+        border-bottom: 2px solid #f8f9fa;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .posts-header h5 {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    /* User list styling */
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-list-username {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .user-list-displayname {
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    .user-list-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f8f9fa;
+        transition: background-color 0.2s ease;
+    }
+
+    .user-list-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 767.98px) {
+        .profile-pic-wrapper {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .profile-displayname {
+            font-size: 1.4rem;
+        }
+        
+        .profile-header-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .profile-actions .btn {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+    }
+
+    /* Animation for page load */
+    .animated-item {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    
+    @@keyframes fadeInUp {
+        from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
     }
 </style>
