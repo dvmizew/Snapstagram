@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Snapstagram.BackgroundServices;
 using Snapstagram.Data;
 using Snapstagram.Models;
 using Snapstagram.Services;
@@ -27,6 +27,8 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IStoryService, StoryService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHostedService<NotificationCleanupService>();
 
 var app = builder.Build();
 
@@ -43,6 +45,7 @@ app.UseHttpsRedirection()
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<NotificationHub>("/notificationhub");
 
 // Initialize database
 using var scope = app.Services.CreateScope();

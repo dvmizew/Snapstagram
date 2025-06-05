@@ -371,18 +371,6 @@ const toggleBookmark = async (postId) => {
     }
 };
 
-function getRelativeTime(date) {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
-    
-    return date.toLocaleDateString();
-}
-
 const updateCommentsCount = (postId, increment) => {
     const commentBtn = document.querySelector(`button[onclick="focusCommentInput(${postId})"] .action-count`);
     const viewCommentsBtn = document.querySelector(`button[onclick="toggleComments(${postId})"]`);
@@ -396,36 +384,6 @@ const updateCommentsCount = (postId, increment) => {
             viewCommentsBtn.textContent = `View all ${newCount} comments`;
         }
     }
-};
-
-const showNotification = (message, type = 'info') => {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    const bgColors = { success: '#10b981', error: '#ef4444', default: '#3b82f6' };
-    
-    Object.assign(notification.style, {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        color: 'white',
-        fontWeight: '500',
-        zIndex: '10000',
-        backgroundColor: bgColors[type] || bgColors.default,
-        transform: 'translateX(400px)',
-        transition: 'transform 0.3s ease'
-    });
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.style.transform = 'translateX(0)', 100);
-    setTimeout(() => {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => document.body.removeChild(notification), 300);
-    }, 3000);
 };
 
 const initializePostObserver = () => {

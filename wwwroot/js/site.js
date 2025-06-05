@@ -519,17 +519,6 @@ function initializeProfileDropdown() {
     });
 }
 
-// Notification functionality (placeholder)
-function initializeNotifications() {
-    // This is a placeholder for future notification functionality
-    const notificationIcon = document.querySelector('.notification-icon');
-    if (notificationIcon) {
-        notificationIcon.addEventListener('click', () => {
-            console.log('Notifications clicked - feature coming soon!');
-        });
-    }
-}
-
 const showNotification = (message, type = 'info') => {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -579,6 +568,12 @@ const getDefaultAvatar = (name) => {
     return `https://via.placeholder.com/40x40/6c757d/ffffff?text=${initial}`;
 };
 
+const escapeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
 let modal;
 document.addEventListener('DOMContentLoaded', function() {
     modal = new Modal();
@@ -595,8 +590,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showNotification = showNotification;
     window.getRelativeTime = getRelativeTime;
     window.getDefaultAvatar = getDefaultAvatar;
+    window.escapeHtml = escapeHtml;
     
     initializeSearch();
     initializeProfileDropdown();
-    initializeNotifications();
 });

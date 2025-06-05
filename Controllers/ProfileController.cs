@@ -13,11 +13,13 @@ public class ProfileController : ControllerBase
 {
     private readonly UserManager<User> _userManager;
     private readonly IProfileService _profileService;
+    private readonly NotificationService _notificationService;
 
-    public ProfileController(UserManager<User> userManager, IProfileService profileService)
+    public ProfileController(UserManager<User> userManager, IProfileService profileService, NotificationService notificationService)
     {
         _userManager = userManager;
         _profileService = profileService;
+        _notificationService = notificationService;
     }
 
     [HttpGet("followers/{userId}")]
@@ -108,6 +110,12 @@ public class ProfileController : ControllerBase
         }
 
         var isNowFollowing = await _profileService.ToggleFollowAsync(currentUser.Id, userId);
+        
+        // Create notification if user started following someone
+        if (isNowFollowing)
+        {
+            await _notificationService.CreateFollowNotificationAsync(userId, currentUser.Id);
+        }
         
         return Ok(new { isFollowing = isNowFollowing });
     }
