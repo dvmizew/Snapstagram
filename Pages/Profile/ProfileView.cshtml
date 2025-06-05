@@ -196,10 +196,6 @@
     </div>
 </div>
 
-
-
-
-
 @section Scripts {
     <script>
         let currentPostId = null;
@@ -213,9 +209,7 @@
                     if (users.length > 0) {
                         html = '<div class="user-list-container">';
                         users.forEach((user, index) => {
-                            // Determine if the current user follows this user
                             const isFollowing = user.isFollowing === true;
-                            // Determine if this is the current user's profile
                             const isSelf = user.isSelf === true;
                             
                             const profileUrl = '/Profile/' + user.userName;
@@ -267,7 +261,6 @@
                     }
                     $(container).html(html);
                     
-                    // Add animation effects - staggered entrance
                     setTimeout(() => {
                         document.querySelectorAll('.user-list-item').forEach((item, index) => {
                             item.style.opacity = 0;
@@ -286,7 +279,6 @@
                 });
         }
 
-        // Add animation order to posts
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.post-thumbnail-container').forEach((container, index) => {
                 container.style.setProperty('--animation-order', index);
@@ -520,12 +512,12 @@
                 if (response.ok) {
                     const result = await response.json();
                     
-                    // Update like button
+                    // update like button
                     const likeBtn = document.getElementById('postLikeBtn');
                     likeBtn.className = result.liked ? 'btn p-0 border-0 bg-transparent fs-5 text-danger' : 'btn p-0 border-0 bg-transparent fs-5';
                     likeBtn.querySelector('i').className = result.liked ? 'fas fa-heart' : 'far fa-heart';
                     
-                    // Update likes count
+                    // update likes count
                     document.getElementById('postLikesCount').textContent = result.likesCount;
                 }
             } catch (error) {
@@ -602,7 +594,7 @@
             }
         }
 
-        // Enable/disable comment submit button
+        // enable/disable comment submit button
         document.addEventListener('DOMContentLoaded', function() {
             const commentInput = document.getElementById('postCommentInput');
             if (commentInput) {
@@ -615,8 +607,6 @@
             }
         });
 
-        // Handle clicking on existing posts
-        // Enable post overlay clicks
         document.addEventListener('click', function(e) {
             if (e.target.closest('.post-overlay')) {
                 const postContainer = e.target.closest('.post-thumbnail-container');
@@ -629,9 +619,7 @@
             }
         });
 
-        // Profile modal functions using centralized modal system
         const ProfileModals = {
-            // Show followers or following list with enhanced styling
             showUserList(type, title) {
                 const lowercaseTitle = title.toLowerCase();
                 const bodyContent = 
@@ -659,8 +647,7 @@
                 });
                 
                 loadUserList(type, '@Model.ProfileUser?.Id', '#' + type + 'List');
-                
-                // Add search functionality after modal is displayed
+
                 setTimeout(() => {
                     const searchInput = document.getElementById('userListSearch');
                     if (searchInput) {
@@ -682,17 +669,14 @@
                 }, 300);
             },
             
-            // Show followers list
             showFollowers() {
                 this.showUserList('followers', 'Followers');
             },
 
-            // Show following list
             showFollowing() {
                 this.showUserList('following', 'Following');
             },
 
-            // Show profile image upload modal
             showProfileImageUpload() {
                 const formContent = 
                     '<form method="post" enctype="multipart/form-data" id="profileImageForm">' +
@@ -721,7 +705,6 @@
                     onSubmit: this.submitProfileImage
                 });
                 
-                // Preview the image before upload
                 setTimeout(() => {
                     const fileInput = document.getElementById('profileImageInput');
                     const preview = document.getElementById('imagePreview');
@@ -743,7 +726,6 @@
                 }, 100);
             },
 
-            // Submit profile image upload
             submitProfileImage() {
                 const form = document.getElementById('profileImageForm');
                 const formData = new FormData(form);
@@ -757,20 +739,19 @@
                     if (response.ok) {
                         showNotification('Profile image updated successfully!', 'success');
                         setTimeout(() => window.location.reload(), 1000);
-                        return true; // Close modal
+                        return true; // close modal
                     } else {
                         showNotification('Error uploading image. Please try again.', 'error');
-                        return false; // Keep modal open
+                        return false; // keep modal open
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showNotification('Error uploading image. Please try again.', 'error');
-                    return false; // Keep modal open
+                    return false; // keep modal open
                 });
             },
 
-            // Show edit profile modal
             showEditProfile() {
                 const formContent = 
                     '<form method="post" class="edit-profile-form" id="editProfileForm">' +
@@ -821,7 +802,6 @@
                     onSubmit: this.submitEditProfile
                 });
 
-                // Add bio character counter after modal is shown
                 setTimeout(() => {
                     const bioInput = document.getElementById('editBio');
                     const charCount = document.getElementById('bioCharCount');
@@ -843,7 +823,6 @@
                 }, 100);
             },
 
-            // Submit edit profile
             submitEditProfile() {
                 const form = document.getElementById('editProfileForm');
                 const formData = new FormData(form);
@@ -865,20 +844,19 @@
                     if (response.ok) {
                         showNotification('Profile updated successfully!', 'success');
                         setTimeout(() => window.location.reload(), 1000);
-                        return true; // Close modal
+                        return true; // close modal
                     } else {
                         showNotification('Error updating profile. Please try again.', 'error');
-                        return false; // Keep modal open
+                        return false; // keep modal open
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showNotification('Error updating profile. Please try again.', 'error');
-                    return false; // Keep modal open
+                    return false; // keep modal open
                 });
             },
 
-            // Show change password modal
             showChangePassword() {
                 const formContent = 
                     '<form method="post" id="changePasswordForm">' +
@@ -904,14 +882,13 @@
                 });
             },
 
-            // Submit change password
             submitChangePassword() {
                 const form = document.getElementById('changePasswordForm');
                 const formData = new FormData(form);
                 
                 if (formData.get('NewPassword') !== formData.get('ConfirmNewPassword')) {
                     showNotification('New passwords do not match.', 'error');
-                    return false; // Keep modal open
+                    return false; // keep modal open
                 }
 
                 const params = new URLSearchParams();
@@ -930,20 +907,19 @@
                 .then(response => {
                     if (response.ok) {
                         showNotification('Password changed successfully!', 'success');
-                        return true; // Close modal
+                        return true; // close modal
                     } else {
                         showNotification('Error changing password. Please check your current password.', 'error');
-                        return false; // Keep modal open
+                        return false; // keep modal open
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showNotification('Error changing password. Please try again.', 'error');
-                    return false; // Keep modal open
+                    return false; // keep modal open
                 });
             },
 
-            // Show data export confirmation
             showDataExport() {
                 modal.confirm({
                     title: 'Download Your Data',
@@ -972,7 +948,6 @@
                 });
             },
 
-            // Show delete account modal
             showDeleteAccount() {
                 const formContent = 
                     '<div class="alert alert-danger mb-3">' +
@@ -994,13 +969,12 @@
                 });
             },
 
-            // Submit delete account
             submitDeleteAccount() {
                 const password = document.getElementById('confirmPassword').value;
                 
                 if (!password) {
                     showNotification('Please enter your password to confirm account deletion.', 'error');
-                    return false; // Keep modal open
+                    return false;
                 }
 
                 return modal.confirm({
@@ -1026,24 +1000,23 @@
                             if (response.ok) {
                                 showNotification('Account deleted successfully. Redirecting...', 'success');
                                 setTimeout(() => window.location.href = '/', 2000);
-                                return true; // Close modal
+                                return true;
                             } else {
                                 showNotification('Error deleting account. Please check your password.', 'error');
-                                return false; // Keep modal open
+                                return false;
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
                             showNotification('Error deleting account. Please try again.', 'error');
-                            return false; // Keep modal open
+                            return false;
                         });
                     }
-                    return false; // Keep modal open if not confirmed
+                    return false;
                 });
             }
         };
 
-        // Global functions for backward compatibility
         window.openFollowersModal = () => ProfileModals.showFollowers();
         window.openFollowingModal = () => ProfileModals.showFollowing();
         window.openProfileImageModal = () => ProfileModals.showProfileImageUpload();
@@ -1052,7 +1025,6 @@
         window.openDataExportModal = () => ProfileModals.showDataExport();
         window.openDeleteAccountModal = () => ProfileModals.showDeleteAccount();
 
-        // Utility functions needed by the profile modals
         function getRelativeTime(date) {
             const now = new Date();
             const diff = now - date;
@@ -1068,7 +1040,6 @@
         }
 
         function showNotification(message, type = 'info') {
-            // Create notification element
             const notification = document.createElement('div');
             notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
             notification.style.top = '20px';
@@ -1081,7 +1052,7 @@
             
             document.body.appendChild(notification);
             
-            // Auto remove after 3 seconds
+            // auto remove after 3 seconds
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.remove();
@@ -1089,7 +1060,6 @@
             }, 3000);
         }
 
-        // Modal system placeholder - assumes you have a modal system available
         if (typeof modal === 'undefined') {
             window.modal = {
                 show: function(options) {
@@ -1234,12 +1204,14 @@
         font-weight: 500;
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
+        color: white !important;
     }
 
     .profile-actions .btn:hover {
         border-color: rgba(255,255,255,0.6);
         background-color: rgba(255,255,255,0.1);
         transform: translateY(-2px);
+        color: white !important;
     }
 
     /* Post thumbnails styling */
