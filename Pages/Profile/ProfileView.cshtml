@@ -1,5 +1,5 @@
 @page "/Profile/{username?}"
-@model ProfileViewModel
+@model Snapstagram.Pages.Profile.ProfileViewModel
 @{
     ViewData["Title"] = Model.ProfileUser?.DisplayName ?? "Profile";
 }
@@ -37,9 +37,6 @@
                                 {
                                     <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="openEditProfileModal()">
                                         <i class="fas fa-edit me-1"></i>Edit Profile
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openProfileImageModal()">
-                                        <i class="fas fa-camera me-1"></i>Change Photo
                                     </button>
                                 }
                                 else
