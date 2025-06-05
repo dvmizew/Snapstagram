@@ -53,9 +53,6 @@
                                         <button class="btn btn-outline-light btn-sm" onclick="openEditProfileModal()">
                                             <i class="fas fa-edit me-2"></i>Edit Profile
                                         </button>
-                                        <button class="btn btn-outline-light btn-sm" onclick="openChangePasswordModal()">
-                                            <i class="fas fa-key me-2"></i>Change Password
-                                        </button>
                                     </div>
                                 }
                                 else
@@ -121,7 +118,7 @@
                         @foreach (var post in Model.Posts)
                         {
                             <div class="col-4">
-                                <div class="post-thumbnail-container">
+                                <div class="post-thumbnail-container" onclick="openPostModal(@post.Id)">
                                     <img src="@post.ImageUrl" 
                                          alt="Post" 
                                          class="img-fluid w-100 post-thumbnail"
@@ -198,8 +195,33 @@
 
 @section Scripts {
     <script>
-        let currentPostId = null;
-        let currentPage = 1;
+        // Global variables
+        var currentPostId = null;
+        var currentPage = 1;
+
+        // Set profile user ID for modal functions
+        window.profileUserId = '@Model.ProfileUser?.Id';
+
+        // Modal functions for profile management
+        function openEditProfileModal() {
+            ProfileModals.showEditProfile();
+        }
+
+        function openChangePasswordModal() {
+            ProfileModals.showChangePassword();
+        }
+
+        function openProfileImageModal() {
+            ProfileModals.showProfileImageUpload();
+        }
+
+        function openFollowersModal() {
+            ProfileModals.showFollowers();
+        }
+
+        function openFollowingModal() {
+            ProfileModals.showFollowing();
+        }
 
         function loadUserList(type, userId, container) {
             fetch('/api/profile/' + type + '/' + userId)
@@ -299,13 +321,14 @@
                             const order = document.querySelectorAll('.post-thumbnail-container').length + index;
                             html += 
                                 '<div class="col-4">' +
-                                    '<div class="post-thumbnail-container" style="--animation-order: ' + order + '">' +
+                                    '<div class="post-thumbnail-container" style="--animation-order: ' + order + '" onclick="openPostModal(' + post.id + ')">' +
                                         '<img src="' + post.imageUrl + '"' +
                                              ' alt="Post"' +
-                                             ' class="post-thumbnail"' +
+                                             ' class="post-thumbnail img-fluid w-100"' +
+                                             ' style="aspect-ratio: 1; object-fit: cover;"' +
                                              ' loading="lazy">' +
                                         
-                                        '<div class="post-overlay d-flex align-items-center justify-content-center" onclick="openPostModal(' + post.id + ')">' +
+                                        '<div class="post-overlay d-flex align-items-center justify-content-center">' +
                                             '<div class="post-stats text-center">' +
                                                 '<div><i class="fas fa-heart me-2"></i>' + post.likesCount + '</div>' +
                                                 '<div><i class="fas fa-comment me-2"></i>' + post.commentsCount + '</div>' +
@@ -319,7 +342,7 @@
                             html += '</div>' +
                                 '</div>';
                         });
-                        $('.row.g-2').append(html);
+                        $('.row.g-3').append(html);
                         currentPage++;
                         
                         if (posts.length < 12) {
@@ -336,21 +359,59 @@
                 });
         });
 
-        async function openPostModal(postId) {
+        function openPostModal(postId) {
+            console.log('Opening post modal for ID:', postId);
             currentPostId = postId;
             
-            try {
-                const response = await fetch('/api/posts/' + postId);
-                if (response.ok) {
-                    const post = await response.json();
-                    loadPostIntoModal(post);
-                } else {
-                    showAlert({ message: 'Failed to load post details' });
-                }
-            } catch (error) {
-                console.error('Error loading post:', error);
-                showAlert({ message: 'Error loading post' });
+            // Create and show a Bootstrap modal directly since we can't rely on external modal system
+            const modalHtml = `
+                <div class="modal fade" id="postModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0" id="postModalBody">
+                                <div class="text-center p-5">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p class="mt-3">Loading post...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('postModal');
+            if (existingModal) {
+                existingModal.remove();
             }
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('postModal'));
+            modal.show();
+            
+            // Fetch and load post data
+            fetch('/api/posts/' + postId)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to load post');
+                    }
+                })
+                .then(post => {
+                    loadPostIntoModal(post);
+                })
+                .catch(error => {
+                    console.error('Error loading post:', error);
+                    modal.hide();
+                    showNotification('Error loading post', 'error');
+                });
         }
 
         function loadPostIntoModal(post) {
@@ -440,23 +501,18 @@
                     '</div>' +
                 '</div>';
 
-            modal.show({
-                title: '',
-                body: modalContent,
-                footer: '',
-                size: 'extra-large',
-                closable: true
-            });
-
+            document.getElementById('postModalBody').innerHTML = modalContent;
             loadPostComments(post.id);
             
             setTimeout(() => {
                 const commentInput = document.getElementById('postCommentInput');
                 const submitBtn = document.getElementById('postCommentSubmit');
                 
-                commentInput.addEventListener('input', function() {
-                    submitBtn.disabled = !this.value.trim();
-                });
+                if (commentInput && submitBtn) {
+                    commentInput.addEventListener('input', function() {
+                        submitBtn.disabled = !this.value.trim();
+                    });
+                }
             }, 100);
         }
 
@@ -607,18 +663,6 @@
             }
         });
 
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.post-overlay')) {
-                const postContainer = e.target.closest('.post-thumbnail-container');
-                if (postContainer) {
-                    const thumbnail = postContainer.querySelector('.post-thumbnail');
-                    if (thumbnail && thumbnail.dataset.postId) {
-                        openPostModal(parseInt(thumbnail.dataset.postId));
-                    }
-                }
-            }
-        });
-
         const ProfileModals = {
             showUserList(type, title) {
                 const lowercaseTitle = title.toLowerCase();
@@ -639,10 +683,10 @@
                             '</div>' +
                         '</div>';
                 
-                modal.show({
+                window.modal?.show({
                     title: title,
                     body: bodyContent,
-                    footer: '<button type="button" class="btn btn-secondary" onclick="modal.hide()">Close</button>',
+                    footer: '<button type="button" class="btn btn-secondary" onclick="window.modal?.hide()">Close</button>',
                     size: 'default'
                 });
                 
@@ -678,11 +722,14 @@
             },
 
             showProfileImageUpload() {
+                // Get current profile image URL from the page
+                const currentProfileImg = document.querySelector('.profile-image').src;
+                
                 const formContent = 
                     '<form method="post" enctype="multipart/form-data" id="profileImageForm">' +
                         '<div class="mb-3 text-center">' +
                             '<div class="profile-preview-container mb-3" style="width: 150px; height: 150px; margin: 0 auto; position: relative;">' +
-                                '<img id="imagePreview" src="@(Model.ProfileUser?.ProfileImageUrl ?? "/images/default-avatar.svg")" ' +
+                                '<img id="imagePreview" src="' + currentProfileImg + '" ' +
                                 'class="img-fluid rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">' +
                                 '<div class="position-absolute w-100 h-100 top-0 start-0 d-flex align-items-center justify-content-center">' +
                                     '<div id="previewOverlay" style="display: none; background: rgba(0,0,0,0.5); width: 100%; height: 100%; border-radius: 50%; color: white;">' +
@@ -698,7 +745,7 @@
                         '</div>' +
                     '</form>';
 
-                modal.form({
+                window.modal?.form({
                     title: 'Change Profile Photo',
                     formContent: formContent,
                     submitText: 'Upload',
@@ -753,6 +800,12 @@
             },
 
             showEditProfile() {
+                // Get current profile data from the page elements
+                const currentDisplayName = document.querySelector('.profile-displayname').textContent.trim();
+                const currentBio = document.querySelector('.bio') ? document.querySelector('.bio').textContent.trim() : '';
+                const currentIsPrivate = document.querySelector('.badge') && document.querySelector('.badge').textContent.includes('Private');
+                const currentBioLength = currentBio.length;
+
                 const formContent = 
                     '<form method="post" class="edit-profile-form" id="editProfileForm">' +
                         '<div class="form-group mb-3">' +
@@ -761,8 +814,8 @@
                                    ' class="form-control"' + 
                                    ' id="editDisplayName"' + 
                                    ' name="DisplayName"' + 
-                                   ' value="@(Model.ProfileUser?.DisplayName ?? "")"' +
-                                   ' maxlength="50">' +
+                                   ' value="' + currentDisplayName + '"' +
+                                   ' maxlength="50" required>' +
                         '</div>' +
                         
                         '<div class="form-group mb-3">' +
@@ -772,10 +825,10 @@
                                       ' name="Bio"' + 
                                       ' rows="3"' + 
                                       ' maxlength="150"' + 
-                                      ' placeholder="Tell us about yourself...">@(Model.ProfileUser?.Bio ?? "")</textarea>
-                            <small class="form-text text-muted">
-                                <span id="bioCharCount">@(Model.ProfileUser?.Bio?.Length ?? 0)</span>/150 characters
-                            </small>
+                                      ' placeholder="Tell us about yourself...">' + currentBio + '</textarea>' +
+                            '<small class="form-text text-muted">' +
+                                '<span id="bioCharCount">' + currentBioLength + '</span>/150 characters' +
+                            '</small>' +
                         '</div>' +
                         
                         '<div class="form-group mb-3">' +
@@ -784,7 +837,7 @@
                                        ' class="form-check-input"' + 
                                        ' id="editIsPrivate"' + 
                                        ' name="IsPrivate"' + 
-                                       ' @(Model.ProfileUser?.IsPrivate == true ? "checked" : "")>' +
+                                       (currentIsPrivate ? ' checked' : '') + '>' +
                                 '<label class="form-check-label" for="editIsPrivate">' +
                                     'Private Account' +
                                 '</label>' +
@@ -795,7 +848,7 @@
                         '</div>' +
                     '</form>';
 
-                modal.form({
+                window.modal?.form({
                     title: 'Edit Profile',
                     formContent: formContent,
                     submitText: 'Save Changes',
@@ -874,7 +927,7 @@
                         '</div>' +
                     '</form>';
 
-                modal.form({
+                window.modal?.form({
                     title: 'Change Password',
                     formContent: formContent,
                     submitText: 'Change Password',
@@ -921,7 +974,7 @@
             },
 
             showDataExport() {
-                modal.confirm({
+                window.modal?.confirm({
                     title: 'Download Your Data',
                     message: 'This will download a copy of all your data including profile information, posts, followers, and following lists. This may take a few moments to prepare.',
                     confirmText: 'Download Data',
@@ -961,7 +1014,7 @@
                         '</div>' +
                     '</form>';
 
-                modal.form({
+                window.modal?.form({
                     title: 'Delete Account',
                     formContent: formContent,
                     submitText: 'Delete My Account',
@@ -977,7 +1030,7 @@
                     return false;
                 }
 
-                return modal.confirm({
+                return window.modal?.confirm({
                     title: 'Final Confirmation',
                     message: 'Are you absolutely sure? This will permanently delete your account and cannot be undone.',
                     confirmText: 'Yes, Delete Forever',
@@ -1058,26 +1111,6 @@
                     notification.remove();
                 }
             }, 3000);
-        }
-
-        if (typeof modal === 'undefined') {
-            window.modal = {
-                show: function(options) {
-                    console.log('Modal show:', options);
-                    alert(options.title + '\n\n' + (options.body || options.message || ''));
-                },
-                form: function(options) {
-                    console.log('Modal form:', options);
-                    alert(options.title + '\n\nThis feature requires a modal system to be implemented.');
-                },
-                confirm: function(options) {
-                    console.log('Modal confirm:', options);
-                    return Promise.resolve(confirm(options.message));
-                },
-                hide: function() {
-                    console.log('Modal hide');
-                }
-            };
         }
     </script>
 }

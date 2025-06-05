@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Snapstagram.Models;
 using Snapstagram.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace Snapstagram.Controllers;
 
@@ -123,9 +124,60 @@ public class PostsController(IPostService postService, UserManager<User> userMan
         // For now, return a placeholder response
         return Ok(new { bookmarked = true });
     }
+
+    [HttpPost]
+    public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Ensure we have at least an image or video URL
+            if (string.IsNullOrEmpty(request.ImageUrl) && string.IsNullOrEmpty(request.VideoUrl))
+            {
+                return BadRequest(new { message = "Either image or video URL is required" });
+            }
+
+            var post = await postService.CreatePostAsync(user.Id, request.ImageUrl ?? "", request.Caption, request.VideoUrl);
+            
+            if (post != null)
+            {
+                return Ok(new 
+                { 
+                    message = "Post created successfully",
+                    postId = post.Id
+                });
+            }
+
+            return BadRequest(new { message = "Failed to create post" });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while creating the post" });
+        }
+    }
 }
 
 public class CommentRequest
 {
     public string Text { get; set; } = string.Empty;
+}
+
+public class CreatePostRequest
+{
+    [Required]
+    [StringLength(2000)]
+    public string Caption { get; set; } = string.Empty;
+
+    [Url]
+    public string? ImageUrl { get; set; }
+
+    [Url]
+    public string? VideoUrl { get; set; }
 }

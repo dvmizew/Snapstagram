@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Snapstagram.Models;
 using Snapstagram.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace Snapstagram.Controllers;
 
@@ -155,4 +156,136 @@ public class ProfileController : ControllerBase
             followingCount
         });
     }
+
+    [HttpPost("update")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _profileService.UpdateProfileAsync(
+                currentUser.Id, 
+                request.DisplayName, 
+                request.Bio, 
+                request.IsPrivate
+            );
+
+            if (result)
+            {
+                return Ok(new { message = "Profile updated successfully" });
+            }
+
+            return BadRequest(new { message = "Failed to update profile" });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating profile" });
+        }
+    }
+
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _userManager.ChangePasswordAsync(currentUser, request.CurrentPassword, request.NewPassword);
+            
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "Password changed successfully" });
+            }
+
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return BadRequest(new { message = "Failed to change password", errors });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while changing password" });
+        }
+    }
+
+    [HttpPost("update-image")]
+    public async Task<IActionResult> UpdateProfileImage([FromBody] UpdateProfileImageRequest request)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _profileService.UpdateProfileImageAsync(currentUser.Id, request.ProfileImageUrl);
+            
+            if (result)
+            {
+                return Ok(new { message = "Profile image updated successfully" });
+            }
+
+            return BadRequest(new { message = "Failed to update profile image" });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating profile image" });
+        }
+    }
+}
+
+public class UpdateProfileRequest
+{
+    [Required]
+    [StringLength(50, MinimumLength = 1)]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string Bio { get; set; } = string.Empty;
+
+    public bool IsPrivate { get; set; }
+}
+
+public class ChangePasswordRequest
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 6)]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required]
+    [Compare("NewPassword")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class UpdateProfileImageRequest
+{
+    [Required]
+    [Url]
+    public string ProfileImageUrl { get; set; } = string.Empty;
 }
