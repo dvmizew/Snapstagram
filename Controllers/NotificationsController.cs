@@ -6,71 +6,68 @@ using Snapstagram.Services;
 
 namespace Snapstagram.Controllers;
 
-[Authorize]
-[ApiController]
-[Route("api/[controller]")]
-public class NotificationsController : ControllerBase
+[ApiController, Route("api/[controller]"), Authorize]
+public class NotificationsController(NotificationService notificationService, UserManager<User> userManager) : ControllerBase
 {
-    private readonly NotificationService _notificationService;
-    private readonly UserManager<User> _userManager;
-
-    public NotificationsController(NotificationService notificationService, UserManager<User> userManager)
+    [HttpGet]
+    public async Task<IActionResult> GetNotifications([FromQuery] int page = 0, [FromQuery] int pageSize = 20)
     {
-        _notificationService = notificationService;
-        _userManager = userManager;
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var notifications = await notificationService.GetNotificationsAsync(user.Id, page, pageSize);
+        
+        var result = notifications.Select(n => new
+        {
+            id = n.Id,
+            type = n.Type.ToString(),
+            message = n.Message,
+            isRead = n.IsRead,
+            createdAt = n.CreatedAt,
+            actor = new
+            {
+                id = n.Actor?.Id,
+                userName = n.Actor?.UserName,
+                displayName = n.Actor?.DisplayName,
+                profileImageUrl = n.Actor?.ProfileImageUrl
+            },
+            post = n.Post != null ? new
+            {
+                id = n.Post.Id,
+                imageUrl = n.Post.ImageUrl
+            } : null
+        });
+
+        return Ok(result);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetNotifications(
-        [FromQuery] int page = 1, 
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string? type = null,
-        [FromQuery] bool unreadOnly = false)
+    [HttpPost("{notificationId}/read")]
+    public async Task<IActionResult> MarkAsRead(int notificationId)
     {
-        var userId = _userManager.GetUserId(User);
-        if (userId == null) return Unauthorized();
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
 
-        var notifications = await _notificationService.GetUserNotificationsAsync(userId, page, pageSize, type, unreadOnly);
-        return Ok(notifications);
+        await notificationService.MarkAsReadAsync(user.Id, notificationId);
+        return Ok();
+    }
+
+    [HttpPost("mark-all-read")]
+    public async Task<IActionResult> MarkAllAsRead()
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        await notificationService.MarkAllAsReadAsync(user.Id);
+        return Ok();
     }
 
     [HttpGet("unread-count")]
     public async Task<IActionResult> GetUnreadCount()
     {
-        var userId = _userManager.GetUserId(User);
-        if (userId == null) return Unauthorized();
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
 
-        var count = await _notificationService.GetUnreadNotificationCountAsync(userId);
-        return Ok(new { success = true, data = count });
-    }
-
-    [HttpPut("{id}/read")]
-    public async Task<IActionResult> MarkAsRead(int id)
-    {
-        var userId = _userManager.GetUserId(User);
-        if (userId == null) return Unauthorized();
-
-        await _notificationService.MarkNotificationAsReadAsync(id, userId);
-        return Ok();
-    }
-
-    [HttpPut("mark-all-read")]
-    public async Task<IActionResult> MarkAllAsRead()
-    {
-        var userId = _userManager.GetUserId(User);
-        if (userId == null) return Unauthorized();
-
-        await _notificationService.MarkAllNotificationsAsReadAsync(userId);
-        return Ok();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteNotification(int id)
-    {
-        var userId = _userManager.GetUserId(User);
-        if (userId == null) return Unauthorized();
-
-        await _notificationService.DeleteNotificationAsync(id, userId);
-        return Ok();
+        var count = await notificationService.GetUnreadCountAsync(user.Id);
+        return Ok(new { count });
     }
 }

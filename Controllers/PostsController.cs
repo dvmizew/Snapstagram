@@ -42,6 +42,71 @@ public class PostsController(IPostService postService, UserManager<User> userMan
         });
     }
 
+    [HttpGet("feed")]
+    public async Task<IActionResult> GetFeedPosts([FromQuery] int page = 0, [FromQuery] int pageSize = 10)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var posts = await postService.GetFeedPostsAsync(user.Id, page, pageSize);
+        
+        // Get user's likes and bookmarks for these posts
+        var postIds = posts.Select(p => p.Id).ToList();
+        var userLikes = new HashSet<int>();
+        var userBookmarks = new HashSet<int>();
+        
+        if (postIds.Any())
+        {
+            userLikes = posts
+                .SelectMany(p => p.Likes)
+                .Where(l => l.UserId == user.Id)
+                .Select(l => l.PostId)
+                .ToHashSet();
+                
+            // Get user's bookmarks for these posts
+            foreach (var postId in postIds)
+            {
+                if (await postService.HasUserBookmarkedPostAsync(postId, user.Id))
+                {
+                    userBookmarks.Add(postId);
+                }
+            }
+        }
+
+        var feedPosts = posts.Select(post => new
+        {
+            id = post.Id,
+            imageUrl = post.ImageUrl,
+            videoUrl = post.VideoUrl,
+            caption = post.Caption,
+            likesCount = post.LikesCount,
+            commentsCount = post.CommentsCount,
+            createdAt = post.CreatedAt,
+            isLiked = userLikes.Contains(post.Id),
+            isBookmarked = userBookmarks.Contains(post.Id),
+            user = new
+            {
+                id = post.User.Id,
+                displayName = post.User.DisplayName,
+                userName = post.User.UserName,
+                profileImageUrl = post.User.ProfileImageUrl
+            },
+            comments = post.Comments.Take(3).Select(c => new
+            {
+                id = c.Id,
+                text = c.Text,
+                createdAt = c.CreatedAt,
+                user = new
+                {
+                    displayName = c.User.DisplayName,
+                    profileImageUrl = c.User.ProfileImageUrl
+                }
+            })
+        });
+
+        return Ok(feedPosts);
+    }
+
     [HttpPost("{postId}/like")]
     public async Task<IActionResult> ToggleLike(int postId)
     {
@@ -120,9 +185,64 @@ public class PostsController(IPostService postService, UserManager<User> userMan
         var post = await postService.GetPostByIdAsync(postId);
         if (post == null) return NotFound();
 
-        // Implementation would depend on if you have a bookmark feature
-        // For now, return a placeholder response
-        return Ok(new { bookmarked = true });
+        try
+        {
+            var isBookmarked = await postService.ToggleBookmarkAsync(postId, user.Id);
+            return Ok(new { bookmarked = isBookmarked });
+        }
+        catch
+        {
+            return StatusCode(500, new { error = "Failed to toggle bookmark" });
+        }
+    }
+
+    [HttpGet("bookmarks")]
+    public async Task<IActionResult> GetBookmarkedPosts([FromQuery] int page = 0, [FromQuery] int pageSize = 10)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        try
+        {
+            var bookmarkedPosts = await postService.GetBookmarkedPostsAsync(user.Id, page, pageSize);
+            
+            var result = bookmarkedPosts.Select(post => new
+            {
+                id = post.Id,
+                imageUrl = post.ImageUrl,
+                videoUrl = post.VideoUrl,
+                caption = post.Caption,
+                likesCount = post.LikesCount,
+                commentsCount = post.CommentsCount,
+                createdAt = post.CreatedAt,
+                isLiked = post.Likes.Any(l => l.UserId == user.Id),
+                isBookmarked = true, // All posts in this list are bookmarked
+                user = new
+                {
+                    id = post.User.Id,
+                    displayName = post.User.DisplayName,
+                    userName = post.User.UserName,
+                    profileImageUrl = post.User.ProfileImageUrl
+                },
+                comments = post.Comments.Take(3).Select(c => new
+                {
+                    id = c.Id,
+                    text = c.Text,
+                    createdAt = c.CreatedAt,
+                    user = new
+                    {
+                        displayName = c.User.DisplayName,
+                        profileImageUrl = c.User.ProfileImageUrl
+                    }
+                })
+            });
+
+            return Ok(result);
+        }
+        catch
+        {
+            return StatusCode(500, new { error = "Failed to retrieve bookmarked posts" });
+        }
     }
 
     [HttpPost]

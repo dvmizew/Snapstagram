@@ -24,6 +24,7 @@ namespace Snapstagram.Pages
         public IEnumerable<Post> Posts { get; set; } = new List<Post>();
         public IEnumerable<Story> Stories { get; set; } = new List<Story>();
         public HashSet<int> UserLikes { get; set; } = new HashSet<int>();
+        public HashSet<int> UserBookmarks { get; set; } = new HashSet<int>();
         public string CurrentUserAvatar { get; set; } = string.Empty;
 
         public async Task<IActionResult> OnGetAsync()
@@ -43,6 +44,16 @@ namespace Snapstagram.Pages
                 .Where(l => l.UserId == user.Id)
                 .Select(l => l.PostId)
                 .ToHashSet();
+
+            // Get user's bookmarks for the posts
+            UserBookmarks = new HashSet<int>();
+            foreach (var post in Posts)
+            {
+                if (await _postService.HasUserBookmarkedPostAsync(post.Id, user.Id))
+                {
+                    UserBookmarks.Add(post.Id);
+                }
+            }
 
             CurrentUserAvatar = user.ProfileImageUrl ?? GetDefaultAvatar(user.DisplayName ?? user.UserName ?? "U");
 

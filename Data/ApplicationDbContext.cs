@@ -19,6 +19,7 @@ namespace Snapstagram.Data
         public DbSet<StoryView> StoryViews { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Bookmark> Bookmarks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -38,6 +39,30 @@ namespace Snapstagram.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Configure Message relationships
+            builder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany(u => u.SentMessages)
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Message>()
+                .HasOne(m => m.Receiver)
+                .WithMany(u => u.ReceivedMessages)
+                .HasForeignKey(m => m.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Notification relationships
+            builder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Notification>()
+                .HasOne(n => n.Actor)
+                .WithMany(u => u.TriggeredNotifications)
+                .HasForeignKey(n => n.ActorId)
+                .OnDelete(DeleteBehavior.Restrict);
             builder.Entity<Message>()
                 .HasOne(m => m.Sender)
                 .WithMany(u => u.SentMessages)
@@ -89,6 +114,19 @@ namespace Snapstagram.Data
                 .HasForeignKey(sv => sv.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Configure Bookmark relationships
+            builder.Entity<Bookmark>()
+                .HasOne(b => b.User)
+                .WithMany(u => u.Bookmarks)
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Bookmark>()
+                .HasOne(b => b.Post)
+                .WithMany(p => p.Bookmarks)
+                .HasForeignKey(b => b.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             // Configure Notification relationships
             builder.Entity<Notification>()
                 .HasOne(n => n.User)
@@ -133,6 +171,10 @@ namespace Snapstagram.Data
 
             builder.Entity<Like>()
                 .HasIndex(l => new { l.UserId, l.PostId })
+                .IsUnique();
+
+            builder.Entity<Bookmark>()
+                .HasIndex(b => new { b.UserId, b.PostId })
                 .IsUnique();
 
             // Performance indexes for SQL Server

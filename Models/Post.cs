@@ -20,4 +20,5 @@ public class Post
 
     public virtual ICollection<Like> Likes { get; set; } = [];
     public virtual ICollection<Comment> Comments { get; set; } = [];
+    public virtual ICollection<Bookmark> Bookmarks { get; set; } = [];
 }

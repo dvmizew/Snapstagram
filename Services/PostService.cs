@@ -12,6 +12,9 @@ public interface IPostService
     Task<bool> ToggleLikeAsync(int postId, string userId);
     Task<Comment> AddCommentAsync(int postId, string userId, string text);
     Task<bool> HasUserLikedPostAsync(int postId, string userId);
+    Task<bool> ToggleBookmarkAsync(int postId, string userId);
+    Task<bool> HasUserBookmarkedPostAsync(int postId, string userId);
+    Task<IEnumerable<Post>> GetBookmarkedPostsAsync(string userId, int page = 0, int pageSize = 10);
 }
 
 public class PostService(ApplicationDbContext context) : IPostService
@@ -99,5 +102,48 @@ public class PostService(ApplicationDbContext context) : IPostService
     {
         return await context.Likes
             .AnyAsync(l => l.PostId == postId && l.UserId == userId);
+    }
+
+    public async Task<bool> ToggleBookmarkAsync(int postId, string userId)
+    {
+        var existingBookmark = await context.Bookmarks
+            .FirstOrDefaultAsync(b => b.PostId == postId && b.UserId == userId);
+
+        if (existingBookmark != null)
+        {
+            context.Bookmarks.Remove(existingBookmark);
+        }
+        else
+        {
+            context.Bookmarks.Add(new Bookmark { PostId = postId, UserId = userId });
+        }
+
+        await context.SaveChangesAsync();
+        return existingBookmark == null; // Return true if bookmarked, false if unbookmarked
+    }
+
+    public async Task<bool> HasUserBookmarkedPostAsync(int postId, string userId)
+    {
+        return await context.Bookmarks
+            .AnyAsync(b => b.PostId == postId && b.UserId == userId);
+    }
+
+    public async Task<IEnumerable<Post>> GetBookmarkedPostsAsync(string userId, int page = 0, int pageSize = 10)
+    {
+        return await context.Bookmarks
+            .Where(b => b.UserId == userId)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.User)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.Likes)
+            .Include(b => b.Post)
+                .ThenInclude(p => p.Comments.OrderBy(c => c.CreatedAt).Take(3))
+                .ThenInclude(c => c.User)
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .Select(b => b.Post)
+            .AsNoTracking()
+            .ToListAsync();
     }
 }
