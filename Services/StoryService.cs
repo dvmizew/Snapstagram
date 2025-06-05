@@ -12,20 +12,28 @@ public interface IStoryService
     Task<IEnumerable<Story>> GetUserStoriesAsync(string userId);
 }
 
-public class StoryService(ApplicationDbContext context) : IStoryService
+public class StoryService : IStoryService
 {
+    private readonly ApplicationDbContext _context;
+    private readonly NotificationService _notificationService;
     private static DateTime CutoffTime => DateTime.UtcNow;
+
+    public StoryService(ApplicationDbContext context, NotificationService notificationService)
+    {
+        _context = context;
+        _notificationService = notificationService;
+    }
 
     public async Task<IEnumerable<Story>> GetActiveStoriesAsync(string userId)
     {
-        var followingIds = await context.Follows
+        var followingIds = await _context.Follows
             .Where(f => f.FollowerId == userId)
             .Select(f => f.FollowingId)
             .ToListAsync();
 
         followingIds.Add(userId);
 
-        return await context.Stories
+        return await _context.Stories
             .Where(s => followingIds.Contains(s.UserId) && s.ExpiresAt > CutoffTime)
             .Include(s => s.User)
             .Include(s => s.Views)
@@ -44,29 +52,34 @@ public class StoryService(ApplicationDbContext context) : IStoryService
             Text = text
         };
 
-        context.Stories.Add(story);
-        await context.SaveChangesAsync();
+        _context.Stories.Add(story);
+        await _context.SaveChangesAsync();
         return story;
     }
 
     public async Task<bool> ViewStoryAsync(int storyId, string userId)
     {
-        var existingView = await context.StoryViews
+        var existingView = await _context.StoryViews
             .FirstOrDefaultAsync(sv => sv.StoryId == storyId && sv.UserId == userId);
 
         if (existingView != null) return false;
 
-        context.StoryViews.Add(new StoryView { StoryId = storyId, UserId = userId });
+        _context.StoryViews.Add(new StoryView { StoryId = storyId, UserId = userId });
 
-        if (await context.Stories.FindAsync(storyId) is { } story)
+        if (await _context.Stories.FindAsync(storyId) is { } story)
+        {
             story.ViewsCount++;
+            
+            // Create notification for story view
+            await _notificationService.CreateStoryViewNotificationAsync(story.UserId, userId, storyId);
+        }
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         return true;
     }
 
     public async Task<IEnumerable<Story>> GetUserStoriesAsync(string userId) =>
-        await context.Stories
+        await _context.Stories
             .Where(s => s.UserId == userId && s.ExpiresAt > CutoffTime)
             .Include(s => s.Views).ThenInclude(v => v.User)
             .OrderByDescending(s => s.CreatedAt)

@@ -51,10 +51,12 @@
                         <a href="/Settings" class="nav-icon" title="Settings">
                             <i class="fas fa-cog"></i>
                         </a>
-                        <div class="nav-icon notification-icon" title="Notifications">
-                            <i class="fas fa-heart"></i>
-                            <span class="notification-badge" id="likeNotifications" style="display: none;">0</span>
-                        </div>
+                        @await Html.PartialAsync("_NotificationDropdown")
+                        <!-- Fallback notification button -->
+                        <a href="/Notifications" class="nav-icon" title="All Notifications" id="fallbackNotificationBtn" style="display: none;">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="fallbackNotificationBadge" style="display: none;">0</span>
+                        </a>
                         <div class="profile-dropdown">
                             <div class="nav-icon profile-icon">
                                 <i class="fas fa-user-circle"></i>
@@ -98,6 +100,57 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    
+    <!-- Notification System Initialization -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if notification dropdown failed to load
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const fallbackBtn = document.getElementById('fallbackNotificationBtn');
+        
+        if (!notificationDropdown) {
+            // Show fallback button if dropdown doesn't exist
+            if (fallbackBtn) {
+                fallbackBtn.style.display = 'flex';
+            }
+        }
+        
+        // Initialize notification count checking
+        if (typeof loadNotificationCount !== 'function') {
+            // Define fallback notification count function
+            window.loadNotificationCount = async function() {
+                try {
+                    const response = await fetch('/api/notifications/unread-count');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        updateNotificationBadge(data.data);
+                    }
+                } catch (error) {
+                    console.error('Error loading notification count:', error);
+                }
+            };
+            
+            window.updateNotificationBadge = function(count) {
+                const badges = document.querySelectorAll('.notification-badge');
+                badges.forEach(badge => {
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count.toString();
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                });
+            };
+            
+            // Load initial count
+            loadNotificationCount();
+            
+            // Refresh count every 30 seconds
+            setInterval(loadNotificationCount, 30000);
+        }
+    });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

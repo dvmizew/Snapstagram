@@ -100,10 +100,29 @@ public class NotificationService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<List<Notification>> GetUserNotificationsAsync(string userId, int page = 1, int pageSize = 20)
+    public async Task<object> GetUserNotificationsAsync(string userId, int page = 1, int pageSize = 20, string? type = null, bool unreadOnly = false)
     {
-        return await _context.Notifications
-            .Where(n => n.UserId == userId)
+        var query = _context.Notifications
+            .Where(n => n.UserId == userId);
+
+        // Apply filters
+        if (unreadOnly)
+        {
+            query = query.Where(n => !n.IsRead);
+        }
+
+        if (!string.IsNullOrEmpty(type) && Enum.TryParse<NotificationType>(type, out var notificationType))
+        {
+            query = query.Where(n => n.Type == notificationType);
+        }
+
+        // Get total count for pagination
+        var totalCount = await query.CountAsync();
+        var unreadCount = await _context.Notifications
+            .CountAsync(n => n.UserId == userId && !n.IsRead);
+
+        // Get paginated results with related data
+        var notifications = await query
             .Include(n => n.Actor)
             .Include(n => n.Post)
             .Include(n => n.Comment)
@@ -112,7 +131,41 @@ public class NotificationService
             .OrderByDescending(n => n.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(n => new
+            {
+                id = n.Id,
+                type = n.Type.ToString(),
+                message = n.Message,
+                isRead = n.IsRead,
+                createdAt = n.CreatedAt,
+                readAt = n.ReadAt,
+                fromUser = new
+                {
+                    id = n.Actor!.Id,
+                    userName = n.Actor.UserName,
+                    displayName = n.Actor.DisplayName,
+                    profilePictureUrl = n.Actor.ProfileImageUrl
+                },
+                postId = n.PostId,
+                commentId = n.CommentId,
+                storyId = n.StoryId,
+                messageId = n.MessageId
+            })
             .ToListAsync();
+
+        return new
+        {
+            success = true,
+            data = new
+            {
+                items = notifications,
+                totalCount = totalCount,
+                unreadCount = unreadCount,
+                page = page,
+                pageSize = pageSize,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            }
+        };
     }
 
     public async Task<int> GetUnreadNotificationCountAsync(string userId)

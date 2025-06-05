@@ -7,7 +7,7 @@ using Snapstagram.Services;
 namespace Snapstagram.Controllers;
 
 [ApiController, Route("api/[controller]"), Authorize]
-public class PostsController(IPostService postService, UserManager<User> userManager) : ControllerBase
+public class PostsController(IPostService postService, UserManager<User> userManager, NotificationService notificationService) : ControllerBase
 {
     [HttpGet("{postId}")]
     public async Task<IActionResult> GetPost(int postId)
@@ -47,11 +47,20 @@ public class PostsController(IPostService postService, UserManager<User> userMan
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Unauthorized();
 
+        var post = await postService.GetPostByIdAsync(postId);
+        if (post == null) return NotFound();
+
         var isLiked = await postService.ToggleLikeAsync(postId, user.Id);
         
+        // Create notification if user liked the post (not their own)
+        if (isLiked && user.Id != post.UserId)
+        {
+            await notificationService.CreateLikeNotificationAsync(post.UserId, user.Id, postId);
+        }
+        
         // Get updated post to return current likes count
-        var post = await postService.GetPostByIdAsync(postId);
-        return Ok(new { liked = isLiked, likesCount = post?.LikesCount ?? 0 });
+        var updatedPost = await postService.GetPostByIdAsync(postId);
+        return Ok(new { liked = isLiked, likesCount = updatedPost?.LikesCount ?? 0 });
     }
 
     [HttpPost("{postId}/comments")]
@@ -67,6 +76,13 @@ public class PostsController(IPostService postService, UserManager<User> userMan
         if (post == null) return NotFound();
 
         var comment = await postService.AddCommentAsync(postId, user.Id, request.Text);
+        
+        // Create notification if user commented on someone else's post
+        if (user.Id != post.UserId)
+        {
+            await notificationService.CreateCommentNotificationAsync(post.UserId, user.Id, postId, comment.Id);
+        }
+        
         return Ok(new
         {
             id = comment.Id,

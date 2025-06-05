@@ -21,12 +21,16 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetNotifications(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? type = null,
+        [FromQuery] bool unreadOnly = false)
     {
         var userId = _userManager.GetUserId(User);
         if (userId == null) return Unauthorized();
 
-        var notifications = await _notificationService.GetUserNotificationsAsync(userId, page, pageSize);
+        var notifications = await _notificationService.GetUserNotificationsAsync(userId, page, pageSize, type, unreadOnly);
         return Ok(notifications);
     }
 
@@ -37,7 +41,7 @@ public class NotificationsController : ControllerBase
         if (userId == null) return Unauthorized();
 
         var count = await _notificationService.GetUnreadNotificationCountAsync(userId);
-        return Ok(new { unreadCount = count });
+        return Ok(new { success = true, data = count });
     }
 
     [HttpPut("{id}/read")]
