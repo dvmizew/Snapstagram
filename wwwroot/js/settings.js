@@ -1,6 +1,5 @@
-// Settings page JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-    // Bio character counter
+    // bio character counter
     const bioTextarea = document.getElementById('Bio');
     const bioCount = document.getElementById('bioCount');
     
@@ -19,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Change Email functionality
+    // change Email functionality
     const changeEmailBtn = document.getElementById('changeEmailBtn');
     const emailInput = document.getElementById('emailInput');
     
@@ -29,32 +28,31 @@ document.addEventListener('DOMContentLoaded', function() {
             const newEmail = prompt('Enter new email address:', currentEmail);
             
             if (newEmail && newEmail !== currentEmail) {
-                // Simple email validation
                 if (newEmail.indexOf("@") === -1 || newEmail.indexOf(".") === -1) {
                     alert('Please enter a valid email address');
                     return;
                 }
                 
-                // Create a form and submit
+                // create a form and submit
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = window.location.pathname + '?handler=UpdateEmail';
                 
-                // Create hidden input for email
+                // create hidden input for email
                 const emailField = document.createElement('input');
                 emailField.type = 'hidden';
                 emailField.name = 'newEmail';
                 emailField.value = newEmail;
                 form.appendChild(emailField);
                 
-                // Create anti-forgery token
+                // create anti-forgery token
                 const tokenField = document.createElement('input');
                 tokenField.type = 'hidden';
                 tokenField.name = '__RequestVerificationToken';
                 tokenField.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
                 form.appendChild(tokenField);
                 
-                // Submit the form
+                // submit the form
                 document.body.appendChild(form);
                 form.submit();
             }
@@ -62,13 +60,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Show downloading message when downloading data
 function showDownloadingMessage() {
     document.getElementById('downloadingMessage').classList.remove('d-none');
     return true;
 }
 
-// Confirm deletion of account
 function confirmDelete() {
     return confirm('Are you absolutely sure you want to delete your account? This action CANNOT be undone.');
 }

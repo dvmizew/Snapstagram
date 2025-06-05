@@ -30,12 +30,12 @@ public class SettingsModel : PageModel
     public bool IsSuccess { get; set; }
     public string? ActiveTab { get; set; } = "general";
     
-    // Statistics properties
+    // statistics
     public int PostsCount { get; set; }
     public int FollowersCount { get; set; }
     public int FollowingCount { get; set; }
 
-    // General profile settings
+    // general profile settings
     [BindProperty]
     [Display(Name = "Username")]
     public string Username { get; set; } = string.Empty;
@@ -60,7 +60,7 @@ public class SettingsModel : PageModel
     [Display(Name = "Private Account")]
     public bool IsPrivate { get; set; }
 
-    // Password change properties
+    // password change properties
     [BindProperty]
     [Required(ErrorMessage = "Current password is required.")]
     [DataType(DataType.Password)]
@@ -80,7 +80,7 @@ public class SettingsModel : PageModel
     [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
     public string ConfirmNewPassword { get; set; } = string.Empty;
 
-    // Delete account property
+    // delete account property
     [BindProperty]
     [Required(ErrorMessage = "Password is required to delete your account.")]
     [DataType(DataType.Password)]
@@ -95,17 +95,17 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // Set active tab
+        // set active tab
         ActiveTab = tab;
 
-        // Load current user data
+        // load current user data
         Username = CurrentUser.UserName ?? string.Empty;
         Email = CurrentUser.Email ?? string.Empty;
         DisplayName = CurrentUser.DisplayName;
         Bio = CurrentUser.Bio;
         IsPrivate = CurrentUser.IsPrivate;
         
-        // Load statistics
+        // load statistics
         PostsCount = await _profileService.GetPostsCountAsync(CurrentUser.Id);
         FollowersCount = await _profileService.GetFollowersCountAsync(CurrentUser.Id);
         FollowingCount = await _profileService.GetFollowingCountAsync(CurrentUser.Id);
@@ -121,7 +121,6 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // Validate only the profile fields
         ModelState.Remove("CurrentPassword");
         ModelState.Remove("NewPassword");
         ModelState.Remove("ConfirmNewPassword");
@@ -137,7 +136,7 @@ public class SettingsModel : PageModel
         
         if (success)
         {
-            // Update the current user object for display
+            // update the current user object for display
             CurrentUser.DisplayName = DisplayName;
             CurrentUser.Bio = Bio;
             CurrentUser.IsPrivate = IsPrivate;
@@ -163,7 +162,7 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // Load the user data for form fields
+        // load the user data for form fields
         Username = CurrentUser.UserName ?? string.Empty;
         DisplayName = CurrentUser.DisplayName;
         Bio = CurrentUser.Bio;
@@ -183,16 +182,12 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // In a production app, you'd typically:
-        // 1. Send a confirmation email with a token
-        // 2. Have the user click that token to verify their email
-        // For this demo, we'll just update it directly
         var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
         var result = await _userManager.ChangeEmailAsync(user, newEmail, token);
 
         if (result.Succeeded)
         {
-            // Also update the username if it's an email
+            // also update the username if it's an email
             if (user.UserName?.Contains('@') == true)
             {
                 await _userManager.SetUserNameAsync(user, newEmail);
@@ -219,7 +214,7 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // Load the user data for form fields
+        // load the user data for form fields
         Username = CurrentUser.UserName ?? string.Empty;
         Email = CurrentUser.Email ?? string.Empty;
         DisplayName = CurrentUser.DisplayName;
@@ -227,7 +222,7 @@ public class SettingsModel : PageModel
         IsPrivate = CurrentUser.IsPrivate;
         ActiveTab = "security";
 
-        // Validate only password fields
+        // validate only password fields
         ModelState.Remove("DisplayName");
         ModelState.Remove("Bio");
         ModelState.Remove("DeleteConfirmPassword");
@@ -244,7 +239,7 @@ public class SettingsModel : PageModel
             Message = "Password changed successfully!";
             IsSuccess = true;
             
-            // Clear password fields
+            // clear password fields
             CurrentPassword = string.Empty;
             NewPassword = string.Empty;
             ConfirmNewPassword = string.Empty;
@@ -268,18 +263,17 @@ public class SettingsModel : PageModel
 
         try
         {
-            // Gather user data - same as in ProfileViewModel
             var userData = new
             {
                 Profile = new
                 {
                     Username = CurrentUser.UserName,
-                    Email = CurrentUser.Email,
-                    DisplayName = CurrentUser.DisplayName,
-                    Bio = CurrentUser.Bio,
-                    IsPrivate = CurrentUser.IsPrivate,
-                    CreatedAt = CurrentUser.CreatedAt,
-                    ProfileImageUrl = CurrentUser.ProfileImageUrl
+                    CurrentUser.Email,
+                    CurrentUser.DisplayName,
+                    CurrentUser.Bio,
+                    CurrentUser.IsPrivate,
+                    CurrentUser.CreatedAt,
+                    CurrentUser.ProfileImageUrl
                 },
                 Posts = await _profileService.GetUserPostsAsync(CurrentUser.Id, 0, 1000),
                 Followers = await _profileService.GetFollowersAsync(CurrentUser.Id, 0, 1000),
@@ -293,13 +287,13 @@ public class SettingsModel : PageModel
                 ExportDate = DateTime.UtcNow
             };
 
-            // Convert to JSON
+            // convert to JSON
             var json = System.Text.Json.JsonSerializer.Serialize(userData, new System.Text.Json.JsonSerializerOptions 
             { 
                 WriteIndented = true 
             });
 
-            // Return as downloadable file
+            // return as downloadable file
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             var fileName = $"snapstagram-data-{CurrentUser.UserName}-{DateTime.UtcNow:yyyyMMdd}.json";
             
@@ -307,7 +301,7 @@ public class SettingsModel : PageModel
         }
         catch (Exception ex)
         {
-            // Load the user data for form fields
+            // load the user data for form fields
             Username = CurrentUser.UserName ?? string.Empty;
             Email = CurrentUser.Email ?? string.Empty;
             DisplayName = CurrentUser.DisplayName;
@@ -329,7 +323,7 @@ public class SettingsModel : PageModel
             return RedirectToPage("/Account/Login");
         }
 
-        // Load the user data for form fields
+        // load the user data for form fields
         Username = CurrentUser.UserName ?? string.Empty;
         Email = CurrentUser.Email ?? string.Empty;
         DisplayName = CurrentUser.DisplayName;
@@ -337,7 +331,7 @@ public class SettingsModel : PageModel
         IsPrivate = CurrentUser.IsPrivate;
         ActiveTab = "delete";
 
-        // Verify password
+        // verify password
         var passwordCheck = await _userManager.CheckPasswordAsync(CurrentUser, DeleteConfirmPassword);
         if (!passwordCheck)
         {
@@ -348,7 +342,7 @@ public class SettingsModel : PageModel
 
         try
         {
-            // Delete user's uploaded files
+            // delete user's uploaded files
             var userUploadsPath = Path.Combine(_environment.WebRootPath, "uploads");
             if (Directory.Exists(userUploadsPath))
             {
@@ -359,7 +353,7 @@ public class SettingsModel : PageModel
                 }
             }
 
-            // Delete the user account
+            // delete the user account
             var result = await _userManager.DeleteAsync(CurrentUser);
             
             if (result.Succeeded)
