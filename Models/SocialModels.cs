@@ -57,3 +57,15 @@ public class Message
     public bool IsRead { get; set; } = false;
     public DateTime? ReadAt { get; set; }
 }
+
+public class Bookmark
+{
+    public int Id { get; set; }
+    [Required] public string UserId { get; set; } = string.Empty;
+    [ForeignKey("UserId")] public virtual User User { get; set; } = null!;
+    public int PostId { get; set; }
+    [ForeignKey("PostId")] public virtual Post Post { get; set; } = null!;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+

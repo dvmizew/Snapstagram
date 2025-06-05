@@ -7,6 +7,10 @@
     Layout = "_Layout";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/feed.css" />
+}
+
 <div class="main-container">
     <!-- Left Sidebar -->
     <div class="sidebar-left">
@@ -39,6 +43,7 @@
                 <div class="trending-item">#Photography</div>
                 <div class="trending-item">#Travel</div>
                 <div class="trending-item">#Food</div>
+                <div class="trending-item">#Art</div>
             </div>
         </div>
     </div>
@@ -149,8 +154,8 @@
                                 <i class="far fa-paper-plane"></i>
                             </button>
                         </div>
-                        <button class="action-btn bookmark-btn" onclick="toggleBookmark(@post.Id)">
-                            <i class="far fa-bookmark"></i>
+                        <button class="action-btn bookmark-btn @(Model.UserBookmarks.Contains(post.Id) ? "bookmarked" : "")" onclick="toggleBookmark(@post.Id)">
+                            <i class="@(Model.UserBookmarks.Contains(post.Id) ? "fas" : "far") fa-bookmark"></i>
                         </button>
                     </div>
 
@@ -226,22 +231,10 @@
         <div class="sidebar-card">
             <div class="sidebar-title">Suggested for you</div>
             <div class="suggested-users">
-                <!-- This would be populated with suggested users -->
-                <div class="suggested-user">
-                    <img src="https://via.placeholder.com/32x32/6c757d/ffffff?text=U" alt="User" class="suggested-avatar" />
-                    <div class="suggested-info">
-                        <div class="suggested-name">john_doe</div>
-                        <div class="suggested-mutual">2 mutual friends</div>
-                    </div>
-                    <button class="follow-btn">Follow</button>
-                </div>
-                <div class="suggested-user">
-                    <img src="https://via.placeholder.com/32x32/6c757d/ffffff?text=J" alt="User" class="suggested-avatar" />
-                    <div class="suggested-info">
-                        <div class="suggested-name">jane_smith</div>
-                        <div class="suggested-mutual">5 mutual friends</div>
-                    </div>
-                    <button class="follow-btn">Follow</button>
+                <!-- Will be populated by JavaScript -->
+                <div class="loading-placeholder">
+                    <div class="loading"></div>
+                    <span>Loading suggestions...</span>
                 </div>
             </div>
         </div>
@@ -249,15 +242,10 @@
         <div class="sidebar-card">
             <div class="sidebar-title">Recent Activity</div>
             <div class="activity-feed">
-                <div class="activity-item">
-                    <i class="fas fa-heart text-danger"></i>
-                    <span><strong>alex_photo</strong> liked your post</span>
-                    <span class="activity-time">2m</span>
-                </div>
-                <div class="activity-item">
-                    <i class="fas fa-comment text-primary"></i>
-                    <span><strong>sarah_k</strong> commented on your post</span>
-                    <span class="activity-time">5m</span>
+                <!-- Will be populated by JavaScript -->
+                <div class="loading-placeholder">
+                    <div class="loading"></div>
+                    <span>Loading activity...</span>
                 </div>
             </div>
         </div>
@@ -309,9 +297,6 @@
                         <button class="list-group-item list-group-item-action" onclick="showFeedSettings()">
                             <i class="fas fa-cog me-3"></i>Feed Settings
                         </button>
-                        <button class="list-group-item list-group-item-action" onclick="reportIssue()">
-                            <i class="fas fa-flag me-3"></i>Report Issue
-                        </button>
                         <button class="list-group-item list-group-item-action" onclick="showKeyboardShortcuts()">
                             <i class="fas fa-keyboard me-3"></i>Keyboard Shortcuts
                         </button>
@@ -320,203 +305,20 @@
                         </button>
                     </div>
                 `,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                `,
-                size: 'default'
+                footer: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>`
             });
         }
 
         function refreshFeed() {
             window.modal.hide();
-            showLoadingModal('Refreshing Feed', 'Loading latest posts...');
-            
-            setTimeout(() => {
-                window.modal.hide();
-                showNotification('Feed refreshed successfully!', 'success');
-                // In a real app, you would reload the feed data here
-            }, 2000);
+            location.reload();
         }
 
-        function showFeedSettings() {
-            window.modal.hide();
-            showFormModal({
-                title: 'Feed Settings',
-                formContent: `
-                    <form id="feedSettingsForm">
-                        <div class="mb-3">
-                            <label class="form-label">Show Posts From</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="feedType" id="allPosts" value="all" checked>
-                                <label class="form-check-label" for="allPosts">
-                                    Everyone I follow
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="feedType" id="closeFriends" value="close">
-                                <label class="form-check-label" for="closeFriends">
-                                    Close friends only
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Post Types</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="showPhotos" checked>
-                                <label class="form-check-label" for="showPhotos">
-                                    Photos
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="showVideos" checked>
-                                <label class="form-check-label" for="showVideos">
-                                    Videos
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="showStories" checked>
-                                <label class="form-check-label" for="showStories">
-                                    Stories
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="postsPerPage" class="form-label">Posts per page</label>
-                            <select class="form-control" id="postsPerPage" name="postsPerPage">
-                                <option value="10">10 posts</option>
-                                <option value="20" selected>20 posts</option>
-                                <option value="50">50 posts</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="autoRefresh">
-                                <label class="form-check-label" for="autoRefresh">
-                                    Auto-refresh feed every 5 minutes
-                                </label>
-                            </div>
-                        </div>
-                    </form>
-                `,
-                submitText: 'Save Settings',
-                onSubmit: (formData) => {
-                    showNotification('Feed settings saved successfully!', 'success');
-                    return true;
-                }
-            });
+        function openStoryCreator() {
+            window.location.href = '/Create?type=story';
         }
 
-        async function reportIssue() {
-            window.modal.hide();
-            
-            const proceed = await showConfirm({
-                title: 'Report an Issue',
-                message: 'Are you experiencing a problem with the feed? We\'ll help you report it to our support team.',
-                confirmText: 'Report Issue',
-                cancelText: 'Cancel',
-                icon: 'fas fa-flag'
-            });
-
-            if (proceed) {
-                showFormModal({
-                    title: 'Report Issue',
-                    formContent: `
-                        <form id="issueReportForm">
-                            <div class="mb-3">
-                                <label for="issueType" class="form-label">Issue Type *</label>
-                                <select class="form-control" id="issueType" name="issueType" required>
-                                    <option value="">Select issue type...</option>
-                                    <option value="loading">Posts not loading</option>
-                                    <option value="performance">Slow performance</option>
-                                    <option value="display">Display issues</option>
-                                    <option value="functionality">Feature not working</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="issueDescription" class="form-label">Description *</label>
-                                <textarea class="form-control" id="issueDescription" name="description" rows="4" 
-                                          placeholder="Please describe the issue you're experiencing..." required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="steps" class="form-label">Steps to Reproduce</label>
-                                <textarea class="form-control" id="steps" name="steps" rows="3" 
-                                          placeholder="1. Go to... 2. Click on... 3. See error..."></textarea>
-                            </div>
-                        </form>
-                    `,
-                    submitText: 'Submit Report',
-                    size: 'large',
-                    onSubmit: (formData) => {
-                        showNotification('Issue report submitted successfully! We\'ll get back to you soon.', 'success');
-                        return true;
-                    }
-                });
-            }
-        }
-
-        function showKeyboardShortcuts() {
-            window.modal.hide();
-            showModal({
-                title: 'Keyboard Shortcuts',
-                body: `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Navigation</h6>
-                            <table class="table table-sm">
-                                <tr><td><kbd>H</kbd></td><td>Go to Home/Feed</td></tr>
-                                <tr><td><kbd>M</kbd></td><td>Open Messages</td></tr>
-                                <tr><td><kbd>C</kbd></td><td>Create new post</td></tr>
-                                <tr><td><kbd>E</kbd></td><td>Explore page</td></tr>
-                                <tr><td><kbd>P</kbd></td><td>Your profile</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Actions</h6>
-                            <table class="table table-sm">
-                                <tr><td><kbd>L</kbd></td><td>Like selected post</td></tr>
-                                <tr><td><kbd>Ctrl + Enter</kbd></td><td>Submit comment</td></tr>
-                                <tr><td><kbd>Esc</kbd></td><td>Close modal/dialog</td></tr>
-                                <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
-                                <tr><td><kbd>R</kbd></td><td>Refresh feed</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Tip: Most shortcuts work when no input field is focused.
-                        </small>
-                    </div>
-                `,
-                footer: `<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>`,
-                size: 'large'
-            });
-        }
-
-        async function clearCache() {
-            window.modal.hide();
-            
-            const confirmed = await showConfirm({
-                title: 'Clear Cache',
-                message: 'This will clear your locally stored data including cached images and posts. The feed will reload fresh content.',
-                confirmText: 'Clear Cache',
-                cancelText: 'Cancel',
-                confirmClass: 'btn-warning',
-                icon: 'fas fa-trash'
-            });
-
-            if (confirmed) {
-                showLoadingModal('Clearing Cache', 'Removing cached data...');
-                
-                setTimeout(() => {
-                    window.modal.hide();
-                    showNotification('Cache cleared successfully!', 'success');
-                }, 1500);
-            }
-        }
-
-        // Example post menu functionality
+        // Example post menu functionality  
         function showPostMenu(postId) {
             showModal({
                 title: 'Post Options',
@@ -540,40 +342,6 @@
             });
         }
 
-        function sharePost(postId) {
-            window.modal.hide();
-            showModal({
-                title: 'Share Post',
-                body: `
-                    <div class="mb-3">
-                        <label class="form-label">Share to:</label>
-                        <div class="d-flex gap-2 mb-3">
-                            <button class="btn btn-outline-primary flex-fill">
-                                <i class="fab fa-facebook me-2"></i>Facebook
-                            </button>
-                            <button class="btn btn-outline-info flex-fill">
-                                <i class="fab fa-twitter me-2"></i>Twitter
-                            </button>
-                            <button class="btn btn-outline-success flex-fill">
-                                <i class="fab fa-whatsapp me-2"></i>WhatsApp
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="shareLink" class="form-label">Or copy link:</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="shareLink" 
-                                   value="https://snapstagram.com/posts/${postId}" readonly>
-                            <button class="btn btn-outline-secondary" onclick="copyToClipboard('shareLink')">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                `,
-                footer: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`
-            });
-        }
-
         function savePost(postId) {
             window.modal.hide();
             showNotification('Post saved to your collection!', 'success');
@@ -581,118 +349,8 @@
 
         function copyLink(postId) {
             window.modal.hide();
-            navigator.clipboard.writeText(`https://snapstagram.com/posts/${postId}`);
+            navigator.clipboard.writeText(`${window.location.origin}/posts/${postId}`);
             showNotification('Link copied to clipboard!', 'success');
-        }
-
-        async function reportPost(postId) {
-            window.modal.hide();
-            
-            const reason = await new Promise(resolve => {
-                showModal({
-                    title: 'Report Post',
-                    body: `
-                        <p class="mb-3">Why are you reporting this post?</p>
-                        <div class="list-group">
-                            <button class="list-group-item list-group-item-action" onclick="selectReason('spam', ${resolve})">
-                                <i class="fas fa-ban me-3"></i>It's spam
-                            </button>
-                            <button class="list-group-item list-group-item-action" onclick="selectReason('inappropriate', ${resolve})">
-                                <i class="fas fa-exclamation-triangle me-3"></i>Inappropriate content
-                            </button>
-                            <button class="list-group-item list-group-item-action" onclick="selectReason('harassment', ${resolve})">
-                                <i class="fas fa-user-shield me-3"></i>Harassment or bullying
-                            </button>
-                            <button class="list-group-item list-group-item-action" onclick="selectReason('false', ${resolve})">
-                                <i class="fas fa-times-circle me-3"></i>False information
-                            </button>
-                            <button class="list-group-item list-group-item-action" onclick="selectReason('other', ${resolve})">
-                                <i class="fas fa-ellipsis-h me-3"></i>Something else
-                            </button>
-                        </div>
-                    `,
-                    footer: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="selectReason(null, ${resolve})">Cancel</button>`
-                });
-            });
-
-            if (reason) {
-                showNotification('Post has been reported. Thank you for helping keep our community safe.', 'success');
-            }
-        }
-
-        function selectReason(reason, callback) {
-            window.modal.hide();
-            callback(reason);
-        }
-
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            element.select();
-            navigator.clipboard.writeText(element.value);
-            showNotification('Copied to clipboard!', 'success');
-        }
-
-        // Story creator modal
-        function openStoryCreator() {
-            showModal({
-                title: 'Create Story',
-                body: `
-                    <div class="text-center">
-                        <div class="story-upload-area mb-3" style="border: 2px dashed #ddd; padding: 40px; border-radius: 8px;">
-                            <i class="fas fa-camera fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">Click to add photo or video</p>
-                            <input type="file" class="d-none" accept="image/*,video/*" onchange="previewStoryMedia(this)">
-                        </div>
-                        <div id="storyPreview" style="display: none;">
-                            <img id="storyImage" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
-                            <video id="storyVideo" controls style="max-width: 100%; max-height: 300px; border-radius: 8px; display: none;"></video>
-                        </div>
-                    </div>
-                `,
-                footer: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" disabled id="publishStoryBtn">Publish Story</button>
-                `,
-                size: 'large'
-            });
-
-            // Add click handler to upload area
-            document.querySelector('.story-upload-area').addEventListener('click', () => {
-                document.querySelector('.story-upload-area input[type="file"]').click();
-            });
-        }
-
-        function previewStoryMedia(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    const preview = document.getElementById('storyPreview');
-                    const image = document.getElementById('storyImage');
-                    const video = document.getElementById('storyVideo');
-                    
-                    preview.style.display = 'block';
-                    
-                    if (file.type.startsWith('image/')) {
-                        image.src = e.target.result;
-                        image.style.display = 'block';
-                        video.style.display = 'none';
-                    } else if (file.type.startsWith('video/')) {
-                        video.src = e.target.result;
-                        video.style.display = 'block';
-                        image.style.display = 'none';
-                    }
-                    
-                    document.getElementById('publishStoryBtn').disabled = false;
-                    document.getElementById('publishStoryBtn').onclick = function() {
-                        window.modal.hide();
-                        showNotification('Story published successfully!', 'success');
-                    };
-                };
-                
-                reader.readAsDataURL(file);
-            }
         }
     </script>
 }

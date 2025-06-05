@@ -20,4 +20,5 @@ public class User : IdentityUser
     public virtual ICollection<Message> ReceivedMessages { get; set; } = [];
     public virtual ICollection<Notification> Notifications { get; set; } = [];
     public virtual ICollection<Notification> TriggeredNotifications { get; set; } = [];
+    public virtual ICollection<Bookmark> Bookmarks { get; set; } = [];
 }

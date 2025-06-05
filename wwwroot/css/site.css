@@ -14,6 +14,258 @@ body { padding-top: 60px; }
 
 .text-gradient, .brand-text { background: var(--instagram-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
+/* Global white text override */
+* {
+    color: white !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+p, span, div, a, button, input, textarea, select,
+.text-primary, .text-secondary, .text-tertiary,
+.text-muted, .text-dark, .text-light,
+.btn, .nav-link, .dropdown-item,
+.card-title, .card-text, .modal-title, .modal-body,
+.form-label, .form-control, .form-control::placeholder,
+.notification-text, .comment-text, .post-caption,
+.story-username, .suggested-name, .conversation-name {
+    color: white !important;
+}
+
+/* Ensure text visibility on various backgrounds */
+.bg-white, .bg-light, .bg-primary, .bg-secondary, .bg-dark {
+    color: white !important;
+}
+
+/* Override any specific color classes */
+.text-black, .text-gray, .text-blue, .text-red, .text-green {
+    color: white !important;
+}
+
+/* Form controls white text */
+input, textarea, select {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Button text white */
+.btn, button {
+    color: white !important;
+}
+
+/* Navigation text */
+.navbar, .nav, .nav-link {
+    color: white !important;
+}
+
+/* Enhanced Card and Component Styling */
+.card, .card-body, .card-header, .card-footer {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Feed and Post Styling */
+.post-card, .sidebar-card, .stories-container {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Ensure transparent backgrounds don't interfere */
+.bg-white, .bg-light {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.bg-primary, .bg-secondary, .bg-dark {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Feed specific white text */
+.post-card, .story-item, .comment, .notification-item {
+    color: white !important;
+}
+
+/* Dropdown menus */
+.dropdown-menu, .dropdown-item {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Modal content */
+.modal-content, .modal-header, .modal-body, .modal-footer {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Enhanced Modal Styling */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.modal-content {
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 1.5rem !important;
+}
+
+.modal-title {
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+}
+
+.modal-body {
+    padding: 1.5rem !important;
+    color: white !important;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 1rem 1.5rem !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Modal buttons */
+.modal .btn {
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.modal .btn-primary {
+    background: #4285f4 !important;
+    border-color: #4285f4 !important;
+    color: white !important;
+}
+
+.modal .btn-primary:hover {
+    background: #3367d6 !important;
+    border-color: #3367d6 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4) !important;
+}
+
+.modal .btn-secondary {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+.modal .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+}
+
+.modal .btn-danger {
+    background: #ff4757 !important;
+    border-color: #ff4757 !important;
+    color: white !important;
+}
+
+.modal .btn-danger:hover {
+    background: #ff3742 !important;
+    border-color: #ff3742 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4) !important;
+}
+
+/* Close button */
+.btn-close {
+    background: none !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    opacity: 1 !important;
+    font-size: 1.25rem !important;
+    padding: 0.5rem !important;
+    border-radius: 50% !important;
+    transition: all 0.2s ease !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    transform: scale(1.1) !important;
+}
+
+/* Form elements in modals */
+.modal .form-control {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: 8px !important;
+}
+
+.modal .form-control:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: #4285f4 !important;
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2) !important;
+    color: white !important;
+}
+
+.modal .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.modal .form-label {
+    color: white !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Modal list items */
+.modal .list-group-item {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+.modal .list-group-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modal dropdown menus */
+.modal .dropdown-menu {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+.modal .dropdown-item {
+    color: white !important;
+}
+
+.modal .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+/* Ensure readability for icons and special elements */
+.fa, .fas, .far, .fab, i[class*="fa-"] {
+    color: white !important;
+}
+
 .main-nav { background: var(--bg-primary); border-bottom: 1px solid var(--border-light); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 60px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .nav-container { max-width: 1200px; margin: 0 auto; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--spacing-md); }
 .nav-left { flex: 1; }
