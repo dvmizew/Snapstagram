@@ -12,8 +12,9 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
-
+        // Redirect to login page
+        return RedirectToPage("/Account/Login");
     }
 }
