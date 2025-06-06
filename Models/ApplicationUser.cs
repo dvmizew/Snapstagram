@@ -14,9 +14,8 @@ namespace Snapstagram.Models
 
     public static class UserRoles
     {
-        public const string Visitor = "Visitor";
-        public const string RegisteredUser = "RegisteredUser";
-        public const string Moderator = "Moderator";
-        public const string Administrator = "Administrator";
+        public const string Visitor = "Visitor";                 // Unregistered visitor
+        public const string RegisteredUser = "RegisteredUser";    // Registered user
+        public const string Administrator = "Administrator";      // Administrator
     }
 }

@@ -39,21 +39,9 @@ namespace Snapstagram.Pages.Admin
             await LoadUsersWithRoles();
         }
 
-        public async Task<IActionResult> OnPostMakeModeratorAsync(string userId)
-        {
-            await UpdateUserRole(userId, UserRoles.Moderator, true);
-            return RedirectToPage();
-        }
-
         public async Task<IActionResult> OnPostMakeAdminAsync(string userId)
         {
             await UpdateUserRole(userId, UserRoles.Administrator, true);
-            return RedirectToPage();
-        }
-
-        public async Task<IActionResult> OnPostRemoveModeratorAsync(string userId)
-        {
-            await UpdateUserRole(userId, UserRoles.Moderator, false);
             return RedirectToPage();
         }
 

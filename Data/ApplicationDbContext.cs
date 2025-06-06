@@ -26,8 +26,7 @@ namespace Snapstagram.Data
             {
                 new IdentityRole { Id = "1", Name = "Visitor", NormalizedName = "VISITOR" },
                 new IdentityRole { Id = "2", Name = "RegisteredUser", NormalizedName = "REGISTEREDUSER" },
-                new IdentityRole { Id = "3", Name = "Moderator", NormalizedName = "MODERATOR" },
-                new IdentityRole { Id = "4", Name = "Administrator", NormalizedName = "ADMINISTRATOR" }
+                new IdentityRole { Id = "3", Name = "Administrator", NormalizedName = "ADMINISTRATOR" }
             };
 
             builder.Entity<IdentityRole>().HasData(roles);
@@ -55,7 +54,7 @@ namespace Snapstagram.Data
             builder.Entity<IdentityUserRole<string>>().HasData(
                 new IdentityUserRole<string>
                 {
-                    RoleId = "4", // Administrator role
+                    RoleId = "3", // Administrator role
                     UserId = "admin-id"
                 }
             );

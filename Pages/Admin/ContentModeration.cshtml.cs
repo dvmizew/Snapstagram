@@ -7,7 +7,7 @@ using Snapstagram.Services;
 
 namespace Snapstagram.Pages.Admin
 {
-    [Authorize(Roles = "Administrator,Moderator")]
+    [Authorize(Roles = "Administrator")]
     public class ContentModerationModel : PageModel
     {
         private readonly ContentModerationService _moderationService;

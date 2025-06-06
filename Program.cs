@@ -41,7 +41,7 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         
         // Ensure roles exist
-        string[] roleNames = { UserRoles.Visitor, UserRoles.RegisteredUser, UserRoles.Moderator, UserRoles.Administrator };
+        string[] roleNames = { UserRoles.Visitor, UserRoles.RegisteredUser, UserRoles.Administrator };
         foreach (var roleName in roleNames)
         {
             if (!await roleManager.RoleExistsAsync(roleName))

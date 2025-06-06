@@ -40,22 +40,10 @@
                                 <td>@string.Join(", ", user.Roles)</td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <form method="post" asp-page-handler="MakeModerator" asp-route-userId="@user.Id">
-                                            <button type="submit" class="btn btn-warning btn-sm" 
-                                                    disabled="@(user.Roles.Contains("Moderator") || user.Roles.Contains("Administrator"))">
-                                                Make Moderator
-                                            </button>
-                                        </form>
                                         <form method="post" asp-page-handler="MakeAdmin" asp-route-userId="@user.Id">
                                             <button type="submit" class="btn btn-danger btn-sm"
                                                     disabled="@(user.Roles.Contains("Administrator"))">
                                                 Make Admin
-                                            </button>
-                                        </form>
-                                        <form method="post" asp-page-handler="RemoveModerator" asp-route-userId="@user.Id">
-                                            <button type="submit" class="btn btn-outline-warning btn-sm"
-                                                    disabled="@(!user.Roles.Contains("Moderator"))">
-                                                Remove Moderator
                                             </button>
                                         </form>
                                         <form method="post" asp-page-handler="RemoveAdmin" asp-route-userId="@user.Id">
