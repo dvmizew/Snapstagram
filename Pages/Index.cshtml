@@ -1,10 +1,58 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!-- Hero Section -->
+<section class="hero-section rounded-lg mb-5">
+    <div class="container">
+        <h1 class="hero-title">Welcome to Snapstagram</h1>
+        <p class="hero-subtitle fade-in">Share moments that matter</p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Account/Login" class="btn btn-primary">
+                Share a Photo
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="mb-5">
+    <h3 class="text-center mb-4">Why Snapstagram?</h3>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-bolt fa-2x text-accent"></i>
+                    </div>
+                    <h5 class="card-title text-center">Simple & Fast</h5>
+                    <p class="card-text text-center">Share moments instantly with friends.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-shield-alt fa-2x text-accent"></i>
+                    </div>
+                    <h5 class="card-title text-center">Private & Secure</h5>
+                    <p class="card-text text-center">Your photos stay private and protected.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-users fa-2x text-accent"></i>
+                    </div>
+                    <h5 class="card-title text-center">Connect</h5>
+                    <p class="card-text text-center">Stay in touch with people who matter.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

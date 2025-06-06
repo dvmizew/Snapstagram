@@ -62,10 +62,6 @@ namespace Snapstagram.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; } = default!;
-
-            [Required]
-            [Display(Name = "User Role")]
-            public string UserRole { get; set; } = default!;
         }
 
         public async Task OnGetAsync(string? returnUrl = null)
@@ -96,8 +92,8 @@ namespace Snapstagram.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    // Assign role to user
-                    var roleResult = await _userManager.AddToRoleAsync(user, Input.UserRole);
+                    // Assign default role to user
+                    var roleResult = await _userManager.AddToRoleAsync(user, "RegisteredUser");
                     if (!roleResult.Succeeded)
                     {
                         _logger.LogError("Failed to assign role to user.");
