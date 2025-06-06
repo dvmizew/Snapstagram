@@ -12,13 +12,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IActionResult OnGet()
+    public void OnGet()
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            return RedirectToPage("/Feed");
-        }
-        
-        return Page();
+
     }
 }
