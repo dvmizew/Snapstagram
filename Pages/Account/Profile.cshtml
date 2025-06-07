@@ -15,6 +15,203 @@
     <partial name="_ValidationScriptsPartial" />
     
     <script src="~/js/profile.js" asp-append-version="true"></script>
+    
+    <script>
+        let currentPostId = null;
+        let currentPostData = null;
+        
+        const postsData = @Html.Raw(Json.Serialize(Model.Posts.Select(p => new {
+            id = p.Id,
+            caption = p.Caption,
+            imageUrl = p.ImageUrl,
+            createdAt = p.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+            user = new {
+                firstName = Model.CurrentUser.FirstName,
+                lastName = Model.CurrentUser.LastName,
+                profilePictureUrl = Model.CurrentUser.ProfilePictureUrl
+            },
+            comments = p.Comments.Select(c => new {
+                id = c.Id,
+                content = c.Content,
+                createdAt = c.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                user = new {
+                    firstName = c.User?.FirstName,
+                    lastName = c.User?.LastName,
+                    profilePictureUrl = c.User?.ProfilePictureUrl
+                }
+            }).ToList()
+        }).ToList()));
+        
+        function openPostModal(postId) {
+            currentPostId = postId;
+            currentPostData = postsData.find(p => p.id === postId);
+            
+            if (!currentPostData) return;
+            
+            // Set user info
+            document.getElementById('postUserName').textContent = `${currentPostData.user.firstName} ${currentPostData.user.lastName}`;
+            document.getElementById('postDate').textContent = currentPostData.createdAt;
+            
+            // Set user avatar
+            const avatar = document.getElementById('postUserAvatar');
+            if (currentPostData.user.profilePictureUrl) {
+                avatar.src = currentPostData.user.profilePictureUrl;
+                avatar.style.display = 'block';
+            } else {
+                avatar.style.display = 'none';
+            }
+            
+            // Set image or adjust layout
+            const imageSection = document.getElementById('postImageSection');
+            const contentSection = document.getElementById('postContentSection');
+            
+            if (currentPostData.imageUrl) {
+                document.getElementById('postImage').src = currentPostData.imageUrl;
+                imageSection.style.display = 'block';
+                contentSection.className = 'col-lg-4';
+            } else {
+                imageSection.style.display = 'none';
+                contentSection.className = 'col-12';
+                contentSection.style.borderLeft = 'none';
+            }
+            
+            // Set caption
+            document.getElementById('postCaption').textContent = currentPostData.caption;
+            
+            // Load comments
+            loadComments();
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('postModal')).show();
+        }
+        
+        function loadComments() {
+            const commentsSection = document.getElementById('commentsSection');
+            commentsSection.innerHTML = '';
+            
+            if (currentPostData.comments.length === 0) {
+                commentsSection.innerHTML = '<p class="text-muted small">No comments yet.</p>';
+                return;
+            }
+            
+            currentPostData.comments.forEach(comment => {
+                const commentHtml = `
+                    <div class="mb-2">
+                        <div class="d-flex">
+                            ${comment.user.profilePictureUrl ? 
+                                `<img src="${comment.user.profilePictureUrl}" alt="Avatar" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" />` :
+                                '<div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;"><i class="fas fa-user text-white small"></i></div>'
+                            }
+                            <div class="flex-grow-1">
+                                <div class="bg-light rounded p-2">
+                                    <strong class="small">${comment.user.firstName} ${comment.user.lastName}</strong>
+                                    <p class="mb-0 small">${comment.content}</p>
+                                </div>
+                                <small class="text-muted">${comment.createdAt}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                commentsSection.innerHTML += commentHtml;
+            });
+        }
+        
+        function toggleLike() {
+            // Placeholder for like functionality
+            const likeBtn = document.getElementById('likeBtn');
+            const icon = likeBtn.querySelector('i');
+            
+            if (icon.classList.contains('far')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                icon.style.color = '#e91e63';
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                icon.style.color = '';
+            }
+        }
+        
+        function editPost() {
+            alert('Edit functionality not implemented yet');
+        }
+        
+        function deletePost() {
+            if (!confirm('Are you sure you want to delete this post?')) return;
+            
+            fetch('/Account/Profile?handler=DeletePost', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `postId=${currentPostId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and refresh page
+                    bootstrap.Modal.getInstance(document.getElementById('postModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Failed to delete post: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the post');
+            });
+        }
+        
+        // Comment form submission
+        document.getElementById('commentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const commentInput = document.getElementById('commentInput');
+            const content = commentInput.value.trim();
+            
+            if (!content) return;
+            
+            fetch('/Account/Profile?handler=AddComment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `CommentInput.PostId=${currentPostId}&CommentInput.Content=${encodeURIComponent(content)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add comment to current post data
+                    currentPostData.comments.push(data.comment);
+                    
+                    // Reload comments
+                    loadComments();
+                    
+                    // Clear input
+                    commentInput.value = '';
+                } else {
+                    alert('Failed to add comment: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the comment');
+            });
+        });
+        
+        // Add hover effect for grid items
+        document.addEventListener('DOMContentLoaded', function() {
+            const style = document.createElement('style');
+            style.textContent = `
+                .post-grid-item:hover .hover-overlay {
+                    opacity: 1 !important;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
 }
 
 <div class="container mt-4">
@@ -146,79 +343,44 @@
                     </div>
                 }
 
-                <!-- Posts List -->
-                <div class="posts-container">
+                <!-- Posts Grid -->
+                <div class="posts-grid-container">
                     @if (Model.Posts.Any())
                     {
-                        @foreach (var post in Model.Posts)
-                        {
-                            <div class="card border-0 shadow-sm mb-4">
-                                <div class="card-header bg-transparent">
-                                    <div class="d-flex align-items-center">
-                                        <div class="profile-picture-small me-2">
-                                            @if (!string.IsNullOrEmpty(post.User?.ProfilePictureUrl))
-                                            {
-                                                <img src="@post.User.ProfilePictureUrl" alt="Profile" class="rounded-circle" />
-                                            }
-                                            else
-                                            {
-                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center">
-                                                    <i class="fas fa-user text-white"></i>
+                        <div class="row g-1">
+                            @foreach (var post in Model.Posts)
+                            {
+                                <div class="col-md-4 col-6">
+                                    <div class="post-grid-item" onclick="openPostModal(@post.Id)" data-post-id="@post.Id" style="cursor: pointer;">
+                                        @if (!string.IsNullOrEmpty(post.ImageUrl))
+                                        {
+                                            <div class="position-relative" style="aspect-ratio: 1; overflow: hidden;">
+                                                <img src="@post.ImageUrl" alt="Post" class="w-100 h-100" style="object-fit: cover;" />
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
+                                                    <div class="text-white text-center">
+                                                        <span class="me-3"><i class="fas fa-heart"></i> 0</span>
+                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
+                                                    </div>
                                                 </div>
-                                            }
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-0">@Model.CurrentUser.FirstName @Model.CurrentUser.LastName</h6>
-                                            <small class="text-muted">@post.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
-                                        </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex align-items-center justify-content-center bg-light border" style="aspect-ratio: 1; min-height: 200px;">
+                                                <div class="text-center p-3">
+                                                    <i class="fas fa-font text-muted mb-2 fa-2x"></i>
+                                                    <p class="small text-muted mb-2">@(post.Caption.Length > 50 ? post.Caption.Substring(0, 50) + "..." : post.Caption)</p>
+                                                    <div class="small text-muted">
+                                                        <span class="me-2"><i class="fas fa-heart"></i> 0</span>
+                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
-                                <div class="card-body">
-                                    @if (!string.IsNullOrEmpty(post.ImageUrl))
-                                    {
-                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid post-image mb-3" />
-                                    }
-                                    
-                                    @if (!string.IsNullOrEmpty(post.Caption))
-                                    {
-                                        <p class="card-text post-caption">@post.Caption</p>
-                                    }
-                                    
-                                    @if (string.IsNullOrEmpty(post.Caption) && !string.IsNullOrEmpty(post.ImageUrl))
-                                    {
-                                        <p class="card-text post-meta">
-                                            <i class="fas fa-camera me-1"></i>Photo post
-                                        </p>
-                                    }
-                                </div>
-                                <div class="card-footer bg-transparent">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="post-meta">
-                                            <i class="fas fa-comments me-1"></i>
-                                            @post.Comments.Count @(post.Comments.Count == 1 ? "comment" : "comments")
-                                        </small>
-                                        <small class="post-meta">
-                                            @if (!string.IsNullOrEmpty(post.ImageUrl) && !string.IsNullOrEmpty(post.Caption))
-                                            {
-                                                <i class="fas fa-camera me-1"></i>
-                                                <i class="fas fa-font me-1"></i>
-                                                <span>Photo & Caption</span>
-                                            }
-                                            else if (!string.IsNullOrEmpty(post.ImageUrl))
-                                            {
-                                                <i class="fas fa-camera me-1"></i>
-                                                <span>Photo Only</span>
-                                            }
-                                            else
-                                            {
-                                                <i class="fas fa-font me-1"></i>
-                                                <span>Text Post</span>
-                                            }
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        }
+                            }
+                        </div>
                     }
                     else
                     {
@@ -475,3 +637,85 @@
         </div>
     </div>
 }
+
+<!-- Post View Modal -->
+<div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
+            <div class="modal-header" style="background: var(--primary-gradient); border-radius: 16px 16px 0 0; padding: 1.5rem 2rem;">
+                <div class="d-flex align-items-center">
+                    <img id="postUserAvatar" src="" alt="User Avatar" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);" />
+                    <div class="text-white">
+                        <h6 class="mb-0 fw-bold" id="postUserName"></h6>
+                        <small class="opacity-75" id="postDate"></small>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    @if (Model.IsOwnProfile)
+                    {
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius: 8px;">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu" style="border-radius: 12px; border: none; box-shadow: var(--shadow-medium);">
+                                <li><a class="dropdown-item" href="#" onclick="editPost()"><i class="fas fa-edit me-2 text-primary"></i>Edit Post</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deletePost()"><i class="fas fa-trash me-2"></i>Delete Post</a></li>
+                            </ul>
+                        </div>
+                    }
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="min-height: 600px;">
+                <div class="row g-0" style="height: 600px;">
+                    <!-- Image Section -->
+                    <div class="col-lg-8" id="postImageSection" style="display: none;">
+                        <div class="h-100 d-flex align-items-center justify-content-center" style="background: var(--background-secondary);">
+                            <img id="postImage" src="" alt="Post Image" class="img-fluid" style="max-height: 600px; max-width: 100%; object-fit: contain; border-radius: 0 0 0 16px;" />
+                        </div>
+                    </div>
+                    
+                    <!-- Content and Comments Section -->
+                    <div class="col-lg-4" id="postContentSection" style="border-left: 1px solid var(--border-color);">
+                        <div class="h-100 d-flex flex-column">
+                            <!-- Post Caption -->
+                            <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                                <p id="postCaption" class="mb-0" style="color: var(--text-primary); line-height: 1.5;"></p>
+                            </div>
+                            
+                            <!-- Comments Section -->
+                            <div class="flex-grow-1 p-4" style="overflow-y: auto; max-height: 400px;">
+                                <div id="commentsSection">
+                                    <!-- Comments will be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Actions and Comment Form -->
+                            <div class="p-4 border-top" style="border-color: var(--border-color) !important; background: var(--background-primary);">
+                                <!-- Like Button -->
+                                <div class="mb-3">
+                                    <button id="likeBtn" class="btn btn-link p-0 text-decoration-none me-3" onclick="toggleLike()" style="color: var(--text-secondary);">
+                                        <i class="far fa-heart fa-lg"></i>
+                                    </button>
+                                    <button class="btn btn-link p-0 text-decoration-none" style="color: var(--text-secondary);">
+                                        <i class="far fa-comment fa-lg"></i>
+                                    </button>
+                                    <div class="mt-2">
+                                        <span id="likeCount" class="small fw-bold" style="color: var(--text-primary);">0 likes</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Add Comment Form -->
+                                <form id="commentForm" class="d-flex">
+                                    <input type="text" id="commentInput" class="form-control form-control-sm me-2" placeholder="Add a comment..." style="border-radius: 20px; border: 1px solid var(--border-color); background: var(--background-secondary);" />
+                                    <button type="submit" class="btn btn-sm" style="background: var(--accent-color); color: white; border-radius: 20px; padding: 0.4rem 1rem;">Post</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

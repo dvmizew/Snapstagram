@@ -33,6 +33,9 @@ namespace Snapstagram.Pages.Account
         [BindProperty]
         public PostInputModel PostInput { get; set; } = default!;
 
+        [BindProperty]
+        public CommentInputModel CommentInput { get; set; } = default!;
+
         public class InputModel
         {
             [Display(Name = "First Name")]
@@ -84,6 +87,16 @@ namespace Snapstagram.Pages.Account
 
             [Display(Name = "Photo")]
             public IFormFile? Photo { get; set; }
+        }
+
+        public class CommentInputModel
+        {
+            [Required]
+            [StringLength(500)]
+            public string Content { get; set; } = string.Empty;
+            
+            [Required]
+            public int PostId { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync(string? id = null)
@@ -274,6 +287,99 @@ namespace Snapstagram.Pages.Account
 
             StatusMessage = "Your post has been created successfully.";
             return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostLikePostAsync(int postId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // For now, just return success - like functionality can be implemented later
+            return new JsonResult(new { success = true, liked = true });
+        }
+
+        public async Task<IActionResult> OnPostAddCommentAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return new JsonResult(new { success = false, message = "Invalid comment" });
+            }
+
+            var post = await _context.Posts.FindAsync(CommentInput.PostId);
+            if (post == null)
+            {
+                return new JsonResult(new { success = false, message = "Post not found" });
+            }
+
+            var comment = new Comment
+            {
+                PostId = CommentInput.PostId,
+                UserId = user.Id,
+                Content = CommentInput.Content,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            // Load the comment with user data
+            var commentWithUser = await _context.Comments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == comment.Id);
+
+            if (commentWithUser == null)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            return new JsonResult(new 
+            { 
+                success = true, 
+                comment = new 
+                {
+                    id = commentWithUser.Id,
+                    content = commentWithUser.Content,
+                    createdAt = commentWithUser.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new 
+                    {
+                        firstName = commentWithUser.User?.FirstName,
+                        lastName = commentWithUser.User?.LastName,
+                        profilePictureUrl = commentWithUser.User?.ProfilePictureUrl
+                    }
+                }
+            });
+        }
+
+        public async Task<IActionResult> OnPostDeletePostAsync(int postId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.UserId == user.Id);
+            if (post == null)
+            {
+                return new JsonResult(new { success = false, message = "Post not found" });
+            }
+
+            post.IsDeleted = true;
+            post.DeletedAt = DateTime.UtcNow;
+            post.DeletedByUserId = user.Id;
+            
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new { success = true });
         }
 
         private async Task LoadPostsAsync(string userId)
