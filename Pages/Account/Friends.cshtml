@@ -1,0 +1,432 @@
+@page
+@model Snapstagram.Pages.Account.FriendsModel
+@{
+    ViewData["Title"] = "Friends";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-accent text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Friends & Requests
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Navigation tabs -->
+                    <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="friends-tab" data-bs-toggle="tab" data-bs-target="#friends" type="button" role="tab">
+                                <i class="fas fa-user-friends me-2"></i>
+                                Friends (<span class="fw-bold">@Model.Friends.Count</span>)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link position-relative" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                                <i class="fas fa-clock me-2"></i>
+                                Pending Requests
+                                @if (Model.PendingRequests.Count > 0)
+                                {
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        @Model.PendingRequests.Count
+                                    </span>
+                                }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Sent Requests (<span class="fw-bold">@Model.SentRequests.Count</span>)
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab content -->
+                    <div class="tab-content mt-4">
+                        <!-- Friends Tab -->
+                        <div class="tab-pane fade show active" id="friends" role="tabpanel">
+                            @if (Model.Friends.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-user-friends fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No friends yet</h5>
+                                    <p class="text-muted mb-0">Start connecting with people to build your network!</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="friends-list">
+                                    @foreach (var friend in Model.Friends)
+                                    {
+                                        <div class="friend-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(friend.ProfilePictureUrl))
+                                                {
+                                                    <img src="@friend.ProfilePictureUrl" alt="@friend.FirstName @friend.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@friend.Id" class="text-decoration-none text-accent">
+                                                        @friend.FirstName @friend.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@friend.UserName</small>
+                                                @if (!string.IsNullOrEmpty(friend.Bio))
+                                                {
+                                                    <p class="small text-muted mb-0 mt-1">@friend.Bio</p>
+                                                }
+                                            </div>
+                                            <div class="ms-3">
+                                                <button class="btn btn-outline-danger btn-sm" onclick="removeFriend('@friend.Id')" title="Remove Friend">
+                                                    <i class="fas fa-user-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pending Requests Tab -->
+                        <div class="tab-pane fade" id="pending" role="tabpanel">
+                            @if (Model.PendingRequests.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No pending requests</h5>
+                                    <p class="text-muted mb-0">You'll see friend requests from other users here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="requests-list">
+                                    @foreach (var request in Model.PendingRequests)
+                                    {
+                                        <div class="request-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(request.Sender?.ProfilePictureUrl))
+                                                {
+                                                    <img src="@request.Sender.ProfilePictureUrl" alt="@request.Sender.FirstName @request.Sender.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@request.Sender?.Id" class="text-decoration-none text-accent">
+                                                        @request.Sender?.FirstName @request.Sender?.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@request.Sender?.UserName</small>
+                                                @if (!string.IsNullOrEmpty(request.Message))
+                                                {
+                                                    <div class="request-message mt-2 p-2 bg-light rounded">
+                                                        <small class="text-dark">
+                                                            <i class="fas fa-quote-left me-1 text-muted"></i>
+                                                            "@request.Message"
+                                                        </small>
+                                                    </div>
+                                                }
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    @request.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                                </small>
+                                            </div>
+                                            <div class="ms-3">
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-success btn-sm" onclick="respondToFriendRequest(@request.Id, true)" title="Accept Request">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" onclick="respondToFriendRequest(@request.Id, false)" title="Reject Request">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Sent Requests Tab -->
+                        <div class="tab-pane fade" id="sent" role="tabpanel">
+                            @if (Model.SentRequests.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-paper-plane fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No sent requests</h5>
+                                    <p class="text-muted mb-0">Friend requests you send will appear here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="requests-list">
+                                    @foreach (var request in Model.SentRequests)
+                                    {
+                                        <div class="request-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(request.Receiver?.ProfilePictureUrl))
+                                                {
+                                                    <img src="@request.Receiver.ProfilePictureUrl" alt="@request.Receiver.FirstName @request.Receiver.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@request.Receiver?.Id" class="text-decoration-none text-accent">
+                                                        @request.Receiver?.FirstName @request.Receiver?.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@request.Receiver?.UserName</small>
+                                                @if (!string.IsNullOrEmpty(request.Message))
+                                                {
+                                                    <div class="request-message mt-2 p-2 bg-light rounded">
+                                                        <small class="text-dark">
+                                                            <i class="fas fa-quote-left me-1 text-muted"></i>
+                                                            "@request.Message"
+                                                        </small>
+                                                    </div>
+                                                }
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-paper-plane me-1"></i>
+                                                    Sent @request.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                                </small>
+                                            </div>
+                                            <div class="ms-3">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="cancelFriendRequest(@request.Id)" title="Cancel Request">
+                                                    <i class="fas fa-times me-1"></i>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Friend request functions with improved UX
+        function respondToFriendRequest(requestId, accept) {
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Account/Friends?handler=RespondToFriendRequest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `requestId=${requestId}&accept=${accept}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Add smooth transition before reload
+                    const requestItem = button.closest('.request-item');
+                    if (requestItem) {
+                        requestItem.style.transition = 'all 0.5s ease';
+                        requestItem.style.opacity = '0';
+                        requestItem.style.transform = 'translateX(-20px)';
+                        setTimeout(() => location.reload(), 500);
+                    } else {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                } else {
+                    showNotification(data.message, 'error');
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred', 'error');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
+        }
+
+        function cancelFriendRequest(requestId) {
+            if (!confirm('Are you sure you want to cancel this friend request?')) {
+                return;
+            }
+            
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Canceling...';
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Account/Friends?handler=CancelFriendRequest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `requestId=${requestId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Add smooth transition before reload
+                    const requestItem = button.closest('.request-item');
+                    if (requestItem) {
+                        requestItem.style.transition = 'all 0.5s ease';
+                        requestItem.style.opacity = '0';
+                        requestItem.style.transform = 'translateX(-20px)';
+                        setTimeout(() => location.reload(), 500);
+                    } else {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                } else {
+                    showNotification(data.message, 'error');
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred', 'error');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
+        }
+
+        function removeFriend(friendId) {
+            if (!confirm('Are you sure you want to remove this friend? This action cannot be undone.')) {
+                return;
+            }
+            
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Account/Friends?handler=RemoveFriend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `friendId=${friendId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Add smooth transition before reload
+                    const friendItem = button.closest('.friend-item');
+                    if (friendItem) {
+                        friendItem.style.transition = 'all 0.5s ease';
+                        friendItem.style.opacity = '0';
+                        friendItem.style.transform = 'translateX(-20px)';
+                        setTimeout(() => location.reload(), 500);
+                    } else {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                } else {
+                    showNotification(data.message, 'error');
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred', 'error');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const toast = document.createElement('div');
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+            const className = isError ? 'alert-danger' : isSuccess ? 'alert-success' : 'alert-info';
+            const icon = isError ? 'fa-exclamation-circle' : isSuccess ? 'fa-check-circle' : 'fa-info-circle';
+            
+            toast.className = `alert ${className} alert-dismissible fade show position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 1060; min-width: 320px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);';
+            toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${icon} me-2"></i>
+                    <span>${message}</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Add smooth transitions when tab content loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+            tabButtons.forEach(button => {
+                button.addEventListener('shown.bs.tab', function() {
+                    const targetPane = document.querySelector(this.getAttribute('data-bs-target'));
+                    if (targetPane) {
+                        targetPane.style.opacity = '0';
+                        targetPane.style.transform = 'translateY(10px)';
+                        setTimeout(() => {
+                            targetPane.style.transition = 'all 0.3s ease';
+                            targetPane.style.opacity = '1';
+                            targetPane.style.transform = 'translateY(0)';
+                        }, 50);
+                    }
+                });
+            });
+        });
+    </script>
+}

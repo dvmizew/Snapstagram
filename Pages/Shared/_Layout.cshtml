@@ -65,6 +65,11 @@
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Account/Friends" title="Friends">
+                                    <i class="fas fa-user-friends"></i>
+                                </a>
+                            </li>
                             <li class="nav-item position-relative">
                                 <a class="nav-link" asp-page="/Account/Notifications" title="Notifications">
                                     <i class="fas fa-bell"></i>

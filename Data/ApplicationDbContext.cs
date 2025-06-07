@@ -19,6 +19,7 @@ namespace Snapstagram.Data
         public DbSet<Like> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<FriendRequest> FriendRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -114,6 +115,23 @@ namespace Snapstagram.Data
 
             // Configure CommentReply entity soft delete (removed global query filter to avoid relationship issues)
             // Note: Soft delete filtering will be handled in application logic
+
+            // Configure FriendRequest entity relationships and constraints
+            builder.Entity<FriendRequest>()
+                .HasIndex(fr => new { fr.SenderId, fr.ReceiverId })
+                .IsUnique(); // Ensure one friend request per user pair
+
+            builder.Entity<FriendRequest>()
+                .HasOne(fr => fr.Sender)
+                .WithMany()
+                .HasForeignKey(fr => fr.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<FriendRequest>()
+                .HasOne(fr => fr.Receiver)
+                .WithMany()
+                .HasForeignKey(fr => fr.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

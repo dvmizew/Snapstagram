@@ -1,5 +1,6 @@
 @page "{id?}"
 @model Snapstagram.Pages.Account.ProfileModel
+@using Snapstagram.Models
 @{
     ViewData["Title"] = Model.IsOwnProfile ? "My Profile" : $"{Model.CurrentUser.FirstName} {Model.CurrentUser.LastName}'s Profile";
     Layout = "_Layout";
@@ -154,14 +155,65 @@
                             <small class="d-block text-muted">Posts</small>
                         </div>
                         <div class="stat">
-                            <strong>0</strong>
-                            <small class="d-block text-muted">Followers</small>
+                            <strong>@Model.FriendsCount</strong>
+                            <small class="d-block text-muted">Friends</small>
                         </div>
-                        <div class="stat">
-                            <strong>0</strong>
-                            <small class="d-block text-muted">Following</small>
-                        </div>
+                        @if (Model.IsOwnProfile && Model.PendingRequestsCount > 0)
+                        {
+                            <div class="stat">
+                                <strong class="text-primary">@Model.PendingRequestsCount</strong>
+                                <small class="d-block text-muted">Pending</small>
+                            </div>
+                        }
                     </div>
+
+                    <!-- Friend Request Actions (for other users' profiles) -->
+                    @if (!Model.IsOwnProfile)
+                    {
+                        <div class="friend-actions mt-3">
+                            @if (Model.FriendshipStatus == null)
+                            {
+                                <!-- No friendship exists, show send request button -->
+                                <button class="btn btn-primary btn-sm w-100" onclick="sendFriendRequest('@Model.CurrentUser.Id')">
+                                    <i class="fas fa-user-plus me-1"></i>
+                                    Send Friend Request
+                                </button>
+                            }
+                            else if (Model.FriendshipStatus == FriendRequestStatus.Pending)
+                            {
+                                @if (Model.CurrentFriendRequest?.SenderId == ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                {
+                                    <!-- Current user sent the request -->
+                                    <button class="btn btn-secondary btn-sm w-100" onclick="cancelFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0))">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Cancel Request
+                                    </button>
+                                }
+                                else
+                                {
+                                    <!-- Current user received the request -->
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm flex-fill" onclick="respondToFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0), true)">
+                                            <i class="fas fa-check me-1"></i>
+                                            Accept
+                                        </button>
+                                        <button class="btn btn-danger btn-sm flex-fill" onclick="respondToFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0), false)">
+                                            <i class="fas fa-times me-1"></i>
+                                            Reject
+                                        </button>
+                                    </div>
+                                }
+                            }
+                            else if (Model.FriendshipStatus == FriendRequestStatus.Accepted)
+                            {
+                                <!-- Already friends -->
+                                <button class="btn btn-outline-success btn-sm w-100" onclick="removeFriend('@Model.CurrentUser.Id')">
+                                    <i class="fas fa-user-check me-1"></i>
+                                    Friends
+                                </button>
+                            }
+                        </div>
+                    }
 
                     <!-- Privacy Status -->
                     <div class="mt-3">

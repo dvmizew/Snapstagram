@@ -1672,3 +1672,120 @@ function saveCommentEdit(commentId) {
         saveBtn.innerHTML = originalSaveText;
     });
 }
+
+// Friend Request Functions
+function sendFriendRequest(receiverId) {
+    const token = getSecurityToken();
+    if (!token) return;
+    
+    fetch('/Account/Profile?handler=SendFriendRequest', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `receiverId=${receiverId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Refresh the page to update the UI
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while sending friend request', 'error');
+    });
+}
+
+function respondToFriendRequest(requestId, accept) {
+    const token = getSecurityToken();
+    if (!token) return;
+    
+    fetch('/Account/Profile?handler=RespondToFriendRequest', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `requestId=${requestId}&accept=${accept}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Refresh the page to update the UI
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while responding to friend request', 'error');
+    });
+}
+
+function cancelFriendRequest(requestId) {
+    const token = getSecurityToken();
+    if (!token) return;
+    
+    fetch('/Account/Profile?handler=CancelFriendRequest', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `requestId=${requestId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Refresh the page to update the UI
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while canceling friend request', 'error');
+    });
+}
+
+function removeFriend(friendId) {
+    if (!confirm('Are you sure you want to remove this friend?')) {
+        return;
+    }
+    
+    const token = getSecurityToken();
+    if (!token) return;
+    
+    fetch('/Account/Profile?handler=RemoveFriend', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `friendId=${friendId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Refresh the page to update the UI
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while removing friend', 'error');
+    });
+}

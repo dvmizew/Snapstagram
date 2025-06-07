@@ -21,6 +21,7 @@ namespace Snapstagram.Models
         Like,
         Comment,
         Reply,
-        Follow
+        FriendRequest,
+        FriendRequestAccepted
     }
 }
