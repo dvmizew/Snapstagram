@@ -833,6 +833,47 @@ namespace Snapstagram.Pages.Account
             return new JsonResult(new { success = true });
         }
 
+        public async Task<IActionResult> OnPostEditCommentAsync(int commentId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return new JsonResult(new { success = false, message = "Comment content cannot be empty" });
+            }
+
+            if (content.Length > 2000)
+            {
+                return new JsonResult(new { success = false, message = "Comment is too long (max 2000 characters)" });
+            }
+
+            var comment = await _context.Comments
+                .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted);
+
+            if (comment == null)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            // Check if user owns the comment
+            if (comment.UserId != user.Id)
+            {
+                return new JsonResult(new { success = false, message = "You can only edit your own comments" });
+            }
+
+            // Update the comment
+            comment.Content = content.Trim();
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new { success = true });
+        }
+
         private async Task LoadPostsAsync(string userId)
         {
             Posts = await _context.Posts

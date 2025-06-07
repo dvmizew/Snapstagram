@@ -9,6 +9,7 @@ namespace Snapstagram.Models
         public ApplicationUser? User { get; set; }
         public string Content { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
         public string? DeleteReason { get; set; }
         public string? DeletedByUserId { get; set; }

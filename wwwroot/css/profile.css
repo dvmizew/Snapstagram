@@ -733,12 +733,20 @@
 
 #postModal .btn-close {
     background-size: 1rem;
-    opacity: 0.6;
+    opacity: 0.8;
     transition: opacity 0.3s ease;
+    filter: invert(1) grayscale(100%) brightness(200%);
 }
 
 #postModal .btn-close:hover {
     opacity: 1;
+    filter: invert(1) grayscale(100%) brightness(250%);
+}
+
+#postModal .btn-close:focus {
+    opacity: 1;
+    filter: invert(1) grayscale(100%) brightness(200%);
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
 }
 
 #postModal .modal-body {
@@ -1366,6 +1374,59 @@
         justify-content: flex-start;
         margin-top: 0.25rem;
     }
+}
+
+/* Comment edit form styling */
+.comment-edit-form {
+    animation: slideDown 0.3s ease-out;
+}
+
+.comment-edit-form .input-group {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.comment-edit-form .form-control {
+    border-right: none;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.comment-edit-form .btn {
+    border-left: none;
+    border-radius: 0;
+}
+
+.comment-edit-form .btn:last-child {
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+.comment-actions-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.edit-comment-btn {
+    transition: all 0.3s ease;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-comment-btn:hover {
+    color: var(--accent-color) !important;
+    background: rgba(15, 173, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.edit-comment-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(15, 173, 255, 0.25);
 }
 
 /* ===== END COMMENT SYSTEM STYLES ===== */

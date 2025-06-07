@@ -763,14 +763,34 @@ function createCommentElement(comment) {
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
                             <strong class="comment-author small text-dark">${comment.user.firstName} ${comment.user.lastName}</strong>
-                            <p class="comment-text mb-1 small">${escapeHtml(comment.content)}</p>
+                            <p class="comment-text mb-1 small" id="commentText-${comment.id}">${escapeHtml(comment.content)}</p>
+                            <div class="comment-edit-form mt-2" id="editForm-${comment.id}" style="display: none;">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control edit-comment-input" 
+                                           value="${escapeHtml(comment.content)}" 
+                                           maxlength="2000">
+                                    <button class="btn btn-accent btn-sm" type="button" onclick="saveCommentEdit(${comment.id})">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" type="button" onclick="cancelCommentEdit(${comment.id})">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         ${comment.canDelete ? `
-                            <button class="btn btn-link btn-sm p-0 ms-2 text-muted delete-comment-btn" 
-                                    onclick="deleteComment(${comment.id})" 
-                                    title="Delete comment">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            <div class="comment-actions-buttons">
+                                <button class="btn btn-link btn-sm p-0 me-1 text-muted edit-comment-btn" 
+                                        onclick="editComment(${comment.id})" 
+                                        title="Edit comment">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-link btn-sm p-0 text-muted delete-comment-btn" 
+                                        onclick="deleteComment(${comment.id})" 
+                                        title="Delete comment">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         ` : ''}
                     </div>
                 </div>
@@ -1568,3 +1588,133 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Functions for editing comments
+function editComment(commentId) {
+    const commentText = document.getElementById(`commentText-${commentId}`);
+    const editForm = document.getElementById(`editForm-${commentId}`);
+    const editBtn = document.querySelector(`[onclick="editComment(${commentId})"]`);
+    const deleteBtn = document.querySelector(`[onclick="deleteComment(${commentId})"]`);
+    
+    if (commentText && editForm) {
+        commentText.style.display = 'none';
+        editForm.style.display = 'block';
+        
+        // Hide edit/delete buttons while editing
+        if (editBtn) editBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        
+        // Focus on the input
+        const input = editForm.querySelector('.edit-comment-input');
+        if (input) {
+            input.focus();
+            input.select();
+            
+            // Add keyboard event listeners
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveCommentEdit(commentId);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelCommentEdit(commentId);
+                }
+            });
+        }
+    }
+}
+
+function cancelCommentEdit(commentId) {
+    const commentText = document.getElementById(`commentText-${commentId}`);
+    const editForm = document.getElementById(`editForm-${commentId}`);
+    const editBtn = document.querySelector(`[onclick="editComment(${commentId})"]`);
+    const deleteBtn = document.querySelector(`[onclick="deleteComment(${commentId})"]`);
+    
+    if (commentText && editForm) {
+        commentText.style.display = 'block';
+        editForm.style.display = 'none';
+        
+        // Show edit/delete buttons again
+        if (editBtn) editBtn.style.display = 'inline-block';
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        
+        // Reset input value to original
+        const input = editForm.querySelector('.edit-comment-input');
+        const originalText = commentText.textContent;
+        if (input && originalText) {
+            input.value = originalText;
+        }
+    }
+}
+
+function saveCommentEdit(commentId) {
+    const editForm = document.getElementById(`editForm-${commentId}`);
+    const input = editForm?.querySelector('.edit-comment-input');
+    const newContent = input?.value.trim();
+    
+    if (!newContent) {
+        showNotification('Comment cannot be empty', 'error');
+        return;
+    }
+    
+    if (newContent.length > 2000) {
+        showNotification('Comment is too long (max 2000 characters)', 'error');
+        return;
+    }
+    
+    const token = getSecurityToken();
+    if (!token) return;
+    
+    // Show loading state
+    const saveBtn = editForm.querySelector('.btn-accent');
+    const cancelBtn = editForm.querySelector('.btn-secondary');
+    const originalSaveText = saveBtn.innerHTML;
+    
+    saveBtn.disabled = true;
+    cancelBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch('/Account/Profile?handler=EditComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `commentId=${commentId}&content=${encodeURIComponent(newContent)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the comment text
+            const commentText = document.getElementById(`commentText-${commentId}`);
+            if (commentText) {
+                commentText.textContent = newContent;
+            }
+            
+            // Update the comment in currentPostData
+            if (currentPostData) {
+                const comment = currentPostData.comments.find(c => c.id == commentId);
+                if (comment) {
+                    comment.content = newContent;
+                }
+            }
+            
+            // Exit edit mode
+            cancelCommentEdit(commentId);
+            
+            showNotification('Comment updated successfully!', 'success');
+        } else {
+            showNotification('Failed to update comment: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while updating the comment', 'error');
+    })
+    .finally(() => {
+        // Restore button states
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        saveBtn.innerHTML = originalSaveText;
+    });
+}
