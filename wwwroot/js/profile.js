@@ -639,33 +639,18 @@ function loadComments(page = 1, pageSize = 10) {
     
     // Add comment sorting controls (only on first page)
     if (page === 1) {
-        const sortControls = document.createElement('div');
-        sortControls.className = 'd-flex justify-content-between align-items-center mb-3';
-        sortControls.innerHTML = `
-            <div class="comment-count">
-                <small class="text-muted">${currentPostData.comments.length} comment${currentPostData.comments.length !== 1 ? 's' : ''}</small>
-            </div>
-            <div class="comment-sort">
-                <select class="form-select form-select-sm" style="width: auto;" onchange="sortComments(this.value)">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="most-liked">Most liked</option>
-                </select>
-            </div>
+        const commentCountDiv = document.createElement('div');
+        commentCountDiv.className = 'comment-count mb-3';
+        commentCountDiv.innerHTML = `
+            <small class="text-muted">${currentPostData.comments.length} comment${currentPostData.comments.length !== 1 ? 's' : ''}</small>
         `;
-        commentsSection.appendChild(sortControls);
+        commentsSection.appendChild(commentCountDiv);
     }
-    
-    // Get current sort preference
-    const sortBy = window.commentSortBy || 'newest';
-    
-    // Sort comments based on preference
-    const sortedComments = sortCommentsList([...currentPostData.comments], sortBy);
     
     // Calculate pagination
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const paginatedComments = sortedComments.slice(startIndex, endIndex);
+    const paginatedComments = currentPostData.comments.slice(startIndex, endIndex);
     
     // Create comments container if it doesn't exist
     let commentsContainer = document.getElementById('commentsContainer');
@@ -682,7 +667,7 @@ function loadComments(page = 1, pageSize = 10) {
     });
     
     // Add load more button if there are more comments
-    const hasMore = endIndex < sortedComments.length;
+    const hasMore = endIndex < currentPostData.comments.length;
     let loadMoreContainer = document.getElementById('loadMoreContainer');
     
     if (loadMoreContainer) {
@@ -696,7 +681,7 @@ function loadComments(page = 1, pageSize = 10) {
         loadMoreContainer.innerHTML = `
             <button class="btn btn-outline-primary btn-sm" onclick="loadMoreComments()">
                 <i class="fas fa-chevron-down me-1"></i>
-                Load more comments (${sortedComments.length - endIndex} remaining)
+                Load more comments (${currentPostData.comments.length - endIndex} remaining)
             </button>
         `;
         commentsSection.appendChild(loadMoreContainer);
@@ -712,37 +697,6 @@ function loadComments(page = 1, pageSize = 10) {
 function loadMoreComments() {
     const nextPage = (window.currentCommentPage || 1) + 1;
     loadComments(nextPage, 10);
-}
-
-function sortCommentsList(comments, sortBy) {
-    switch(sortBy) {
-        case 'oldest':
-            return comments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        case 'most-liked':
-            return comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
-        case 'newest':
-        default:
-            return comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
-}
-
-function sortComments(sortBy) {
-    window.commentSortBy = sortBy;
-    window.currentCommentPage = 1; // Reset to first page when sorting
-    
-    // Clear the comments container
-    const commentsContainer = document.getElementById('commentsContainer');
-    if (commentsContainer) {
-        commentsContainer.innerHTML = '';
-    }
-    
-    // Remove load more container
-    const loadMoreContainer = document.getElementById('loadMoreContainer');
-    if (loadMoreContainer) {
-        loadMoreContainer.remove();
-    }
-    
-    loadComments(1, 10);
 }
 
 function createCommentElement(comment) {
