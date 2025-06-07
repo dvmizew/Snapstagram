@@ -1,4 +1,4 @@
-/* Snapstagram Global Theme - Clean & Modern */
+/* Snapstagram Global Theme */
 
 /* ========================================
    CSS VARIABLES & ROOT STYLES
@@ -427,10 +427,6 @@ body {
   border-color: var(--border-color);
   margin: 0.25rem 0;
 }
-
-/* ========================================
-   ICON ENHANCEMENTS - SIMPLIFIED
-   ======================================== */
 .fa, .fas, .far, .fab {
   transition: all 0.3s ease;
 }
@@ -439,9 +435,6 @@ body {
   color: var(--accent-color);
 }
 
-/* ========================================
-   LOADING STATES - SIMPLIFIED
-   ======================================== */
 .loading-spinner {
   border: 2px solid var(--border-color);
   border-top: 2px solid var(--accent-color);

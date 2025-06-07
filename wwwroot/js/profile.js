@@ -440,6 +440,9 @@ function toggleLike() {
                 postsData[postIndex].likeCount = data.likeCount;
                 postsData[postIndex].likes = data.likes || [];
             }
+            
+            // Update the grid item like count display
+            updateGridItemLikeCount(currentPostId, data.likeCount);
         } else {
             alert('Failed to like/unlike post: ' + data.message);
         }
@@ -448,6 +451,19 @@ function toggleLike() {
         console.error('Error:', error);
         alert('An error occurred while toggling like');
     });
+}
+
+function updateGridItemLikeCount(postId, newLikeCount) {
+    // Find the grid item for this post
+    const gridItem = document.querySelector(`[data-post-id="${postId}"]`);
+    if (gridItem) {
+        // Find the like count span within the hover overlay
+        const likeCountSpan = gridItem.querySelector('.hover-overlay .fa-heart').parentElement;
+        if (likeCountSpan) {
+            // Update the like count text
+            likeCountSpan.innerHTML = `<i class="fas fa-heart"></i> ${newLikeCount}`;
+        }
+    }
 }
 
 function showLikesModal() {
