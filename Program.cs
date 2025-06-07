@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddControllers();
 
 // Add Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -75,6 +76,7 @@ app.UseAuthorization();
 
 // Configure routing
 app.MapRazorPages();
+app.MapControllers();
 
 // Set default page
 app.MapGet("/", context => {
