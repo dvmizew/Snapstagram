@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddControllers();
 
 // Add Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -75,10 +76,18 @@ app.UseAuthorization();
 
 // Configure routing
 app.MapRazorPages();
+app.MapControllers();
 
-// Set default page to login
+// Set default page
 app.MapGet("/", context => {
-    context.Response.Redirect("/Account/Login");
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        context.Response.Redirect("/Feed");
+    }
+    else
+    {
+        context.Response.Redirect("/Account/Login");
+    }
     return Task.CompletedTask;
 });
 

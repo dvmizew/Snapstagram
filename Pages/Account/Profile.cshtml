@@ -1,0 +1,772 @@
+@page "{id?}"
+@model Snapstagram.Pages.Account.ProfileModel
+@using Snapstagram.Models
+@{
+    ViewData["Title"] = Model.IsOwnProfile ? "My Profile" : $"{Model.CurrentUser.FirstName} {Model.CurrentUser.LastName}'s Profile";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/file-uploader.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        window.postsData = @Html.Raw(Json.Serialize(Model.Posts.Select(p => new {
+            id = p.Id,
+            caption = p.Caption,
+            imageUrl = p.ImageUrl,
+            createdAt = p.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+            user = new {
+                firstName = Model.CurrentUser.FirstName,
+                lastName = Model.CurrentUser.LastName,
+                profilePictureUrl = Model.CurrentUser.ProfilePictureUrl
+            },
+            comments = p.Comments.Select(c => new {
+                id = c.Id,
+                content = c.Content,
+                createdAt = c.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                user = new {
+                    firstName = c.User?.FirstName,
+                    lastName = c.User?.LastName,
+                    profilePictureUrl = c.User?.ProfilePictureUrl
+                },
+                canDelete = c.UserId == Model.CurrentUser.Id || p.UserId == Model.CurrentUser.Id,
+                likeCount = c.CommentLikes.Count,
+                isLikedByCurrentUser = c.CommentLikes.Any(cl => cl.UserId == Model.CurrentUser.Id),
+                replies = c.CommentReplies.Select(cr => new {
+                    id = cr.Id,
+                    content = cr.Content,
+                    createdAt = cr.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new {
+                        firstName = cr.User?.FirstName,
+                        lastName = cr.User?.LastName,
+                        profilePictureUrl = cr.User?.ProfilePictureUrl
+                    },
+                    canDelete = cr.UserId == Model.CurrentUser.Id || c.UserId == Model.CurrentUser.Id || p.UserId == Model.CurrentUser.Id
+                }).ToList()
+            }).ToList(),
+            likes = p.Likes.Select(l => new {
+                id = l.Id,
+                userId = l.UserId,
+                createdAt = l.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                user = new {
+                    firstName = l.User?.FirstName,
+                    lastName = l.User?.LastName,
+                    profilePictureUrl = l.User?.ProfilePictureUrl
+                }
+            }).ToList(),
+            likeCount = p.Likes.Count,
+            isLikedByCurrentUser = p.Likes.Any(l => l.UserId == Model.CurrentUser.Id)
+        }).ToList()));
+        
+        // Pass current user data for UI
+        window.currentUserData = {
+            id: '@Model.CurrentUser.Id',
+            firstName: '@Model.CurrentUser.FirstName',
+            lastName: '@Model.CurrentUser.LastName',
+            profilePictureUrl: '@(Model.CurrentUser.ProfilePictureUrl ?? "")'
+        };
+    </script>
+    
+    <script src="~/js/profile.js" asp-append-version="true"></script>
+}
+
+<div class="container mt-4">
+    @if (Model.StatusMessage != null)
+    {
+        <div class="alert alert-success" role="alert">
+            @Model.StatusMessage
+        </div>
+    }
+
+    <div class="row">
+        <!-- Profile Information Section -->
+        <div class="col-lg-4 col-md-5 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <!-- Profile Picture -->
+                    <div class="profile-picture-container mb-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                        {
+                            <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Profile Picture" class="profile-picture" />
+                        }
+                        else
+                        {
+                            <div class="profile-picture-placeholder">
+                                <i class="fas fa-user fa-3x text-muted"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- User Information -->
+                    <h4 class="card-title text-accent">
+                        @Model.CurrentUser.FirstName @Model.CurrentUser.LastName
+                    </h4>
+                    <p class="text-muted mb-2">@@(@Model.CurrentUser.UserName)</p>
+                    
+                    @if (!string.IsNullOrEmpty(Model.CurrentUser.Bio))
+                    {
+                        <p class="card-text">@Model.CurrentUser.Bio</p>
+                    }
+
+                    <!-- Additional Profile Information -->
+                    <div class="profile-details mt-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Occupation))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-briefcase me-2 text-muted"></i>
+                                <small>@Model.CurrentUser.Occupation</small>
+                            </p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Location))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-map-marker-alt me-2 text-muted"></i>
+                                <small>@Model.CurrentUser.Location</small>
+                            </p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Website))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-globe me-2 text-muted"></i>
+                                <small><a href="@Model.CurrentUser.Website" target="_blank" class="text-decoration-none">@Model.CurrentUser.Website</a></small>
+                            </p>
+                        }
+                        
+                        @if (Model.CurrentUser.DateOfBirth.HasValue)
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-birthday-cake me-2 text-muted"></i>
+                                <small>Born @Model.CurrentUser.DateOfBirth.Value.ToString("MMMM dd, yyyy")</small>
+                            </p>
+                        }
+                    </div>
+
+                    <div class="profile-stats d-flex justify-content-around mt-3">
+                        <div class="stat">
+                            <strong>@Model.Posts.Count</strong>
+                            <small class="d-block text-muted">Posts</small>
+                        </div>
+                        <div class="stat">
+                            <strong>@Model.FriendsCount</strong>
+                            <small class="d-block text-muted">Friends</small>
+                        </div>
+                        @if (Model.IsOwnProfile && Model.PendingRequestsCount > 0)
+                        {
+                            <div class="stat">
+                                <strong class="text-primary">@Model.PendingRequestsCount</strong>
+                                <small class="d-block text-muted">Pending</small>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Friend Request Actions (for other users' profiles) -->
+                    @if (!Model.IsOwnProfile)
+                    {
+                        <div class="friend-actions mt-3">
+                            @if (Model.FriendshipStatus == null)
+                            {
+                                <!-- No friendship exists, show send request button -->
+                                <button class="btn btn-primary btn-sm w-100" onclick="sendFriendRequest('@Model.CurrentUser.Id')">
+                                    <i class="fas fa-user-plus me-1"></i>
+                                    Send Friend Request
+                                </button>
+                            }
+                            else if (Model.FriendshipStatus == FriendRequestStatus.Pending)
+                            {
+                                @if (Model.CurrentFriendRequest?.SenderId == ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                {
+                                    <!-- Current user sent the request -->
+                                    <button class="btn btn-secondary btn-sm w-100" onclick="cancelFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0))">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Cancel Request
+                                    </button>
+                                }
+                                else
+                                {
+                                    <!-- Current user received the request -->
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm flex-fill" onclick="respondToFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0), true)">
+                                            <i class="fas fa-check me-1"></i>
+                                            Accept
+                                        </button>
+                                        <button class="btn btn-danger btn-sm flex-fill" onclick="respondToFriendRequest(@(Model.CurrentFriendRequest?.Id ?? 0), false)">
+                                            <i class="fas fa-times me-1"></i>
+                                            Reject
+                                        </button>
+                                    </div>
+                                }
+                            }
+                            else if (Model.FriendshipStatus == FriendRequestStatus.Accepted)
+                            {
+                                <!-- Already friends -->
+                                <button class="btn btn-outline-success btn-sm w-100" onclick="removeFriend('@Model.CurrentUser.Id')">
+                                    <i class="fas fa-user-check me-1"></i>
+                                    Friends
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    <!-- Hidden form with anti-forgery token for AJAX requests -->
+                    <form method="post" style="display: none;" id="ajaxTokenForm">
+                        @Html.AntiForgeryToken()
+                    </form>
+
+                    <!-- Privacy Status -->
+                    <div class="mt-3">
+                        <span class="badge @(Model.CurrentUser.IsProfilePublic ? "bg-success" : "bg-warning")">
+                            <i class="fas @(Model.CurrentUser.IsProfilePublic ? "fa-globe" : "fa-lock")"></i>
+                            @(Model.CurrentUser.IsProfilePublic ? "Public Profile" : "Private Profile")
+                        </span>
+                    </div>
+
+                    <!-- Member Since -->
+                    <p class="text-muted small mt-3">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        Member since @Model.CurrentUser.CreatedAt.ToString("MMMM yyyy")
+                    </p>
+                </div>
+            </div>
+
+            <!-- Edit Profile Button (Only for own profile) -->
+            @if (Model.IsOwnProfile)
+            {
+                <div class="mt-3 text-center">
+                    <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </button>
+                </div>
+            }
+        </div>
+
+        <!-- Posts Section -->
+        <div class="col-lg-8 col-md-7">
+            @if (Model.CanViewProfile)
+            {
+                <!-- Create Post Button (Only for own profile) -->
+                @if (Model.IsOwnProfile)
+                {
+                    <div class="mb-4 text-center">
+                        <button type="button" class="btn btn-accent btn-lg" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            <i class="fas fa-plus me-2"></i>Create New Post
+                        </button>
+                    </div>
+                }
+
+                <!-- Posts Grid -->
+                <div class="posts-grid-container">
+                    @if (Model.Posts.Any())
+                    {
+                        <div class="row g-1">
+                            @foreach (var post in Model.Posts)
+                            {
+                                <div class="col-md-4 col-6">
+                                    <div class="post-grid-item" onclick="openPostModal(@post.Id)" data-post-id="@post.Id" style="cursor: pointer;">
+                                        @if (!string.IsNullOrEmpty(post.ImageUrl))
+                                        {
+                                            <div class="position-relative" style="aspect-ratio: 1; overflow: hidden;">
+                                                <img src="@post.ImageUrl" alt="Post" class="w-100 h-100" style="object-fit: cover;" />
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
+                                                    <div class="text-white text-center">
+                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
+                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="position-relative text-post-grid-item" style="aspect-ratio: 1; overflow: hidden;">
+                                                <div class="text-post-background">
+                                                    <div class="text-post-content">
+                                                        <div class="text-post-icon">
+                                                            <i class="fas fa-quote-left"></i>
+                                                        </div>
+                                                        <div class="text-post-text">
+                                                            @(post.Caption.Length > 80 ? post.Caption.Substring(0, 80) + "..." : post.Caption)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
+                                                    <div class="text-white text-center">
+                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
+                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">
+                                @if (Model.IsOwnProfile)
+                                {
+                                    <span>You haven't posted anything yet.</span>
+                                }
+                                else
+                                {
+                                    <span>No posts to show.</span>
+                                }
+                            </h5>
+                            @if (Model.IsOwnProfile)
+                            {
+                                <p class="text-muted">Share your first post to get started!</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">This profile is private</h5>
+                    <p class="text-muted">Only the owner can view this profile and posts.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Post Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="createPostModalLabel">
+                        <i class="fas fa-plus me-2"></i>Create New Post
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="CreatePost" enctype="multipart/form-data" id="createPostForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Photo Upload Section -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-camera me-1"></i>Add Photo (Optional)
+                            </label>
+                            
+                            <!-- Custom Upload Area -->
+                            <div class="upload-container">
+                                <input asp-for="PostInput.Photo" class="d-none" type="file" accept="image/*" id="photoInput" onchange="previewImage(this)" />
+                                
+                                <!-- Upload Zone -->
+                                <div id="uploadZone" class="upload-zone" onclick="document.getElementById('photoInput').click()">
+                                    <div class="upload-content">
+                                        <div class="upload-icon">
+                                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                                        </div>
+                                        <h5 class="upload-title">Drag and drop your photo here</h5>
+                                        <p class="upload-subtitle text-muted">or click to browse</p>
+                                        <div class="upload-formats">
+                                            <small class="text-muted">JPG, PNG, GIF • Max 5MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image Preview -->
+                                <div id="imagePreview" class="image-preview-container" style="display: none;">
+                                    <div class="image-preview-wrapper">
+                                        <img id="previewImg" src="" alt="Preview" class="preview-image" />
+                                        <div class="image-overlay">
+                                            <button type="button" class="btn btn-outline-light btn-sm remove-btn" onclick="removeImage()">
+                                                <i class="fas fa-times me-1"></i>Remove
+                                            </button>
+                                            <button type="button" class="btn btn-outline-light btn-sm change-btn" onclick="document.getElementById('photoInput').click()">
+                                                <i class="fas fa-edit me-1"></i>Change
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <span asp-validation-for="PostInput.Photo" class="text-danger"></span>
+                        </div>
+
+                        <!-- Caption/Content Section -->
+                        <div class="mb-3">
+                            <label asp-for="PostInput.Content" class="form-label">
+                                <i class="fas fa-edit me-1"></i>Caption or Message
+                            </label>
+                            <textarea asp-for="PostInput.Content" class="form-control" rows="4" placeholder="What's on your mind? Add a caption for your photo or share your thoughts..."></textarea>
+                            <span asp-validation-for="PostInput.Content" class="text-danger"></span>
+                            <small class="form-text text-muted">You can post a photo with a caption, text only, or both!</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="createPostForm" class="btn btn-accent">
+                        <i class="fas fa-paper-plane me-2"></i>Share Post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Profile Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="editProfileModalLabel">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="UpdateProfile" enctype="multipart/form-data" id="editProfileForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Profile Picture Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-camera me-2"></i>Profile Picture
+                            </h6>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                                    {
+                                        <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Current Profile Picture" id="currentProfilePic" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div id="currentProfilePic" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label asp-for="Input.ProfilePicture" class="form-label">
+                                        <i class="fas fa-upload me-1"></i>Upload New Picture
+                                    </label>
+                                    <input asp-for="Input.ProfilePicture" class="form-control mb-2" type="file" accept="image/*" onchange="previewProfilePicture(this)" />
+                                    <span asp-validation-for="Input.ProfilePicture" class="text-danger"></span>
+                                    <div class="d-flex gap-2 mb-2">
+                                        @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                                        {
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeProfilePicture()">
+                                                <i class="fas fa-trash me-1"></i>Remove Current Picture
+                                            </button>
+                                        }
+                                    </div>
+                                    <small class="form-text text-muted">JPG, PNG, GIF • Max 5MB</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Basic Information Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-user me-2"></i>Basic Information
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label asp-for="Input.UserName" class="form-label">
+                                    <i class="fas fa-at me-1"></i>Username
+                                </label>
+                                <input asp-for="Input.UserName" class="form-control" placeholder="Enter your username" />
+                                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+                                <small class="form-text text-muted">This is how other users will find you.</small>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.FirstName" class="form-label">
+                                        <i class="fas fa-user me-1"></i>First Name
+                                    </label>
+                                    <input asp-for="Input.FirstName" class="form-control" />
+                                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.LastName" class="form-label">
+                                        <i class="fas fa-user me-1"></i>Last Name
+                                    </label>
+                                    <input asp-for="Input.LastName" class="form-control" />
+                                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Bio" class="form-label">
+                                    <i class="fas fa-info-circle me-1"></i>Bio
+                                </label>
+                                <textarea asp-for="Input.Bio" class="form-control" rows="3" placeholder="Tell us about yourself..."></textarea>
+                                <span asp-validation-for="Input.Bio" class="text-danger"></span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.DateOfBirth" class="form-label">
+                                        <i class="fas fa-birthday-cake me-1"></i>Date of Birth
+                                    </label>
+                                    <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                                    <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.Location" class="form-label">
+                                        <i class="fas fa-map-marker-alt me-1"></i>Location
+                                    </label>
+                                    <input asp-for="Input.Location" class="form-control" placeholder="City, Country" />
+                                    <span asp-validation-for="Input.Location" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Occupation" class="form-label">
+                                    <i class="fas fa-briefcase me-1"></i>Occupation
+                                </label>
+                                <input asp-for="Input.Occupation" class="form-control" placeholder="Your job title or profession" />
+                                <span asp-validation-for="Input.Occupation" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-address-book me-2"></i>Contact Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.Email" class="form-label">
+                                        <i class="fas fa-envelope me-1"></i>Email
+                                    </label>
+                                    <input asp-for="Input.Email" class="form-control" type="email" />
+                                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.PhoneNumber" class="form-label">
+                                        <i class="fas fa-phone me-1"></i>Phone Number
+                                    </label>
+                                    <input asp-for="Input.PhoneNumber" class="form-control" type="tel" />
+                                    <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Website" class="form-label">
+                                    <i class="fas fa-globe me-1"></i>Website
+                                </label>
+                                <input asp-for="Input.Website" class="form-control" type="url" placeholder="https://your-website.com" />
+                                <span asp-validation-for="Input.Website" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Privacy Settings Section -->
+                        <div class="mb-3">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>Privacy Settings
+                            </h6>
+                            
+                            <div class="form-check">
+                                <input asp-for="Input.IsProfilePublic" class="form-check-input" type="checkbox" />
+                                <label asp-for="Input.IsProfilePublic" class="form-check-label">
+                                    <i class="fas fa-globe me-1"></i>Make my profile public
+                                </label>
+                                <small class="form-text text-muted d-block mt-1">
+                                    When public, anyone can view your profile and posts. When private, only you can see your content.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="editProfileForm" class="btn btn-accent">
+                        <i class="fas fa-save me-2"></i>Update Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Post View Modal -->
+<div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="d-flex align-items-center">
+                    <img id="postUserAvatar" src="" alt="User Avatar" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid var(--border-color);" />
+                    <div>
+                        <h6 class="mb-0 fw-bold" id="postUserName"></h6>
+                        <small class="text-muted" id="postDate"></small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    @if (Model.IsOwnProfile)
+                    {
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 36px; height: 36px; padding: 0;">
+                                <i class="fas fa-ellipsis-h" style="font-size: 0.875rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editPost()">
+                                        <i class="fas fa-edit me-2 text-accent" style="width: 16px;"></i>
+                                        Edit Post
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deletePost()">
+                                        <i class="fas fa-trash me-2" style="width: 16px;"></i>
+                                        Delete Post
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="min-height: 600px;">
+                <div class="row g-0" style="height: 600px;">
+                    <!-- Image Section -->
+                    <div class="col-lg-8" id="postImageSection" style="display: none;">
+                        <div class="h-100 d-flex align-items-center justify-content-center bg-secondary">
+                            <img id="postImage" src="" alt="Post Image" class="img-fluid" style="max-height: 600px; max-width: 100%; object-fit: contain;" />
+                        </div>
+                    </div>
+                    
+                    <!-- Content and Comments Section -->
+                    <div class="col-lg-4" id="postContentSection" style="border-left: 1px solid var(--border-color);">
+                        <div class="h-100 d-flex flex-column">
+                            <!-- Post Caption -->
+                            <div class="p-4 border-bottom">
+                                <p id="postCaption" class="mb-0"></p>
+                            </div>
+                            
+                            <!-- Comments Section -->
+                            <div class="flex-grow-1 p-4" style="overflow-y: auto; max-height: 400px;">
+                                <div id="commentsSection">
+                                    <!-- Comments will be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Actions and Comment Form -->
+                            <div class="p-4 border-top">
+                                <!-- Like Button -->
+                                <div class="mb-3">
+                                    <button id="likeBtn" class="btn btn-link p-0 text-decoration-none me-3 like-button" onclick="toggleLike()">
+                                        <i class="far fa-heart fa-lg"></i>
+                                    </button>
+                                    <button class="btn btn-link p-0 text-decoration-none text-secondary">
+                                        <i class="far fa-comment fa-lg"></i>
+                                    </button>
+                                    <div class="mt-2">
+                                        <span id="likeCount" class="small fw-bold" style="cursor: pointer;" onclick="showLikesModal()">0 likes</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Add Comment Form -->
+                                <form id="commentForm" class="d-flex">
+                                    <input type="text" id="commentInput" class="form-control form-control-sm me-2" placeholder="Add a comment..." style="border-radius: 20px;" />
+                                    <button type="submit" class="btn btn-accent btn-sm" style="border-radius: 20px; padding: 0.4rem 1rem;">Post</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Likes Modal -->
+<div class="modal fade" id="likesModal" tabindex="-1" aria-labelledby="likesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="likesModalLabel">
+                    <i class="fas fa-heart me-2" style="color: #e91e63;"></i>Likes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div id="likesContent">
+                    <!-- Likes content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Post Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="editPostModalLabel">
+                        <i class="fas fa-edit me-2"></i>Edit Post
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPostForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="editPostId" name="postId" />
+                        
+                        <!-- Post Image Preview (if exists) -->
+                        <div id="editPostImageSection" class="mb-3" style="display: none;">
+                            <div class="text-center">
+                                <img id="editPostImage" src="" alt="Post Image" class="img-fluid rounded" style="max-height: 300px;" />
+                            </div>
+                        </div>
+                        
+                        <!-- Caption/Content Section -->
+                        <div class="mb-3">
+                            <label for="editPostContent" class="form-label">
+                                <i class="fas fa-edit me-1"></i>Caption or Message
+                            </label>
+                            <textarea id="editPostContent" name="content" class="form-control" rows="4" placeholder="What's on your mind?"></textarea>
+                            <small class="form-text text-muted">Share your thoughts or add a caption to your photo.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-accent" onclick="savePostEdit()">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

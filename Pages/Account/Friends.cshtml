@@ -1,0 +1,260 @@
+@page
+@model Snapstagram.Pages.Account.FriendsModel
+@{
+    ViewData["Title"] = "Friends";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/friends.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/profile.js" asp-append-version="true"></script>
+    <script src="~/js/friends.js" asp-append-version="true"></script>
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-accent text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Friends & Requests
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @Html.AntiForgeryToken()
+                    <!-- Search for New Friends Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-search me-2"></i>
+                            Find New Friends
+                        </h5>
+                        <div class="search-friends-container">
+                            <div class="input-group">
+                                <input type="text" id="friendSearchInput" class="form-control" 
+                                       placeholder="Search for people by name or email..." autocomplete="off">
+                                <span class="input-group-text bg-transparent border-start-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                            </div>
+                            <div id="friendSearchResults" class="search-results mt-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation tabs -->
+                    <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="friends-tab" data-bs-toggle="tab" data-bs-target="#friends" type="button" role="tab">
+                                <i class="fas fa-user-friends me-2"></i>
+                                Friends (<span class="fw-bold">@Model.Friends.Count</span>)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link position-relative" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                                <i class="fas fa-clock me-2"></i>
+                                Pending Requests
+                                @if (Model.PendingRequests.Count > 0)
+                                {
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        @Model.PendingRequests.Count
+                                    </span>
+                                }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Sent Requests (<span class="fw-bold">@Model.SentRequests.Count</span>)
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab content -->
+                    <div class="tab-content mt-4">
+                        <!-- Friends Tab -->
+                        <div class="tab-pane fade show active" id="friends" role="tabpanel">
+                            @if (Model.Friends.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-user-friends fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No friends yet</h5>
+                                    <p class="text-muted mb-0">Start connecting with people to build your network!</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="friends-list">
+                                    @foreach (var friend in Model.Friends)
+                                    {
+                                        <div class="friend-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(friend.ProfilePictureUrl))
+                                                {
+                                                    <img src="@friend.ProfilePictureUrl" alt="@friend.FirstName @friend.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@friend.Id" class="text-decoration-none text-accent">
+                                                        @friend.FirstName @friend.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@friend.UserName</small>
+                                                @if (!string.IsNullOrEmpty(friend.Bio))
+                                                {
+                                                    <p class="small text-muted mb-0 mt-1">@friend.Bio</p>
+                                                }
+                                            </div>
+                                            <div class="ms-3">
+                                                <button class="btn btn-outline-danger btn-sm" onclick="removeFriend('@friend.Id')" title="Remove Friend">
+                                                    <i class="fas fa-user-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pending Requests Tab -->
+                        <div class="tab-pane fade" id="pending" role="tabpanel">
+                            @if (Model.PendingRequests.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No pending requests</h5>
+                                    <p class="text-muted mb-0">You'll see friend requests from other users here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="requests-list">
+                                    @foreach (var request in Model.PendingRequests)
+                                    {
+                                        <div class="request-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(request.Sender?.ProfilePictureUrl))
+                                                {
+                                                    <img src="@request.Sender.ProfilePictureUrl" alt="@request.Sender.FirstName @request.Sender.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@request.Sender?.Id" class="text-decoration-none text-accent">
+                                                        @request.Sender?.FirstName @request.Sender?.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@request.Sender?.UserName</small>
+                                                @if (!string.IsNullOrEmpty(request.Message))
+                                                {
+                                                    <div class="request-message mt-2 p-2 bg-light rounded">
+                                                        <small class="text-dark">
+                                                            <i class="fas fa-quote-left me-1 text-muted"></i>
+                                                            "@request.Message"
+                                                        </small>
+                                                    </div>
+                                                }
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    @request.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                                </small>
+                                            </div>
+                                            <div class="ms-3">
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-success btn-sm" onclick="respondToFriendRequest(@request.Id, true)" title="Accept Request">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" onclick="respondToFriendRequest(@request.Id, false)" title="Reject Request">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Sent Requests Tab -->
+                        <div class="tab-pane fade" id="sent" role="tabpanel">
+                            @if (Model.SentRequests.Count == 0)
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="fas fa-paper-plane fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted fw-bold">No sent requests</h5>
+                                    <p class="text-muted mb-0">Friend requests you send will appear here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="requests-list">
+                                    @foreach (var request in Model.SentRequests)
+                                    {
+                                        <div class="request-item d-flex align-items-center p-3 border-bottom friend-hover">
+                                            <div class="me-3">
+                                                @if (!string.IsNullOrEmpty(request.Receiver?.ProfilePictureUrl))
+                                                {
+                                                    <img src="@request.Receiver.ProfilePictureUrl" alt="@request.Receiver.FirstName @request.Receiver.LastName" class="rounded-circle profile-picture-small" style="width: 50px; height: 50px; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center profile-picture-placeholder-small" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">
+                                                    <a href="/Account/Profile/@request.Receiver?.Id" class="text-decoration-none text-accent">
+                                                        @request.Receiver?.FirstName @request.Receiver?.LastName
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">@@@request.Receiver?.UserName</small>
+                                                @if (!string.IsNullOrEmpty(request.Message))
+                                                {
+                                                    <div class="request-message mt-2 p-2 bg-light rounded">
+                                                        <small class="text-dark">
+                                                            <i class="fas fa-quote-left me-1 text-muted"></i>
+                                                            "@request.Message"
+                                                        </small>
+                                                    </div>
+                                                }
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-paper-plane me-1"></i>
+                                                    Sent @request.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                                </small>
+                                            </div>
+                                            <div class="ms-3">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="cancelFriendRequest(@request.Id)" title="Cancel Request">
+                                                    <i class="fas fa-times me-1"></i>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

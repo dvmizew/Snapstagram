@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Snapstagram.Data;
 
@@ -11,9 +12,11 @@ using Snapstagram.Data;
 namespace Snapstagram.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250607133004_AddUpdatedAtToPost")]
+    partial class AddUpdatedAtToPost
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -288,8 +291,8 @@ namespace Snapstagram.Migrations
                         {
                             Id = "admin-id",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "8f287d32-3bb1-43f5-b843-aad62d371e6d",
-                            CreatedAt = new DateTime(2025, 6, 7, 15, 10, 23, 329, DateTimeKind.Utc).AddTicks(3408),
+                            ConcurrencyStamp = "67cd76d1-a291-4efe-9c8a-4ad5e2e1a49b",
+                            CreatedAt = new DateTime(2025, 6, 7, 13, 30, 3, 571, DateTimeKind.Utc).AddTicks(4326),
                             Email = "admin@snapstagram.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -299,9 +302,9 @@ namespace Snapstagram.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@SNAPSTAGRAM.COM",
                             NormalizedUserName = "ADMIN@SNAPSTAGRAM.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEGO2PV+HTF4e5dZIGdY52VwZxWL+7ftoj3L50/3LlKUiZp8TlIbwk0R4NV1Zkzf4Ww==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJ9ozNz6q8fb3WLZX+75zVaqPScTcLaQYx6WgliDIpuaZlYwh2WUaPklzZjth9H4xw==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "61471e88-6181-4730-9c8e-192b9f74e587",
+                            SecurityStamp = "2eedb3b5-f292-4495-94a9-fa327397f15e",
                             TwoFactorEnabled = false,
                             UserName = "admin@snapstagram.com"
                         });
@@ -337,9 +340,6 @@ namespace Snapstagram.Migrations
                     b.Property<int>("PostId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
@@ -352,115 +352,6 @@ namespace Snapstagram.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.CommentLike", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("UserId", "CommentId")
-                        .IsUnique()
-                        .HasFilter("[UserId] IS NOT NULL");
-
-                    b.ToTable("CommentLikes");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.CommentReply", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeleteReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedByUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("DeletedByUserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("CommentReplies");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.FriendRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReceiverId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SenderId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReceiverId");
-
-                    b.HasIndex("SenderId", "ReceiverId")
-                        .IsUnique()
-                        .HasFilter("[SenderId] IS NOT NULL AND [ReceiverId] IS NOT NULL");
-
-                    b.ToTable("FriendRequests");
                 });
 
             modelBuilder.Entity("Snapstagram.Models.Like", b =>
@@ -697,65 +588,6 @@ namespace Snapstagram.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Snapstagram.Models.CommentLike", b =>
-                {
-                    b.HasOne("Snapstagram.Models.Comment", "Comment")
-                        .WithMany("CommentLikes")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snapstagram.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.CommentReply", b =>
-                {
-                    b.HasOne("Snapstagram.Models.Comment", "Comment")
-                        .WithMany("CommentReplies")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Snapstagram.Models.ApplicationUser", "DeletedByUser")
-                        .WithMany()
-                        .HasForeignKey("DeletedByUserId");
-
-                    b.HasOne("Snapstagram.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("DeletedByUser");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.FriendRequest", b =>
-                {
-                    b.HasOne("Snapstagram.Models.ApplicationUser", "Receiver")
-                        .WithMany()
-                        .HasForeignKey("ReceiverId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Snapstagram.Models.ApplicationUser", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
-                });
-
             modelBuilder.Entity("Snapstagram.Models.Like", b =>
                 {
                     b.HasOne("Snapstagram.Models.Post", "Post")
@@ -817,13 +649,6 @@ namespace Snapstagram.Migrations
                     b.Navigation("DeletedByUser");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Snapstagram.Models.Comment", b =>
-                {
-                    b.Navigation("CommentLikes");
-
-                    b.Navigation("CommentReplies");
                 });
 
             modelBuilder.Entity("Snapstagram.Models.Post", b =>

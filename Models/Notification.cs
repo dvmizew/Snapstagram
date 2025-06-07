@@ -17,6 +17,11 @@ namespace Snapstagram.Models
         System,
         ContentRemoved,
         Warning,
-        Information
+        Information,
+        Like,
+        Comment,
+        Reply,
+        FriendRequest,
+        FriendRequestAccepted
     }
 }
