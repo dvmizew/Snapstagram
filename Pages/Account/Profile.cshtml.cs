@@ -53,10 +53,12 @@ namespace Snapstagram.Pages.Account
 
         public class PostInputModel
         {
-            [Required]
             [Display(Name = "What's on your mind?")]
             [StringLength(2000)]
             public string Content { get; set; } = string.Empty;
+
+            [Display(Name = "Photo")]
+            public IFormFile? Photo { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync(string? id = null)
@@ -159,6 +161,29 @@ namespace Snapstagram.Pages.Account
                 return RedirectToPage("/Account/Login");
             }
 
+            // Validate that either content or photo is provided
+            if (string.IsNullOrWhiteSpace(PostInput.Content) && PostInput.Photo == null)
+            {
+                ModelState.AddModelError("PostInput.Content", "Please enter some text or upload a photo.");
+            }
+
+            // Validate photo file if provided
+            if (PostInput.Photo != null)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(PostInput.Photo.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    ModelState.AddModelError("PostInput.Photo", "Please upload a valid image file (JPG, PNG, or GIF).");
+                }
+                
+                if (PostInput.Photo.Length > 5 * 1024 * 1024) // 5MB limit
+                {
+                    ModelState.AddModelError("PostInput.Photo", "Photo size must be less than 5MB.");
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 CurrentUser = user;
@@ -168,10 +193,42 @@ namespace Snapstagram.Pages.Account
                 return Page();
             }
 
+            string? imageUrl = null;
+
+            // Handle photo upload if provided
+            if (PostInput.Photo != null)
+            {
+                try
+                {
+                    var uploadsFolder = Path.Combine("wwwroot", "uploads", "posts");
+                    Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(PostInput.Photo.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await PostInput.Photo.CopyToAsync(fileStream);
+                    }
+
+                    imageUrl = $"/uploads/posts/{uniqueFileName}";
+                }
+                catch (Exception)
+                {
+                    ModelState.AddModelError("PostInput.Photo", "Failed to upload photo. Please try again.");
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
+            }
+
             var post = new Post
             {
                 UserId = user.Id,
-                Caption = PostInput.Content,
+                Caption = PostInput.Content ?? string.Empty,
+                ImageUrl = imageUrl,
                 CreatedAt = DateTime.UtcNow
             };
 

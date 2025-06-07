@@ -7,6 +7,7 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/file-uploader.css" asp-append-version="true" />
 }
 
 <div class="container mt-4">
@@ -130,25 +131,13 @@
         <div class="col-lg-8 col-md-7">
             @if (Model.CanViewProfile)
             {
-                <!-- Create Post Form (Only for own profile) -->
+                <!-- Create Post Button (Only for own profile) -->
                 @if (Model.IsOwnProfile)
                 {
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-accent text-white">
-                            <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Create New Post</h6>
-                        </div>
-                        <div class="card-body">
-                            <form method="post" asp-page-handler="CreatePost">
-                                <div class="mb-3">
-                                    <label asp-for="PostInput.Content" class="form-label"></label>
-                                    <textarea asp-for="PostInput.Content" class="form-control" rows="4" placeholder="What's on your mind?"></textarea>
-                                    <span asp-validation-for="PostInput.Content" class="text-danger"></span>
-                                </div>
-                                <button type="submit" class="btn btn-accent">
-                                    <i class="fas fa-paper-plane me-2"></i>Post
-                                </button>
-                            </form>
-                        </div>
+                    <div class="mb-4 text-center">
+                        <button type="button" class="btn btn-accent btn-lg" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            <i class="fas fa-plus me-2"></i>Create New Post
+                        </button>
                     </div>
                 }
 
@@ -182,15 +171,46 @@
                                 <div class="card-body">
                                     @if (!string.IsNullOrEmpty(post.ImageUrl))
                                     {
-                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid rounded mb-3" />
+                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid post-image mb-3" style="max-width: 100%; height: auto;" />
                                     }
-                                    <p class="card-text">@post.Caption</p>
+                                    
+                                    @if (!string.IsNullOrEmpty(post.Caption))
+                                    {
+                                        <p class="card-text post-caption">@post.Caption</p>
+                                    }
+                                    
+                                    @if (string.IsNullOrEmpty(post.Caption) && !string.IsNullOrEmpty(post.ImageUrl))
+                                    {
+                                        <p class="card-text post-meta">
+                                            <i class="fas fa-camera me-1"></i>Photo post
+                                        </p>
+                                    }
                                 </div>
                                 <div class="card-footer bg-transparent">
-                                    <small class="text-muted">
-                                        <i class="fas fa-comments me-1"></i>
-                                        @post.Comments.Count @(post.Comments.Count == 1 ? "comment" : "comments")
-                                    </small>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="post-meta">
+                                            <i class="fas fa-comments me-1"></i>
+                                            @post.Comments.Count @(post.Comments.Count == 1 ? "comment" : "comments")
+                                        </small>
+                                        <small class="post-meta">
+                                            @if (!string.IsNullOrEmpty(post.ImageUrl) && !string.IsNullOrEmpty(post.Caption))
+                                            {
+                                                <i class="fas fa-camera me-1"></i>
+                                                <i class="fas fa-font me-1"></i>
+                                                <span>Photo & Caption</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(post.ImageUrl))
+                                            {
+                                                <i class="fas fa-camera me-1"></i>
+                                                <span>Photo Only</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-font me-1"></i>
+                                                <span>Text Post</span>
+                                            }
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         }
@@ -229,8 +249,351 @@
     </div>
 </div>
 
+<!-- Create Post Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="createPostModalLabel">
+                        <i class="fas fa-plus me-2"></i>Create New Post
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="CreatePost" enctype="multipart/form-data" id="createPostForm">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Photo Upload Section -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-camera me-1"></i>Add Photo (Optional)
+                            </label>
+                            
+                            <!-- Custom Upload Area -->
+                            <div class="upload-container">
+                                <input asp-for="PostInput.Photo" class="d-none" type="file" accept="image/*" id="photoInput" onchange="previewImage(this)" />
+                                
+                                <!-- Upload Zone -->
+                                <div id="uploadZone" class="upload-zone" onclick="document.getElementById('photoInput').click()">
+                                    <div class="upload-content">
+                                        <div class="upload-icon">
+                                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                                        </div>
+                                        <h5 class="upload-title">Drag and drop your photo here</h5>
+                                        <p class="upload-subtitle text-muted">or click to browse</p>
+                                        <div class="upload-formats">
+                                            <small class="text-muted">JPG, PNG, GIF • Max 5MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image Preview -->
+                                <div id="imagePreview" class="image-preview-container" style="display: none;">
+                                    <div class="image-preview-wrapper">
+                                        <img id="previewImg" src="" alt="Preview" class="preview-image" />
+                                        <div class="image-overlay">
+                                            <button type="button" class="btn btn-outline-light btn-sm remove-btn" onclick="removeImage()">
+                                                <i class="fas fa-times me-1"></i>Remove
+                                            </button>
+                                            <button type="button" class="btn btn-outline-light btn-sm change-btn" onclick="document.getElementById('photoInput').click()">
+                                                <i class="fas fa-edit me-1"></i>Change
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <span asp-validation-for="PostInput.Photo" class="text-danger"></span>
+                        </div>
+
+                        <!-- Caption/Content Section -->
+                        <div class="mb-3">
+                            <label asp-for="PostInput.Content" class="form-label">
+                                <i class="fas fa-edit me-1"></i>Caption or Message
+                            </label>
+                            <textarea asp-for="PostInput.Content" class="form-control" rows="4" placeholder="What's on your mind? Add a caption for your photo or share your thoughts..."></textarea>
+                            <span asp-validation-for="PostInput.Content" class="text-danger"></span>
+                            <small class="form-text text-muted">You can post a photo with a caption, text only, or both!</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="createPostForm" class="btn btn-accent">
+                        <i class="fas fa-paper-plane me-2"></i>Share Post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Instagram-like File Upload with Enhanced UX
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadZone = document.getElementById('uploadZone');
+            const photoInput = document.getElementById('photoInput');
+            const contentTextarea = document.querySelector('textarea[name="PostInput.Content"]');
+            const createPostModal = document.getElementById('createPostModal');
+            
+            // Set up drag and drop events
+            if (uploadZone) {
+                setupDragAndDrop(uploadZone, photoInput);
+            }
+            
+            // Set up content change tracking
+            if (contentTextarea) {
+                contentTextarea.addEventListener('input', updatePostTypeHint);
+                contentTextarea.addEventListener('focus', function() {
+                    this.parentElement.classList.add('focused');
+                });
+                contentTextarea.addEventListener('blur', function() {
+                    this.parentElement.classList.remove('focused');
+                });
+            }
+            
+            // Reset modal state when it's opened
+            if (createPostModal) {
+                createPostModal.addEventListener('shown.bs.modal', function() {
+                    resetModalState();
+                    updatePostTypeHint();
+                });
+                
+                createPostModal.addEventListener('hidden.bs.modal', function() {
+                    resetModalState();
+                });
+            }
+            
+            // Initial state
+            updatePostTypeHint();
+        });
+        
+        function resetModalState() {
+            const photoInput = document.getElementById('photoInput');
+            const preview = document.getElementById('imagePreview');
+            const uploadZone = document.getElementById('uploadZone');
+            const contentTextarea = document.querySelector('textarea[name="PostInput.Content"]');
+            
+            if (photoInput) photoInput.value = '';
+            if (preview) preview.style.display = 'none';
+            if (uploadZone) {
+                uploadZone.style.display = 'flex';
+                uploadZone.style.opacity = '1';
+            }
+            if (contentTextarea) contentTextarea.value = '';
+        }
+        
+        function setupDragAndDrop(uploadZone, fileInput) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight(e) {
+                uploadZone.classList.add('drag-over');
+            }
+            
+            function unhighlight(e) {
+                uploadZone.classList.remove('drag-over');
+            }
+            
+            uploadZone.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (isValidImageFile(file)) {
+                        fileInput.files = files;
+                        previewImage(fileInput);
+                    } else {
+                        showError('Please upload a valid image file (JPG, PNG, GIF)');
+                        uploadZone.classList.add('upload-error');
+                        setTimeout(() => {
+                            uploadZone.classList.remove('upload-error');
+                        }, 3000);
+                    }
+                }
+            }
+        }
+        
+        function isValidImageFile(file) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            
+            if (!validTypes.includes(file.type)) {
+                return false;
+            }
+            
+            if (file.size > maxSize) {
+                showError('File size must be less than 5MB');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function previewImage(input) {
+            const file = input.files[0];
+            
+            if (file && isValidImageFile(file)) {
+                const uploadZone = document.getElementById('uploadZone');
+                const preview = document.getElementById('imagePreview');
+                const previewImg = document.getElementById('previewImg');
+                
+                uploadZone.classList.add('upload-success');
+                setTimeout(() => {
+                    uploadZone.classList.remove('upload-success');
+                }, 1000);
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    
+                    // Smooth transition
+                    uploadZone.style.opacity = '0';
+                    setTimeout(() => {
+                        uploadZone.style.display = 'none';
+                        preview.style.display = 'block';
+                        preview.style.opacity = '0';
+                        setTimeout(() => {
+                            preview.style.opacity = '1';
+                        }, 50);
+                    }, 300);
+                    
+                    updatePostTypeHint();
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function removeImage() {
+            const photoInput = document.getElementById('photoInput');
+            const preview = document.getElementById('imagePreview');
+            const uploadZone = document.getElementById('uploadZone');
+            
+            photoInput.value = '';
+            
+            // Smooth transition back
+            preview.style.opacity = '0';
+            setTimeout(() => {
+                preview.style.display = 'none';
+                uploadZone.style.display = 'flex';
+                uploadZone.style.opacity = '0';
+                setTimeout(() => {
+                    uploadZone.style.opacity = '1';
+                }, 50);
+            }, 300);
+            
+            updatePostTypeHint();
+        }
+        
+        function updatePostTypeHint() {
+            const postTypeHint = document.getElementById('postTypeHint');
+            const postTypeHintContainer = postTypeHint?.parentElement;
+            const contentTextarea = document.querySelector('textarea[name="PostInput.Content"]');
+            const hasPhoto = document.getElementById('imagePreview').style.display !== 'none';
+            const hasText = contentTextarea && contentTextarea.value.trim().length > 0;
+            
+            if (postTypeHint && postTypeHintContainer) {
+                // Remove all classes
+                postTypeHintContainer.classList.remove('has-photo', 'has-text', 'has-both');
+                
+                if (hasPhoto && hasText) {
+                    postTypeHint.innerHTML = '<i class="fas fa-check-circle me-1"></i>Photo with caption ready to post!';
+                    postTypeHintContainer.classList.add('has-both');
+                } else if (hasPhoto) {
+                    postTypeHint.innerHTML = '<i class="fas fa-camera me-1"></i>Photo ready! Add a caption or post as is.';
+                    postTypeHintContainer.classList.add('has-photo');
+                } else if (hasText) {
+                    postTypeHint.innerHTML = '<i class="fas fa-font me-1"></i>Text post ready! Add a photo if you like.';
+                    postTypeHintContainer.classList.add('has-text');
+                } else {
+                    postTypeHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Add a photo, write something, or both!';
+                }
+            }
+        }
+        
+        function showError(message) {
+            // Create a toast-like notification
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-danger position-fixed';
+            toast.style.cssText = `
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                animation: slideIn 0.3s ease-out;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                border-radius: 12px;
+                border: none;
+            `;
+            toast.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close float-end" onclick="this.parentElement.remove()"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+            }, 5000);
+        }
+        
+        // Add CSS for enhanced animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @@keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            .upload-zone {
+                transition: all 0.3s ease;
+            }
+            .image-preview-container {
+                transition: all 0.3s ease;
+            }
+            .focused .form-control {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0, 149, 246, 0.15);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
 }
 
 <style>
@@ -284,5 +647,57 @@
 
     .text-accent {
         color: var(--accent-color) !important;
+    }
+
+    /* Enhanced post display */
+    .post-image {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+
+    .post-image:hover {
+        transform: scale(1.02);
+    }
+
+    .post-caption {
+        line-height: 1.6;
+        color: #333;
+    }
+
+    .post-meta {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    /* Enhanced form focus states */
+    .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(10, 150, 220, 0.25);
+    }
+
+    /* Create Post Button Enhancement */
+    .btn-accent.btn-lg {
+        background: linear-gradient(135deg, var(--accent-color) 0%, #0884cc 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 25px;
+        box-shadow: 0 4px 15px rgba(15, 173, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .btn-accent.btn-lg:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(15, 173, 255, 0.4);
+    }
+
+    /* Modal Integration */
+    .modal .upload-container {
+        margin-bottom: 1rem;
+    }
+
+    .modal .post-type-hint {
+        margin-top: 1rem;
     }
 </style>
