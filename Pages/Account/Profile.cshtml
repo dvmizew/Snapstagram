@@ -8,6 +8,7 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/file-uploader.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
 }
 
 <div class="container mt-4">
@@ -151,11 +152,11 @@
                                         <div class="profile-picture-small me-2">
                                             @if (!string.IsNullOrEmpty(post.User?.ProfilePictureUrl))
                                             {
-                                                <img src="@post.User.ProfilePictureUrl" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
+                                                <img src="@post.User.ProfilePictureUrl" alt="Profile" class="rounded-circle" />
                                             }
                                             else
                                             {
-                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center">
                                                     <i class="fas fa-user text-white"></i>
                                                 </div>
                                             }
@@ -169,7 +170,7 @@
                                 <div class="card-body">
                                     @if (!string.IsNullOrEmpty(post.ImageUrl))
                                     {
-                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid post-image mb-3" style="max-width: 100%; height: auto;" />
+                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid post-image mb-3" />
                                     }
                                     
                                     @if (!string.IsNullOrEmpty(post.Caption))
