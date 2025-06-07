@@ -561,7 +561,155 @@ body {
   }
 }
 
-/* Text posts responsive styles */
+/* Text posts enhanced styles */
+.text-post-grid-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.text-post-background {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, 
+    #667eea 0%, 
+    #764ba2 25%, 
+    #f093fb 50%, 
+    #f5576c 75%, 
+    #4facfe 100%);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.text-post-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(0.5px);
+}
+
+.text-post-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: white;
+  max-width: 90%;
+}
+
+.text-post-icon {
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+}
+
+.text-post-icon i {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.text-post-text {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Alternative gradient backgrounds for variety */
+.text-post-grid-item:nth-child(3n+1) .text-post-background {
+  background: linear-gradient(135deg, 
+    #ff6b6b 0%, 
+    #feca57 25%, 
+    #48dbfb 50%, 
+    #ff9ff3 75%, 
+    #54a0ff 100%);
+  background-size: 300% 300%;
+}
+
+.text-post-grid-item:nth-child(3n+2) .text-post-background {
+  background: linear-gradient(135deg, 
+    #a8edea 0%, 
+    #fed6e3 25%, 
+    #d299c2 50%, 
+    #fef9d7 75%, 
+    #667eea 100%);
+  background-size: 300% 300%;
+}
+
+.text-post-grid-item:nth-child(3n+3) .text-post-background {
+  background: linear-gradient(135deg, 
+    #ffecd2 0%, 
+    #fcb69f 25%, 
+    #a8edea 50%, 
+    #fed6e3 75%, 
+    #89f7fe 100%);
+  background-size: 300% 300%;
+}
+
+/* Hover effects for text posts */
+.text-post-grid-item:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.text-post-grid-item:hover .text-post-background {
+  animation-duration: 3s;
+}
+
+/* Responsive adjustments for text posts */
+@media (max-width: 767px) {
+  .text-post-background {
+    padding: 1rem;
+  }
+  
+  .text-post-icon i {
+    font-size: 1.25rem;
+  }
+  
+  .text-post-text {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 575px) {
+  .text-post-background {
+    padding: 0.75rem;
+  }
+  
+  .text-post-icon {
+    margin-bottom: 0.5rem;
+  }
+  
+  .text-post-icon i {
+    font-size: 1rem;
+  }
+  
+  .text-post-text {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+}
+
+/* Legacy text post styles (keeping for backward compatibility) */
 .post-grid-item .bg-light {
   min-height: 200px;
   border: 2px solid var(--gray-200);
@@ -573,36 +721,22 @@ body {
   background: var(--gray-50) !important;
 }
 
-@media (max-width: 767px) {
-  .post-grid-item .bg-light {
-    min-height: 150px;
-  }
-  
-  .post-grid-item .bg-light .text-center {
-    padding: 1rem !important;
-  }
-  
-  .post-grid-item .bg-light .fa-font {
-    font-size: 1.25rem !important;
-  }
-  
-  .post-grid-item .bg-light .small {
-    font-size: 0.75rem !important;
-  }
-}
-
 @media (max-width: 575px) {
-  .post-grid-item .bg-light {
-    min-height: 120px;
+  .text-post-background {
+    padding: 0.75rem;
   }
   
-  .post-grid-item .bg-light .text-center {
-    padding: 0.75rem !important;
+  .text-post-icon {
+    margin-bottom: 0.5rem;
   }
   
-  .post-grid-item .bg-light .fa-font {
-    font-size: 1rem !important;
-    margin-bottom: 0.5rem !important;
+  .text-post-icon i {
+    font-size: 1rem;
+  }
+  
+  .text-post-text {
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 }
 

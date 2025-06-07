@@ -227,12 +227,20 @@
                                         }
                                         else
                                         {
-                                            <div class="d-flex align-items-center justify-content-center bg-light border" style="aspect-ratio: 1; min-height: 200px;">
-                                                <div class="text-center p-3">
-                                                    <i class="fas fa-font text-muted mb-2 fa-2x"></i>
-                                                    <p class="small text-muted mb-2">@(post.Caption.Length > 50 ? post.Caption.Substring(0, 50) + "..." : post.Caption)</p>
-                                                    <div class="small text-muted">
-                                                        <span class="me-2"><i class="fas fa-heart"></i> @post.Likes.Count</span>
+                                            <div class="position-relative text-post-grid-item" style="aspect-ratio: 1; overflow: hidden;">
+                                                <div class="text-post-background">
+                                                    <div class="text-post-content">
+                                                        <div class="text-post-icon">
+                                                            <i class="fas fa-quote-left"></i>
+                                                        </div>
+                                                        <div class="text-post-text">
+                                                            @(post.Caption.Length > 80 ? post.Caption.Substring(0, 80) + "..." : post.Caption)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
+                                                    <div class="text-white text-center">
+                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
                                                         <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
                                                     </div>
                                                 </div>
