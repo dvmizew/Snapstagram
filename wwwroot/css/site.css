@@ -177,19 +177,67 @@ body {
     min-width: 100%;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 767px) {
-    .search-container {
-        min-width: 250px;
-    }
+/* Responsive breakpoints */
+@media (max-width: 991px) {
+  .search-container {
+    min-width: 280px;
+  }
+  
+  .search-dropdown {
+    max-height: 300px;
+  }
 }
 
-@media (max-width: 576px) {
-    .search-container {
-        min-width: 200px;
-    }
-    
-    .search-input {
-        font-size: 16px; /* Prevents zoom on iOS */
-    }
+@media (max-width: 767px) {
+  .search-container {
+    min-width: 250px;
+  }
+  
+  .search-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .search-result {
+    padding: 10px 14px;
+  }
+  
+  .search-result-avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
+  }
+  
+  .search-result-name {
+    font-size: 13px;
+  }
+  
+  .search-result-email {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 575px) {
+  .search-container {
+    min-width: 200px;
+  }
+  
+  .search-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.4rem 0.7rem;
+  }
+  
+  .search-result {
+    padding: 8px 12px;
+  }
+  
+  .search-result-avatar {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+  }
+  
+  .mobile-search-section .container {
+    padding: 0.5rem 1rem;
+  }
 }

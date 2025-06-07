@@ -220,10 +220,116 @@
   color: var(--gray-600) !important;
 }
 
+/* ========================================
+   LOGIN PAGE LOGO AND BRANDING
+   ======================================== */
+.text-accent {
+  background: linear-gradient(135deg, var(--ig-blue) 0%, var(--ig-gradient-start) 50%, var(--ig-gradient-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.text-accent:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+/* Login Card Container */
+.login-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Enhanced Card Styling for Login */
+.card.login-card {
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  transition: all 0.4s ease;
+}
+
+.card.login-card:hover {
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
+/* Large devices (desktops, 992px and up) */
+@media (max-width: 1199px) {
+  .upload-zone {
+    padding: 2.5rem 2rem;
+  }
+  
+  .image-preview-container {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (max-width: 991px) {
+  .upload-zone {
+    padding: 2rem 1.5rem;
+    min-height: 180px;
+  }
+  
+  .upload-title {
+    font-size: 1.1rem;
+  }
+  
+  .upload-subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .image-overlay {
+    padding: 1rem;
+  }
+  
+  .image-overlay .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  /* Login Page Logo Responsive */
+  .text-accent {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .login-container {
+    max-width: 380px;
+    padding: 1rem;
+  }
+  
+  .card.login-card {
+    border-radius: 18px;
+    margin: 0.5rem;
+  }
+  
+  .card-body {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (max-width: 767px) {
   .upload-zone {
     padding: 2rem 1rem;
+    min-height: 160px;
   }
   
   .upload-title {
@@ -243,11 +349,41 @@
     padding: 0.4rem 0.8rem;
     margin: 0 0.25rem;
   }
+  
+  .post-type-hint {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .btn-accent {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  /* Login Page Logo Responsive */
+  .text-accent {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+  
+  .login-container {
+    max-width: 100%;
+    padding: 0.75rem;
+  }
+  
+  .card.login-card {
+    border-radius: 16px;
+    margin: 0.25rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  }
 }
 
-@media (max-width: 576px) {
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575px) {
   .upload-zone {
     padding: 1.5rem 0.75rem;
+    min-height: 140px;
   }
   
   .upload-icon i {
@@ -258,12 +394,66 @@
     font-size: 0.95rem;
   }
   
+  .upload-subtitle {
+    font-size: 0.8rem;
+  }
+  
   .preview-image {
     max-height: 300px;
   }
-}
+  
+  .image-overlay .btn {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    margin: 0 0.1rem;
+  }
+  
+  .post-type-hint {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem;
+  }
+  
+  .btn-accent {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .form-control, .form-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
 
-/* ===== ADDITIONAL ENHANCEMENTS ===== */
+  /* Login Page Logo Responsive */
+  .text-accent {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0;
+    line-height: 1.2;
+  }
+  
+  .login-container {
+    max-width: 100%;
+    padding: 0.5rem;
+  }
+  
+  .card.login-card {
+    border-radius: 14px;
+    margin: 0.125rem;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+  }
+  
+  .card-body {
+    padding: 1.25rem 1rem;
+  }
+  
+  /* Mobile-specific adjustments */
+  .text-center.mb-4 {
+    margin-bottom: 1rem !important;
+  }
+}
 
 /* Form Focus States */
 .form-control:focus,
