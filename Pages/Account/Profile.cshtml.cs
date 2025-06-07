@@ -135,8 +135,16 @@ namespace Snapstagram.Pages.Account
             CurrentUser = targetUser;
             IsOwnProfile = currentUser.Id == targetUser.Id;
 
+            // Load friendship information if viewing another user's profile
+            if (!IsOwnProfile)
+            {
+                await LoadFriendshipStatusAsync(currentUser.Id, targetUser.Id);
+            }
+
             // Check if user can view this profile
-            CanViewProfile = IsOwnProfile || targetUser.IsProfilePublic;
+            // Users can view their own profile, public profiles, or profiles of accepted friends
+            bool areFriends = !IsOwnProfile && FriendshipStatus == FriendRequestStatus.Accepted;
+            CanViewProfile = IsOwnProfile || targetUser.IsProfilePublic || areFriends;
 
             if (CanViewProfile)
             {
@@ -178,12 +186,6 @@ namespace Snapstagram.Pages.Account
                 // Load pending friend requests count for own profile
                 PendingRequestsCount = await _context.FriendRequests
                     .CountAsync(fr => fr.ReceiverId == currentUser.Id && fr.Status == FriendRequestStatus.Pending);
-            }
-            
-            // Load friendship information if viewing another user's profile
-            if (!IsOwnProfile)
-            {
-                await LoadFriendshipStatusAsync(currentUser.Id, targetUser.Id);
             }
             
             // Load friends count
