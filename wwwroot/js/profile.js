@@ -1,4 +1,3 @@
-// Instagram-like File Upload with Enhanced UX
 document.addEventListener('DOMContentLoaded', function() {
     const uploadZone = document.getElementById('uploadZone');
     const photoInput = document.getElementById('photoInput');
