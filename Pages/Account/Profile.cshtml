@@ -48,6 +48,41 @@
                         <p class="card-text">@Model.CurrentUser.Bio</p>
                     }
 
+                    <!-- Additional Profile Information -->
+                    <div class="profile-details mt-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Occupation))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-briefcase me-2 text-muted"></i>
+                                <small>@Model.CurrentUser.Occupation</small>
+                            </p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Location))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-map-marker-alt me-2 text-muted"></i>
+                                <small>@Model.CurrentUser.Location</small>
+                            </p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.Website))
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-globe me-2 text-muted"></i>
+                                <small><a href="@Model.CurrentUser.Website" target="_blank" class="text-decoration-none">@Model.CurrentUser.Website</a></small>
+                            </p>
+                        }
+                        
+                        @if (Model.CurrentUser.DateOfBirth.HasValue)
+                        {
+                            <p class="profile-detail-item mb-1">
+                                <i class="fas fa-birthday-cake me-2 text-muted"></i>
+                                <small>Born @Model.CurrentUser.DateOfBirth.Value.ToString("MMMM dd, yyyy")</small>
+                            </p>
+                        }
+                    </div>
+
                     <div class="profile-stats d-flex justify-content-around mt-3">
                         <div class="stat">
                             <strong>@Model.Posts.Count</strong>
@@ -79,50 +114,13 @@
                 </div>
             </div>
 
-            <!-- Edit Profile Form (Only for own profile) -->
+            <!-- Edit Profile Button (Only for own profile) -->
             @if (Model.IsOwnProfile)
             {
-                <div class="card border-0 shadow-sm mt-3">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Profile</h6>
-                    </div>
-                    <div class="card-body">
-                        <form method="post" asp-page-handler="UpdateProfile">
-                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                            
-                            <div class="mb-3">
-                                <label asp-for="Input.FirstName" class="form-label"></label>
-                                <input asp-for="Input.FirstName" class="form-control" />
-                                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <label asp-for="Input.LastName" class="form-label"></label>
-                                <input asp-for="Input.LastName" class="form-control" />
-                                <span asp-validation-for="Input.LastName" class="text-danger"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <label asp-for="Input.Bio" class="form-label"></label>
-                                <textarea asp-for="Input.Bio" class="form-control" rows="3" placeholder="Tell us about yourself..."></textarea>
-                                <span asp-validation-for="Input.Bio" class="text-danger"></span>
-                            </div>
-
-                            <div class="form-check mb-3">
-                                <input asp-for="Input.IsProfilePublic" class="form-check-input" type="checkbox" />
-                                <label asp-for="Input.IsProfilePublic" class="form-check-label">
-                                    Make my profile public
-                                </label>
-                                <small class="form-text text-muted d-block">
-                                    When public, anyone can view your profile and posts. When private, only you can see your content.
-                                </small>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-save me-2"></i>Update Profile
-                            </button>
-                        </form>
-                    </div>
+                <div class="mt-3 text-center">
+                    <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </button>
                 </div>
             }
         </div>
@@ -325,6 +323,145 @@
                     </button>
                     <button type="submit" form="createPostForm" class="btn btn-accent">
                         <i class="fas fa-paper-plane me-2"></i>Share Post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Profile Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="editProfileModalLabel">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="UpdateProfile" id="editProfileForm">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Basic Information Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-user me-2"></i>Basic Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.FirstName" class="form-label">
+                                        <i class="fas fa-user me-1"></i>First Name
+                                    </label>
+                                    <input asp-for="Input.FirstName" class="form-control" />
+                                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.LastName" class="form-label">
+                                        <i class="fas fa-user me-1"></i>Last Name
+                                    </label>
+                                    <input asp-for="Input.LastName" class="form-control" />
+                                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Bio" class="form-label">
+                                    <i class="fas fa-info-circle me-1"></i>Bio
+                                </label>
+                                <textarea asp-for="Input.Bio" class="form-control" rows="3" placeholder="Tell us about yourself..."></textarea>
+                                <span asp-validation-for="Input.Bio" class="text-danger"></span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.DateOfBirth" class="form-label">
+                                        <i class="fas fa-birthday-cake me-1"></i>Date of Birth
+                                    </label>
+                                    <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                                    <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.Location" class="form-label">
+                                        <i class="fas fa-map-marker-alt me-1"></i>Location
+                                    </label>
+                                    <input asp-for="Input.Location" class="form-control" placeholder="City, Country" />
+                                    <span asp-validation-for="Input.Location" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Occupation" class="form-label">
+                                    <i class="fas fa-briefcase me-1"></i>Occupation
+                                </label>
+                                <input asp-for="Input.Occupation" class="form-control" placeholder="Your job title or profession" />
+                                <span asp-validation-for="Input.Occupation" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-address-book me-2"></i>Contact Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.Email" class="form-label">
+                                        <i class="fas fa-envelope me-1"></i>Email
+                                    </label>
+                                    <input asp-for="Input.Email" class="form-control" type="email" />
+                                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.PhoneNumber" class="form-label">
+                                        <i class="fas fa-phone me-1"></i>Phone Number
+                                    </label>
+                                    <input asp-for="Input.PhoneNumber" class="form-control" type="tel" />
+                                    <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Website" class="form-label">
+                                    <i class="fas fa-globe me-1"></i>Website
+                                </label>
+                                <input asp-for="Input.Website" class="form-control" type="url" placeholder="https://your-website.com" />
+                                <span asp-validation-for="Input.Website" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Privacy Settings Section -->
+                        <div class="mb-3">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>Privacy Settings
+                            </h6>
+                            
+                            <div class="form-check">
+                                <input asp-for="Input.IsProfilePublic" class="form-check-input" type="checkbox" />
+                                <label asp-for="Input.IsProfilePublic" class="form-check-label">
+                                    <i class="fas fa-globe me-1"></i>Make my profile public
+                                </label>
+                                <small class="form-text text-muted d-block mt-1">
+                                    When public, anyone can view your profile and posts. When private, only you can see your content.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="editProfileForm" class="btn btn-accent">
+                        <i class="fas fa-save me-2"></i>Update Profile
                     </button>
                 </div>
             </div>
@@ -699,5 +836,208 @@
 
     .modal .post-type-hint {
         margin-top: 1rem;
+    }
+
+    /* Enhanced Modal Styling */
+    .modal-content {
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: var(--shadow-medium);
+    }
+
+    .modal-header.bg-accent {
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+        background-color: var(--background-secondary);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    /* Enhanced Edit Profile Button */
+    .btn-accent.w-100 {
+        background: linear-gradient(135deg, var(--accent-color) 0%, #0884cc 100%);
+        border: none;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-light);
+        transition: all 0.3s ease;
+    }
+
+    .btn-accent.w-100:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    /* Form enhancements in modal */
+    #editProfileModal .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(10, 150, 220, 0.25);
+    }
+
+    #editProfileModal .form-label {
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    #editProfileModal .form-check-label {
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+    }
+
+    /* Enhanced Edit Profile Modal Sections */
+    #editProfileModal .section-title {
+        font-weight: var(--font-weight-semibold);
+        color: var(--accent-color);
+        border-bottom: 2px solid var(--accent-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+    #editProfileModal .section-title i {
+        margin-right: 0.5rem;
+    }
+
+    /* Modal body with better spacing */
+    #editProfileModal .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    /* Form sections with subtle backgrounds */
+    #editProfileModal .mb-4 {
+        background-color: rgba(10, 150, 220, 0.02);
+        border: 1px solid rgba(10, 150, 220, 0.1);
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Enhanced form controls in edit modal */
+    #editProfileModal .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 0.75rem;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    #editProfileModal .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(10, 150, 220, 0.15);
+        transform: translateY(-1px);
+    }
+
+    /* Enhanced labels with icons */
+    #editProfileModal .form-label i {
+        color: var(--accent-color);
+        width: 16px;
+        text-align: center;
+    }
+
+    /* Privacy section styling */
+    #editProfileModal .form-check {
+        background-color: rgba(10, 150, 220, 0.05);
+        border: 1px solid rgba(10, 150, 220, 0.15);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+    }
+
+    #editProfileModal .form-check-input:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @@media (max-width: 768px) {
+        #editProfileModal .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+        
+        #editProfileModal .modal-body {
+            padding: 1rem;
+        }
+        
+        #editProfileModal .mb-4 {
+            padding: 1rem;
+        }
+    }
+
+    #editProfileModal .section-title i {
+        margin-right: 0.5rem;
+    }
+
+    /* Modal body with better spacing */
+    #editProfileModal .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    /* Form sections with subtle backgrounds */
+    #editProfileModal .mb-4 {
+        background-color: rgba(var(--accent-color-rgb), 0.02);
+        border: 1px solid rgba(var(--accent-color-rgb), 0.1);
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Enhanced form controls in edit modal */
+    #editProfileModal .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 0.75rem;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    #editProfileModal .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(10, 150, 220, 0.15);
+        transform: translateY(-1px);
+    }
+
+    /* Enhanced labels with icons */
+    #editProfileModal .form-label i {
+        color: var(--accent-color);
+        width: 16px;
+        text-align: center;
+    }
+
+    /* Privacy section styling */
+    #editProfileModal .form-check {
+        background-color: rgba(var(--accent-color-rgb), 0.05);
+        border: 1px solid rgba(var(--accent-color-rgb), 0.15);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+    }
+
+    #editProfileModal .form-check-input:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @@media (max-width: 768px) {
+        #editProfileModal .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+        
+        #editProfileModal .modal-body {
+            padding: 1rem;
+        }
+        
+        #editProfileModal .mb-4 {
+            padding: 1rem;
+        }
     }
 </style>

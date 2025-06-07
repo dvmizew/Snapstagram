@@ -11,6 +11,12 @@ namespace Snapstagram.Models
         public string? Bio { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsProfilePublic { get; set; } = true;
+        
+        // Additional profile fields
+        public DateTime? DateOfBirth { get; set; }
+        public string? Location { get; set; }
+        public string? Website { get; set; }
+        public string? Occupation { get; set; }
     }
 
     public static class UserRoles

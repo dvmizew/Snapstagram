@@ -47,6 +47,31 @@ namespace Snapstagram.Pages.Account
             [StringLength(500)]
             public string? Bio { get; set; }
 
+            [Display(Name = "Email")]
+            [EmailAddress]
+            public string? Email { get; set; }
+
+            [Display(Name = "Phone Number")]
+            [Phone]
+            public string? PhoneNumber { get; set; }
+
+            [Display(Name = "Date of Birth")]
+            [DataType(DataType.Date)]
+            public DateTime? DateOfBirth { get; set; }
+
+            [Display(Name = "Location")]
+            [StringLength(100)]
+            public string? Location { get; set; }
+
+            [Display(Name = "Website")]
+            [Url]
+            [StringLength(200)]
+            public string? Website { get; set; }
+
+            [Display(Name = "Occupation")]
+            [StringLength(100)]
+            public string? Occupation { get; set; }
+
             [Display(Name = "Profile is Public")]
             public bool IsProfilePublic { get; set; }
         }
@@ -103,6 +128,12 @@ namespace Snapstagram.Pages.Account
                     FirstName = CurrentUser.FirstName,
                     LastName = CurrentUser.LastName,
                     Bio = CurrentUser.Bio,
+                    Email = CurrentUser.Email,
+                    PhoneNumber = CurrentUser.PhoneNumber,
+                    DateOfBirth = CurrentUser.DateOfBirth,
+                    Location = CurrentUser.Location,
+                    Website = CurrentUser.Website,
+                    Occupation = CurrentUser.Occupation,
                     IsProfilePublic = CurrentUser.IsProfilePublic
                 };
             }
@@ -131,6 +162,12 @@ namespace Snapstagram.Pages.Account
             user.FirstName = Input.FirstName;
             user.LastName = Input.LastName;
             user.Bio = Input.Bio;
+            user.Email = Input.Email;
+            user.PhoneNumber = Input.PhoneNumber;
+            user.DateOfBirth = Input.DateOfBirth;
+            user.Location = Input.Location;
+            user.Website = Input.Website;
+            user.Occupation = Input.Occupation;
             user.IsProfilePublic = Input.IsProfilePublic;
 
             var result = await _userManager.UpdateAsync(user);
