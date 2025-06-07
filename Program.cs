@@ -82,7 +82,7 @@ app.MapControllers();
 app.MapGet("/", context => {
     if (context.User.Identity?.IsAuthenticated == true)
     {
-        context.Response.Redirect("/Account/Profile");
+        context.Response.Redirect("/Feed");
     }
     else
     {
