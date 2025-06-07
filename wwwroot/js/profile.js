@@ -201,17 +201,7 @@ function updatePostTypeHint() {
 function showError(message) {
     // Create a toast-like notification
     const toast = document.createElement('div');
-    toast.className = 'alert alert-danger position-fixed';
-    toast.style.cssText = `
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        animation: slideIn 0.3s ease-out;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        border-radius: 12px;
-        border: none;
-    `;
+    toast.className = 'alert toast-notification toast-error position-fixed slide-in';
     toast.innerHTML = `
         <i class="fas fa-exclamation-triangle me-2"></i>
         ${message}
@@ -223,7 +213,8 @@ function showError(message) {
     // Auto remove after 5 seconds
     setTimeout(() => {
         if (toast.parentElement) {
-            toast.style.animation = 'slideOut 0.3s ease-out';
+            toast.classList.remove('slide-in');
+            toast.classList.add('slide-out');
             setTimeout(() => {
                 toast.remove();
             }, 300);
@@ -234,17 +225,7 @@ function showError(message) {
 function showSuccess(message) {
     // Create a toast-like notification
     const toast = document.createElement('div');
-    toast.className = 'alert alert-success position-fixed';
-    toast.style.cssText = `
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        animation: slideIn 0.3s ease-out;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        border-radius: 12px;
-        border: none;
-    `;
+    toast.className = 'alert toast-notification toast-success position-fixed slide-in';
     toast.innerHTML = `
         <i class="fas fa-check-circle me-2"></i>
         ${message}
@@ -256,7 +237,8 @@ function showSuccess(message) {
     // Auto remove after 3 seconds
     setTimeout(() => {
         if (toast.parentElement) {
-            toast.style.animation = 'slideOut 0.3s ease-out';
+            toast.classList.remove('slide-in');
+            toast.classList.add('slide-out');
             setTimeout(() => {
                 toast.remove();
             }, 300);
@@ -264,39 +246,7 @@ function showSuccess(message) {
     }, 3000);
 }
 
-// Add CSS for enhanced animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    @keyframes fadeOut {
-        from { opacity: 1; transform: scale(1); }
-        to { opacity: 0; transform: scale(0.9); }
-    }
-    .upload-zone {
-        transition: all 0.3s ease;
-    }
-    .image-preview-container {
-        transition: all 0.3s ease;
-    }
-    .focused .form-control {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 149, 246, 0.15);
-    }
-    .post-grid-item:hover .hover-overlay {
-        opacity: 1 !important;
-    }
-    .post-grid-item {
-        transition: all 0.3s ease;
-    }
-`;
-document.head.appendChild(style);
+// Enhanced animations and styling are now in theme.css
 
 // Global variables for post modal functionality
 let currentPostId = null;
@@ -372,11 +322,11 @@ function openPostModal(postId) {
             if (currentPostData.isLikedByCurrentUser) {
                 likeIcon.classList.remove('far');
                 likeIcon.classList.add('fas');
-                likeIcon.style.color = '#e91e63';
+                likeBtn.classList.add('liked');
             } else {
                 likeIcon.classList.remove('fas');
                 likeIcon.classList.add('far');
-                likeIcon.style.color = '';
+                likeBtn.classList.remove('liked');
             }
         }
     }
@@ -458,12 +408,17 @@ function toggleLike() {
                     if (data.liked) {
                         icon.classList.remove('far');
                         icon.classList.add('fas');
-                        icon.style.color = '#e91e63';
+                        likeBtn.classList.add('liked', 'animate-like');
                     } else {
                         icon.classList.remove('fas');
                         icon.classList.add('far');
-                        icon.style.color = '';
+                        likeBtn.classList.remove('liked');
                     }
+                    
+                    // Remove animation class after animation completes
+                    setTimeout(() => {
+                        likeBtn.classList.remove('animate-like');
+                    }, 300);
                 }
             }
             
@@ -579,11 +534,7 @@ function savePostEdit() {
         return;
     }
     
-    // Validate that content is not empty if there's no image
-    if (!content?.trim() && !currentPostData?.imageUrl) {
-        alert('Post cannot be empty');
-        return;
-    }
+
     
     const token = document.querySelector('input[name="__RequestVerificationToken"]');
     if (!token) {
@@ -595,7 +546,8 @@ function savePostEdit() {
     const saveBtn = document.querySelector('#editPostModal .btn-accent');
     const originalText = saveBtn?.innerHTML;
     if (saveBtn) {
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.innerHTML = '<span class="btn-text">Saving...</span>';
+        saveBtn.classList.add('btn-loading');
         saveBtn.disabled = true;
     }
     
@@ -652,6 +604,7 @@ function savePostEdit() {
         // Restore button state
         if (saveBtn && originalText) {
             saveBtn.innerHTML = originalText;
+            saveBtn.classList.remove('btn-loading');
             saveBtn.disabled = false;
         }
     });
@@ -693,7 +646,7 @@ function deletePost() {
             // Remove the post from the grid
             const postElement = document.querySelector(`[data-post-id="${currentPostId}"]`);
             if (postElement) {
-                postElement.style.animation = 'fadeOut 0.3s ease-out';
+                postElement.classList.add('fade-out');
                 setTimeout(() => {
                     postElement.remove();
                 }, 300);

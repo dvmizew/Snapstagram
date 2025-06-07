@@ -529,32 +529,32 @@
 <!-- Post View Modal -->
 <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
-            <div class="modal-header border-0" style="background: var(--background-primary); padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-color);">
+        <div class="modal-content">
+            <div class="modal-header">
                 <div class="d-flex align-items-center">
                     <img id="postUserAvatar" src="" alt="User Avatar" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid var(--border-color);" />
                     <div>
-                        <h6 class="mb-0 fw-bold" id="postUserName" style="color: var(--text-primary); font-size: 1rem;"></h6>
-                        <small class="text-muted" id="postDate" style="color: var(--text-secondary); font-size: 0.875rem;"></small>
+                        <h6 class="mb-0 fw-bold" id="postUserName"></h6>
+                        <small class="text-muted" id="postDate"></small>
                     </div>
                 </div>
                 <div class="d-flex align-items-center">
                     @if (Model.IsOwnProfile)
                     {
                         <div class="dropdown me-3">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-secondary); background: transparent; width: 36px; height: 36px; padding: 0;">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 36px; height: 36px; padding: 0;">
                                 <i class="fas fa-ellipsis-h" style="font-size: 0.875rem;"></i>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow" style="border: none; border-radius: var(--border-radius); box-shadow: var(--shadow-medium); min-width: 160px; background: var(--background-primary);">
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editPost()" style="color: var(--text-primary); transition: background-color 0.2s ease;">
-                                        <i class="fas fa-edit me-2" style="color: var(--accent-color); width: 16px;"></i>
+                                    <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editPost()">
+                                        <i class="fas fa-edit me-2 text-accent" style="width: 16px;"></i>
                                         Edit Post
                                     </a>
                                 </li>
-                                <li><hr class="dropdown-divider my-1" style="border-color: var(--border-color);"></li>
+                                <li><hr class="dropdown-divider my-1"></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deletePost()" style="transition: background-color 0.2s ease;">
+                                    <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deletePost()">
                                         <i class="fas fa-trash me-2" style="width: 16px;"></i>
                                         Delete Post
                                     </a>
@@ -562,15 +562,15 @@
                             </ul>
                         </div>
                     }
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-size: 1rem; opacity: 0.6;"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
             <div class="modal-body p-0" style="min-height: 600px;">
                 <div class="row g-0" style="height: 600px;">
                     <!-- Image Section -->
                     <div class="col-lg-8" id="postImageSection" style="display: none;">
-                        <div class="h-100 d-flex align-items-center justify-content-center" style="background: var(--background-secondary);">
-                            <img id="postImage" src="" alt="Post Image" class="img-fluid" style="max-height: 600px; max-width: 100%; object-fit: contain; border-radius: 0 0 0 16px;" />
+                        <div class="h-100 d-flex align-items-center justify-content-center bg-secondary">
+                            <img id="postImage" src="" alt="Post Image" class="img-fluid" style="max-height: 600px; max-width: 100%; object-fit: contain;" />
                         </div>
                     </div>
                     
@@ -578,8 +578,8 @@
                     <div class="col-lg-4" id="postContentSection" style="border-left: 1px solid var(--border-color);">
                         <div class="h-100 d-flex flex-column">
                             <!-- Post Caption -->
-                            <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
-                                <p id="postCaption" class="mb-0" style="color: var(--text-primary); line-height: 1.5;"></p>
+                            <div class="p-4 border-bottom">
+                                <p id="postCaption" class="mb-0"></p>
                             </div>
                             
                             <!-- Comments Section -->
@@ -590,24 +590,24 @@
                             </div>
                             
                             <!-- Actions and Comment Form -->
-                            <div class="p-4 border-top" style="border-color: var(--border-color) !important; background: var(--background-primary);">
+                            <div class="p-4 border-top">
                                 <!-- Like Button -->
                                 <div class="mb-3">
-                                    <button id="likeBtn" class="btn btn-link p-0 text-decoration-none me-3" onclick="toggleLike()" style="color: var(--text-secondary);">
+                                    <button id="likeBtn" class="btn btn-link p-0 text-decoration-none me-3 like-button" onclick="toggleLike()">
                                         <i class="far fa-heart fa-lg"></i>
                                     </button>
-                                    <button class="btn btn-link p-0 text-decoration-none" style="color: var(--text-secondary);">
+                                    <button class="btn btn-link p-0 text-decoration-none text-secondary">
                                         <i class="far fa-comment fa-lg"></i>
                                     </button>
                                     <div class="mt-2">
-                                        <span id="likeCount" class="small fw-bold" style="color: var(--text-primary); cursor: pointer;" onclick="showLikesModal()">0 likes</span>
+                                        <span id="likeCount" class="small fw-bold" style="cursor: pointer;" onclick="showLikesModal()">0 likes</span>
                                     </div>
                                 </div>
                                 
                                 <!-- Add Comment Form -->
                                 <form id="commentForm" class="d-flex">
-                                    <input type="text" id="commentInput" class="form-control form-control-sm me-2" placeholder="Add a comment..." style="border-radius: 20px; border: 1px solid var(--border-color); background: var(--background-secondary);" />
-                                    <button type="submit" class="btn btn-sm" style="background: var(--accent-color); color: white; border-radius: 20px; padding: 0.4rem 1rem;">Post</button>
+                                    <input type="text" id="commentInput" class="form-control form-control-sm me-2" placeholder="Add a comment..." style="border-radius: 20px;" />
+                                    <button type="submit" class="btn btn-accent btn-sm" style="border-radius: 20px; padding: 0.4rem 1rem;">Post</button>
                                 </form>
                             </div>
                         </div>
@@ -621,9 +621,9 @@
 <!-- Likes Modal -->
 <div class="modal fade" id="likesModal" tabindex="-1" aria-labelledby="likesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
-            <div class="modal-header border-0" style="background: var(--background-primary); padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-color);">
-                <h5 class="modal-title fw-bold" id="likesModalLabel" style="color: var(--text-primary);">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="likesModalLabel">
                     <i class="fas fa-heart me-2" style="color: #e91e63;"></i>Likes
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -642,7 +642,7 @@
 {
     <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
+            <div class="modal-content">
                 <div class="modal-header bg-accent text-white">
                     <h5 class="modal-title" id="editPostModalLabel">
                         <i class="fas fa-edit me-2"></i>Edit Post

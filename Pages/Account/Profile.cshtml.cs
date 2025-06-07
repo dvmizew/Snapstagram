@@ -90,7 +90,7 @@ namespace Snapstagram.Pages.Account
         {
             [Display(Name = "What's on your mind?")]
             [StringLength(2000)]
-            public string Content { get; set; } = string.Empty;
+            public string? Content { get; set; }
 
             [Display(Name = "Photo")]
             public IFormFile? Photo { get; set; }
@@ -330,11 +330,8 @@ namespace Snapstagram.Pages.Account
                 ModelState.Remove(key);
             }
 
-            // Validate that either content or photo is provided
-            if (string.IsNullOrWhiteSpace(PostInput.Content) && PostInput.Photo == null)
-            {
-                ModelState.AddModelError("PostInput.Content", "Please enter some text or upload a photo.");
-            }
+            // Allow flexible posting: content only, photo only, or both
+            // No validation required - users can post just an image, just text, or both
 
             // Validate photo file if provided
             if (PostInput.Photo != null)
@@ -569,11 +566,8 @@ namespace Snapstagram.Pages.Account
                 return new JsonResult(new { success = false, message = "Post not found or you don't have permission to edit it" });
             }
 
-            if (string.IsNullOrWhiteSpace(content) && string.IsNullOrEmpty(post.ImageUrl))
-            {
-                return new JsonResult(new { success = false, message = "Post cannot be empty" });
-            }
-
+            // Allow flexible editing: content can be empty, image can be removed, or both can exist
+            // Users can edit to have just text, just image, or both
             post.Caption = content ?? string.Empty;
             post.UpdatedAt = DateTime.UtcNow;
             
