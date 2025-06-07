@@ -42,6 +42,31 @@
   --toast-error: #EF4444;
   --toast-warning: #F59E0B;
   --toast-info: var(--accent-color);
+
+  /* Additional Utility Colors */
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  
+  /* Bootstrap Compatible Colors */
+  --primary-color: #0d6efd;
+  --success-color: #198754;
+  --info-color: #0dcaf0;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+
+  /* Form & Input Colors */
+  --placeholder-color: #999;
+  --input-border-focus: rgba(15, 173, 255, 0.25);
+  --heart-color: #e91e63;
 }
 
 /* ========================================
@@ -151,28 +176,28 @@ body {
 /* Placeholder styling for all browsers */
 .form-control::placeholder,
 .form-select::placeholder {
-  color: #999;
+  color: var(--placeholder-color);
   opacity: 0.7;
 }
 
 /* Firefox */
 .form-control::-moz-placeholder,
 .form-select::-moz-placeholder {
-  color: #999;
+  color: var(--placeholder-color);
   opacity: 0.7;
 }
 
 /* Internet Explorer */
 .form-control:-ms-input-placeholder,
 .form-select:-ms-input-placeholder {
-  color: #999;
+  color: var(--placeholder-color);
   opacity: 0.7;
 }
 
 /* Edge */
 .form-control::-ms-input-placeholder,
 .form-select::-ms-input-placeholder {
-  color: #999;
+  color: var(--placeholder-color);
   opacity: 0.7;
 }
 
@@ -645,12 +670,12 @@ body {
 }
 
 .like-button.liked {
-  color: #e91e63;
+  color: var(--heart-color);
   transform: scale(1.1);
 }
 
 .like-button:hover {
-  color: #e91e63;
+  color: var(--heart-color);
   transform: scale(1.05);
 }
 

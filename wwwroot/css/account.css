@@ -18,7 +18,7 @@
   transition: opacity 0.2s ease;
 }
 
-/* ===== INSTAGRAM-LIKE PHOTO UPLOAD STYLES ===== */
+/* ===== PHOTO UPLOAD STYLES ===== */
 
 /* Upload Container */
 .upload-container {
@@ -26,15 +26,15 @@
   margin-bottom: 1rem;
 }
 
-/* Upload Zone - Instagram Style */
+/* Upload Zone*/
 .upload-zone {
-  border: 2px dashed #e1e8ed;
+  border: 2px dashed var(--border-color);
   border-radius: 16px;
   padding: 3rem 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--gray-100) 0%, var(--background-secondary) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -53,7 +53,7 @@
 }
 
 .upload-zone:hover {
-  border-color: #0d6efd;
+  border-color: var(--primary-color);
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(13, 110, 253, 0.15);
@@ -64,7 +64,7 @@
 }
 
 .upload-zone.drag-over {
-  border-color: #0d6efd;
+  border-color: var(--primary-color);
   background: linear-gradient(135deg, #e7f3ff 0%, #cce7ff 100%);
   transform: scale(1.02);
   box-shadow: 0 12px 35px rgba(13, 110, 253, 0.25);
@@ -82,14 +82,14 @@
 }
 
 .upload-title {
-  color: #495057;
+  color: var(--gray-700);
   font-weight: 600;
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
 }
 
 .upload-subtitle {
-  color: #6c757d;
+  color: var(--gray-600);
   margin-bottom: 1rem;
   font-size: 0.95rem;
 }
@@ -197,19 +197,19 @@
 .post-type-hint {
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-left: 4px solid #6c757d;
+  background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+  border-left: 4px solid var(--gray-600);
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .post-type-hint i.fa-check-circle {
-  color: #198754 !important;
+  color: var(--success-color) !important;
 }
 
 .post-type-hint i.fa-camera {
-  color: #0d6efd !important;
+  color: var(--primary-color) !important;
 }
 
 .post-type-hint i.fa-font {
@@ -217,7 +217,7 @@
 }
 
 .post-type-hint i.fa-info-circle {
-  color: #6c757d !important;
+  color: var(--gray-600) !important;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -268,7 +268,7 @@
 /* Form Focus States */
 .form-control:focus,
 .form-select:focus {
-  border-color: #0d6efd;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 
