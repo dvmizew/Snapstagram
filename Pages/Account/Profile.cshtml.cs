@@ -555,6 +555,40 @@ namespace Snapstagram.Pages.Account
             return new JsonResult(new { success = true });
         }
 
+        public async Task<IActionResult> OnPostEditPostAsync(int postId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.UserId == user.Id);
+            if (post == null)
+            {
+                return new JsonResult(new { success = false, message = "Post not found or you don't have permission to edit it" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content) && string.IsNullOrEmpty(post.ImageUrl))
+            {
+                return new JsonResult(new { success = false, message = "Post cannot be empty" });
+            }
+
+            post.Caption = content ?? string.Empty;
+            post.UpdatedAt = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new { 
+                success = true, 
+                post = new {
+                    id = post.Id,
+                    caption = post.Caption,
+                    updatedAt = post.UpdatedAt?.ToString("MMM dd, yyyy 'at' h:mm tt")
+                }
+            });
+        }
+
         public async Task<IActionResult> OnPostRemoveProfilePictureAsync()
         {
             var user = await _userManager.GetUserAsync(User);

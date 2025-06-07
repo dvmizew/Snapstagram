@@ -10,6 +10,7 @@ namespace Snapstagram.Models
         public string? ImageUrl { get; set; }
         public string Caption { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
         public int ShareCount { get; set; } = 0;
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;

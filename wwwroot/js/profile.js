@@ -231,6 +231,39 @@ function showError(message) {
     }, 5000);
 }
 
+function showSuccess(message) {
+    // Create a toast-like notification
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-success position-fixed';
+    toast.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border-radius: 12px;
+        border: none;
+    `;
+    toast.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close float-end" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+    }, 3000);
+}
+
 // Add CSS for enhanced animations
 const style = document.createElement('style');
 style.textContent = `
@@ -241,6 +274,10 @@ style.textContent = `
     @keyframes slideOut {
         from { transform: translateX(0); opacity: 1; }
         to { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.9); }
     }
     .upload-zone {
         transition: all 0.3s ease;
@@ -254,6 +291,9 @@ style.textContent = `
     }
     .post-grid-item:hover .hover-overlay {
         opacity: 1 !important;
+    }
+    .post-grid-item {
+        transition: all 0.3s ease;
     }
 `;
 document.head.appendChild(style);
@@ -492,11 +532,137 @@ function showLikesModal() {
 }
 
 function editPost() {
-    alert('Edit functionality not implemented yet');
+    if (!currentPostId || !currentPostData) return;
+    
+    // Set the post ID in the hidden field
+    const editPostId = document.getElementById('editPostId');
+    if (editPostId) {
+        editPostId.value = currentPostId;
+    }
+    
+    // Set the current content in the textarea
+    const editPostContent = document.getElementById('editPostContent');
+    if (editPostContent) {
+        editPostContent.value = currentPostData.caption || '';
+    }
+    
+    // Show/hide image section
+    const editPostImageSection = document.getElementById('editPostImageSection');
+    const editPostImage = document.getElementById('editPostImage');
+    
+    if (currentPostData.imageUrl && editPostImageSection && editPostImage) {
+        editPostImage.src = currentPostData.imageUrl;
+        editPostImageSection.style.display = 'block';
+    } else if (editPostImageSection) {
+        editPostImageSection.style.display = 'none';
+    }
+    
+    // Hide the current post modal
+    const postModal = document.getElementById('postModal');
+    if (postModal && window.bootstrap) {
+        bootstrap.Modal.getInstance(postModal).hide();
+    }
+    
+    // Show the edit modal
+    const editModal = document.getElementById('editPostModal');
+    if (editModal && window.bootstrap) {
+        new bootstrap.Modal(editModal).show();
+    }
+}
+
+function savePostEdit() {
+    const postId = document.getElementById('editPostId')?.value;
+    const content = document.getElementById('editPostContent')?.value;
+    
+    if (!postId) {
+        alert('Post ID not found');
+        return;
+    }
+    
+    // Validate that content is not empty if there's no image
+    if (!content?.trim() && !currentPostData?.imageUrl) {
+        alert('Post cannot be empty');
+        return;
+    }
+    
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (!token) {
+        alert('Security token not found');
+        return;
+    }
+    
+    // Show loading state
+    const saveBtn = document.querySelector('#editPostModal .btn-accent');
+    const originalText = saveBtn?.innerHTML;
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.disabled = true;
+    }
+    
+    fetch('/Account/Profile?handler=EditPost', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token.value
+        },
+        body: `postId=${encodeURIComponent(postId)}&content=${encodeURIComponent(content || '')}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the current post data
+            if (currentPostData) {
+                currentPostData.caption = content || '';
+            }
+            
+            // Update the post in postsData array
+            const postIndex = postsData.findIndex(p => p.id == postId);
+            if (postIndex !== -1) {
+                postsData[postIndex].caption = content || '';
+            }
+            
+            // Update the post caption in the main modal
+            const postCaption = document.getElementById('postCaption');
+            if (postCaption) {
+                postCaption.textContent = content || '';
+            }
+            
+            // Hide edit modal
+            const editModal = document.getElementById('editPostModal');
+            if (editModal && window.bootstrap) {
+                bootstrap.Modal.getInstance(editModal).hide();
+            }
+            
+            // Show success message
+            showSuccess('Post updated successfully!');
+            
+            // Optionally refresh the page to show updated content
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            alert('Failed to update post: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the post');
+    })
+    .finally(() => {
+        // Restore button state
+        if (saveBtn && originalText) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    });
 }
 
 function deletePost() {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    if (!currentPostId) return;
+    
+    // Show a more styled confirmation dialog
+    const confirmed = confirm('Are you sure you want to delete this post? This action cannot be undone.');
+    if (!confirmed) return;
     
     const token = document.querySelector('input[name="__RequestVerificationToken"]');
     if (!token) {
@@ -515,12 +681,31 @@ function deletePost() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Close modal and refresh page
+            // Close modal
             const postModal = document.getElementById('postModal');
             if (postModal && window.bootstrap) {
                 bootstrap.Modal.getInstance(postModal).hide();
             }
-            location.reload();
+            
+            // Show success message
+            showSuccess('Post deleted successfully!');
+            
+            // Remove the post from the grid
+            const postElement = document.querySelector(`[data-post-id="${currentPostId}"]`);
+            if (postElement) {
+                postElement.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    postElement.remove();
+                }, 300);
+            }
+            
+            // Update postsData array
+            postsData = postsData.filter(p => p.id !== currentPostId);
+            
+            // Reload page after a short delay to update post count
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
         } else {
             alert('Failed to delete post: ' + data.message);
         }

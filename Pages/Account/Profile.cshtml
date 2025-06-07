@@ -636,3 +636,50 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Post Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="editPostModalLabel">
+                        <i class="fas fa-edit me-2"></i>Edit Post
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPostForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="editPostId" name="postId" />
+                        
+                        <!-- Post Image Preview (if exists) -->
+                        <div id="editPostImageSection" class="mb-3" style="display: none;">
+                            <div class="text-center">
+                                <img id="editPostImage" src="" alt="Post Image" class="img-fluid rounded" style="max-height: 300px;" />
+                            </div>
+                        </div>
+                        
+                        <!-- Caption/Content Section -->
+                        <div class="mb-3">
+                            <label for="editPostContent" class="form-label">
+                                <i class="fas fa-edit me-1"></i>Caption or Message
+                            </label>
+                            <textarea id="editPostContent" name="content" class="form-control" rows="4" placeholder="What's on your mind?"></textarea>
+                            <small class="form-text text-muted">Share your thoughts or add a caption to your photo.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-accent" onclick="savePostEdit()">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
