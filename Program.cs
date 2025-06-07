@@ -76,9 +76,16 @@ app.UseAuthorization();
 // Configure routing
 app.MapRazorPages();
 
-// Set default page to login
+// Set default page
 app.MapGet("/", context => {
-    context.Response.Redirect("/Account/Login");
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        context.Response.Redirect("/Account/Profile");
+    }
+    else
+    {
+        context.Response.Redirect("/Account/Login");
+    }
     return Task.CompletedTask;
 });
 

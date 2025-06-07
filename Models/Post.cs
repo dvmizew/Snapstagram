@@ -7,7 +7,7 @@ namespace Snapstagram.Models
         public int Id { get; set; }
         public string? UserId { get; set; }
         public ApplicationUser? User { get; set; }
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public string Caption { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;

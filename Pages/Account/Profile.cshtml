@@ -1,0 +1,288 @@
+@page "{id?}"
+@model Snapstagram.Pages.Account.ProfileModel
+@{
+    ViewData["Title"] = Model.IsOwnProfile ? "My Profile" : $"{Model.CurrentUser.FirstName} {Model.CurrentUser.LastName}'s Profile";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+}
+
+<div class="container mt-4">
+    @if (Model.StatusMessage != null)
+    {
+        <div class="alert alert-success" role="alert">
+            @Model.StatusMessage
+        </div>
+    }
+
+    <div class="row">
+        <!-- Profile Information Section -->
+        <div class="col-lg-4 col-md-5 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <!-- Profile Picture -->
+                    <div class="profile-picture-container mb-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                        {
+                            <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Profile Picture" class="profile-picture" />
+                        }
+                        else
+                        {
+                            <div class="profile-picture-placeholder">
+                                <i class="fas fa-user fa-3x text-muted"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- User Information -->
+                    <h4 class="card-title text-accent">
+                        @Model.CurrentUser.FirstName @Model.CurrentUser.LastName
+                    </h4>
+                    <p class="text-muted mb-2">@@(@Model.CurrentUser.UserName)</p>
+                    
+                    @if (!string.IsNullOrEmpty(Model.CurrentUser.Bio))
+                    {
+                        <p class="card-text">@Model.CurrentUser.Bio</p>
+                    }
+
+                    <div class="profile-stats d-flex justify-content-around mt-3">
+                        <div class="stat">
+                            <strong>@Model.Posts.Count</strong>
+                            <small class="d-block text-muted">Posts</small>
+                        </div>
+                        <div class="stat">
+                            <strong>0</strong>
+                            <small class="d-block text-muted">Followers</small>
+                        </div>
+                        <div class="stat">
+                            <strong>0</strong>
+                            <small class="d-block text-muted">Following</small>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Status -->
+                    <div class="mt-3">
+                        <span class="badge @(Model.CurrentUser.IsProfilePublic ? "bg-success" : "bg-warning")">
+                            <i class="fas @(Model.CurrentUser.IsProfilePublic ? "fa-globe" : "fa-lock")"></i>
+                            @(Model.CurrentUser.IsProfilePublic ? "Public Profile" : "Private Profile")
+                        </span>
+                    </div>
+
+                    <!-- Member Since -->
+                    <p class="text-muted small mt-3">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        Member since @Model.CurrentUser.CreatedAt.ToString("MMMM yyyy")
+                    </p>
+                </div>
+            </div>
+
+            <!-- Edit Profile Form (Only for own profile) -->
+            @if (Model.IsOwnProfile)
+            {
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Profile</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="UpdateProfile">
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                            
+                            <div class="mb-3">
+                                <label asp-for="Input.FirstName" class="form-label"></label>
+                                <input asp-for="Input.FirstName" class="form-control" />
+                                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.LastName" class="form-label"></label>
+                                <input asp-for="Input.LastName" class="form-control" />
+                                <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.Bio" class="form-label"></label>
+                                <textarea asp-for="Input.Bio" class="form-control" rows="3" placeholder="Tell us about yourself..."></textarea>
+                                <span asp-validation-for="Input.Bio" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input asp-for="Input.IsProfilePublic" class="form-check-input" type="checkbox" />
+                                <label asp-for="Input.IsProfilePublic" class="form-check-label">
+                                    Make my profile public
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    When public, anyone can view your profile and posts. When private, only you can see your content.
+                                </small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save me-2"></i>Update Profile
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Posts Section -->
+        <div class="col-lg-8 col-md-7">
+            @if (Model.CanViewProfile)
+            {
+                <!-- Create Post Form (Only for own profile) -->
+                @if (Model.IsOwnProfile)
+                {
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-accent text-white">
+                            <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Create New Post</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" asp-page-handler="CreatePost">
+                                <div class="mb-3">
+                                    <label asp-for="PostInput.Content" class="form-label"></label>
+                                    <textarea asp-for="PostInput.Content" class="form-control" rows="4" placeholder="What's on your mind?"></textarea>
+                                    <span asp-validation-for="PostInput.Content" class="text-danger"></span>
+                                </div>
+                                <button type="submit" class="btn btn-accent">
+                                    <i class="fas fa-paper-plane me-2"></i>Post
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+                <!-- Posts List -->
+                <div class="posts-container">
+                    @if (Model.Posts.Any())
+                    {
+                        @foreach (var post in Model.Posts)
+                        {
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-header bg-transparent">
+                                    <div class="d-flex align-items-center">
+                                        <div class="profile-picture-small me-2">
+                                            @if (!string.IsNullOrEmpty(post.User?.ProfilePictureUrl))
+                                            {
+                                                <img src="@post.User.ProfilePictureUrl" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">@Model.CurrentUser.FirstName @Model.CurrentUser.LastName</h6>
+                                            <small class="text-muted">@post.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    @if (!string.IsNullOrEmpty(post.ImageUrl))
+                                    {
+                                        <img src="@post.ImageUrl" alt="Post Image" class="img-fluid rounded mb-3" />
+                                    }
+                                    <p class="card-text">@post.Caption</p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <small class="text-muted">
+                                        <i class="fas fa-comments me-1"></i>
+                                        @post.Comments.Count @(post.Comments.Count == 1 ? "comment" : "comments")
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">
+                                @if (Model.IsOwnProfile)
+                                {
+                                    <span>You haven't posted anything yet.</span>
+                                }
+                                else
+                                {
+                                    <span>No posts to show.</span>
+                                }
+                            </h5>
+                            @if (Model.IsOwnProfile)
+                            {
+                                <p class="text-muted">Share your first post to get started!</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">This profile is private</h5>
+                    <p class="text-muted">Only the owner can view this profile and posts.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<style>
+    .profile-picture-container {
+        position: relative;
+    }
+
+    .profile-picture, .profile-picture-placeholder {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--accent-color);
+        margin: 0 auto;
+    }
+
+    .profile-picture-placeholder {
+        background-color: var(--background-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-stats .stat {
+        text-align: center;
+    }
+
+    .posts-container .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .posts-container .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .bg-accent {
+        background-color: var(--accent-color) !important;
+    }
+
+    .btn-accent {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        color: white;
+    }
+
+    .btn-accent:hover {
+        background-color: #0884cc;
+        border-color: #0884cc;
+        color: white;
+    }
+
+    .text-accent {
+        color: var(--accent-color) !important;
+    }
+</style>

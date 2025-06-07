@@ -10,6 +10,7 @@ namespace Snapstagram.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? Bio { get; set; }
         public bool IsActive { get; set; } = true;
+        public bool IsProfilePublic { get; set; } = true;
     }
 
     public static class UserRoles
