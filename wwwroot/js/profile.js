@@ -451,11 +451,62 @@ function updatePostTypeHint() {
 
 // Utility functions
 function getSecurityToken() {
-    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    console.log('🔍 Looking for security token...');
+    
+    // First try the direct selector
+    let token = document.querySelector('input[name="__RequestVerificationToken"]');
+    console.log('🔍 Direct selector result:', token ? `Found token input (value length: ${token.value?.length})` : 'Not found');
+    
     if (!token) {
+        console.log('🔍 Trying form-specific selector...');
+        token = document.querySelector('form input[name="__RequestVerificationToken"]');
+        console.log('🔍 Form selector result:', token ? `Found token input (value length: ${token.value?.length})` : 'Not found');
+    }
+    
+    if (!token) {
+        console.log('🔍 Trying to find token in ajaxTokenForm specifically...');
+        token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]');
+        console.log('🔍 ajaxTokenForm selector result:', token ? `Found token input (value length: ${token.value?.length})` : 'Not found');
+    }
+    
+    if (!token) {
+        console.log('🔍 Trying to find any forms on the page...');
+        const forms = document.querySelectorAll('form');
+        console.log('📝 Found forms:', forms.length);
+        
+        forms.forEach((form, index) => {
+            console.log(`📝 Form ${index}:`, {
+                id: form.id,
+                action: form.action,
+                method: form.method,
+                inputs: form.querySelectorAll('input').length
+            });
+            
+            const formToken = form.querySelector('input[name="__RequestVerificationToken"]');
+            if (formToken) {
+                console.log(`🎯 Found token in form ${index}:`, formToken.value?.substring(0, 20) + '...');
+                token = formToken;
+            }
+        });
+    }
+    
+    if (!token) {
+        console.error('❌ Security token not found anywhere on the page');
+        
+        // Debug: Show all inputs on the page
+        const allInputs = document.querySelectorAll('input');
+        console.log('🔍 All inputs on page:', Array.from(allInputs).map(input => ({
+            name: input.name,
+            type: input.type,
+            id: input.id,
+            value: input.value?.substring(0, 20) + (input.value?.length > 20 ? '...' : '')
+        })));
+        
         alert('Security token not found');
         return null;
     }
+    
+    console.log('✅ Security token found:', token.value?.substring(0, 20) + '...');
     return token.value;
 }
 
@@ -1675,29 +1726,68 @@ function saveCommentEdit(commentId) {
 
 // Friend Request Functions
 function sendFriendRequest(receiverId) {
-    const token = getSecurityToken();
-    if (!token) return;
+    console.log('🚀 sendFriendRequest called with receiverId:', receiverId);
     
-    fetch('/Account/Profile?handler=SendFriendRequest', {
+    const token = getSecurityToken();
+    console.log('🔐 Retrieved security token:', token ? `Token found (length: ${token.length})` : 'No token found');
+    
+    if (!token) {
+        console.error('❌ No security token available, aborting friend request');
+        return;
+    }
+    
+    const requestBody = `__RequestVerificationToken=${encodeURIComponent(token)}&receiverId=${receiverId}`;
+    console.log('📤 Request body:', requestBody);
+    
+    const fetchOptions = {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'RequestVerificationToken': token
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: `receiverId=${receiverId}`
+        body: requestBody
+    };
+    console.log('⚙️ Fetch options:', fetchOptions);
+    
+    console.log('🌐 Making fetch request to /Account/Profile?handler=SendFriendRequest');
+    
+    fetch('/Account/Profile?handler=SendFriendRequest', fetchOptions)
+    .then(response => {
+        console.log('📥 Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Array.from(response.headers.entries())
+        });
+        
+        if (!response.ok) {
+            console.error('❌ Response not OK:', response.status, response.statusText);
+        }
+        
+        return response.json();
     })
-    .then(response => response.json())
     .then(data => {
+        console.log('📊 Response data:', data);
+        
         if (data.success) {
+            console.log('✅ Friend request successful:', data.message);
             showNotification(data.message, 'success');
             // Refresh the page to update the UI
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => {
+                console.log('🔄 Reloading page...');
+                location.reload();
+            }, 1000);
         } else {
+            console.error('❌ Friend request failed:', data.message);
             showNotification(data.message, 'error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('💥 Fetch error occurred:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         showNotification('An error occurred while sending friend request', 'error');
     });
 }
@@ -1709,10 +1799,9 @@ function respondToFriendRequest(requestId, accept) {
     fetch('/Account/Profile?handler=RespondToFriendRequest', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'RequestVerificationToken': token
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: `requestId=${requestId}&accept=${accept}`
+        body: `__RequestVerificationToken=${encodeURIComponent(token)}&requestId=${requestId}&accept=${accept}`
     })
     .then(response => response.json())
     .then(data => {
@@ -1737,10 +1826,9 @@ function cancelFriendRequest(requestId) {
     fetch('/Account/Profile?handler=CancelFriendRequest', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'RequestVerificationToken': token
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: `requestId=${requestId}`
+        body: `__RequestVerificationToken=${encodeURIComponent(token)}&requestId=${requestId}`
     })
     .then(response => response.json())
     .then(data => {
@@ -1769,10 +1857,9 @@ function removeFriend(friendId) {
     fetch('/Account/Profile?handler=RemoveFriend', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'RequestVerificationToken': token
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: `friendId=${friendId}`
+        body: `__RequestVerificationToken=${encodeURIComponent(token)}&friendId=${friendId}`
     })
     .then(response => response.json())
     .then(data => {

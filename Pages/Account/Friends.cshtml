@@ -17,7 +17,6 @@
 }
 
 <div class="container mt-4">
-    @Html.AntiForgeryToken()
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <div class="card border-0 shadow-sm">
@@ -28,6 +27,7 @@
                     </h4>
                 </div>
                 <div class="card-body">
+                    @Html.AntiForgeryToken()
                     <!-- Search for New Friends Section -->
                     <div class="mb-4">
                         <h5 class="mb-3">

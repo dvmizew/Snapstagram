@@ -1,10 +1,18 @@
 // Get security token function
         function getSecurityToken() {
-            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            // Try to find the token input
+            let tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            
+            if (!tokenInput) {
+                // Try looking for it in any form
+                tokenInput = document.querySelector('form input[name="__RequestVerificationToken"]');
+            }
+            
             if (!tokenInput) {
                 showNotification('Security token not found. Please refresh the page.', 'error');
                 return null;
             }
+            
             return tokenInput.value;
         }
 

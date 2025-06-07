@@ -215,6 +215,11 @@
                         </div>
                     }
 
+                    <!-- Hidden form with anti-forgery token for AJAX requests -->
+                    <form method="post" style="display: none;" id="ajaxTokenForm">
+                        @Html.AntiForgeryToken()
+                    </form>
+
                     <!-- Privacy Status -->
                     <div class="mt-3">
                         <span class="badge @(Model.CurrentUser.IsProfilePublic ? "bg-success" : "bg-warning")">
