@@ -322,6 +322,14 @@ namespace Snapstagram.Pages.Account
                 return RedirectToPage("/Account/Login");
             }
 
+            // Clear ModelState errors for non-PostInput fields to avoid validation conflicts
+            // This is necessary because the page has multiple forms and input models
+            var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("PostInput.")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                ModelState.Remove(key);
+            }
+
             // Validate that either content or photo is provided
             if (string.IsNullOrWhiteSpace(PostInput.Content) && PostInput.Photo == null)
             {
