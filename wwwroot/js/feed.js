@@ -39,19 +39,6 @@ function setupInfiniteScroll() {
     });
 }
 
-function loadMorePosts() {
-    // Implement pagination/infinite scroll
-    console.log('Loading more posts...');
-    currentPage++;
-    
-    // You can implement AJAX loading here
-    // For now, just hide the load more button if we've shown all posts
-    const loadMoreBtn = document.querySelector('.btn:contains("Load More Posts")');
-    if (loadMoreBtn && currentPage > 3) {
-        loadMoreBtn.style.display = 'none';
-    }
-}
-
 function toggleLikeFromFeed(postId) {
     console.log('Toggling like for post:', postId);
     
