@@ -14,6 +14,8 @@ namespace Snapstagram.Data
         
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<CommentLike> CommentLikes { get; set; }
+        public DbSet<CommentReply> CommentReplies { get; set; }
         public DbSet<Like> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -76,6 +78,42 @@ namespace Snapstagram.Data
                 .WithMany()
                 .HasForeignKey(l => l.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure CommentLike entity relationships and constraints
+            builder.Entity<CommentLike>()
+                .HasIndex(cl => new { cl.UserId, cl.CommentId })
+                .IsUnique(); // Ensure one like per user per comment
+
+            builder.Entity<CommentLike>()
+                .HasOne(cl => cl.Comment)
+                .WithMany(c => c.CommentLikes)
+                .HasForeignKey(cl => cl.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CommentLike>()
+                .HasOne(cl => cl.User)
+                .WithMany()
+                .HasForeignKey(cl => cl.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure CommentReply entity relationships
+            builder.Entity<CommentReply>()
+                .HasOne(cr => cr.Comment)
+                .WithMany(c => c.CommentReplies)
+                .HasForeignKey(cr => cr.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CommentReply>()
+                .HasOne(cr => cr.User)
+                .WithMany()
+                .HasForeignKey(cr => cr.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Comment entity soft delete (removed global query filter to avoid relationship issues)
+            // Note: Soft delete filtering will be handled in application logic
+
+            // Configure CommentReply entity soft delete (removed global query filter to avoid relationship issues)
+            // Note: Soft delete filtering will be handled in application logic
         }
     }
 }

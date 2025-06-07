@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Snapstagram.Data;
 using Snapstagram.Models;
+using Snapstagram.Services;
 
 namespace Snapstagram.Pages.Account
 {
@@ -14,11 +15,13 @@ namespace Snapstagram.Pages.Account
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
+        private readonly NotificationService _notificationService;
 
-        public ProfileModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public ProfileModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context, NotificationService notificationService)
         {
             _userManager = userManager;
             _context = context;
+            _notificationService = notificationService;
         }
 
         public ApplicationUser CurrentUser { get; set; } = default!;
@@ -136,9 +139,15 @@ namespace Snapstagram.Pages.Account
                     .Where(p => p.UserId == targetUser.Id && p.IsActive && !p.IsDeleted)
                     .OrderByDescending(p => p.CreatedAt)
                     .Include(p => p.Comments.Where(c => !c.IsDeleted))
-                    .ThenInclude(c => c.User)
+                        .ThenInclude(c => c.User)
+                    .Include(p => p.Comments.Where(c => !c.IsDeleted))
+                        .ThenInclude(c => c.CommentLikes)
+                            .ThenInclude(cl => cl.User)
+                    .Include(p => p.Comments.Where(c => !c.IsDeleted))
+                        .ThenInclude(c => c.CommentReplies.Where(cr => !cr.IsDeleted))
+                            .ThenInclude(cr => cr.User)
                     .Include(p => p.Likes)
-                    .ThenInclude(l => l.User)
+                        .ThenInclude(l => l.User)
                     .ToListAsync();
             }
 
@@ -607,15 +616,238 @@ namespace Snapstagram.Pages.Account
             return new JsonResult(new { success = true });
         }
 
+        public async Task<IActionResult> OnPostDeleteCommentAsync(int commentId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var comment = await _context.Comments
+                .Include(c => c.Post)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+
+            if (comment == null)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            // Check if user owns the comment or the post
+            if (comment.UserId != user.Id && comment.Post?.UserId != user.Id)
+            {
+                return new JsonResult(new { success = false, message = "You don't have permission to delete this comment" });
+            }
+
+            comment.IsDeleted = true;
+            comment.DeletedAt = DateTime.UtcNow;
+            comment.DeletedByUserId = user.Id;
+            comment.DeleteReason = "Deleted by user";
+
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new { success = true });
+        }
+
+        public async Task<IActionResult> OnPostLikeCommentAsync(int commentId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var comment = await _context.Comments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            var existingLike = await _context.CommentLikes
+                .FirstOrDefaultAsync(cl => cl.CommentId == commentId && cl.UserId == user.Id);
+
+            bool isLiked;
+            int likeCount;
+
+            if (existingLike != null)
+            {
+                _context.CommentLikes.Remove(existingLike);
+                isLiked = false;
+            }
+            else
+            {
+                var commentLike = new CommentLike
+                {
+                    CommentId = commentId,
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.CommentLikes.Add(commentLike);
+                isLiked = true;
+                
+                // Send notification to comment author (if not liking own comment)
+                if (comment.UserId != user.Id && !string.IsNullOrEmpty(comment.UserId))
+                {
+                    try
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            comment.UserId,
+                            $"{user.FirstName} {user.LastName} liked your comment",
+                            NotificationType.Like,
+                            comment.Id.ToString()
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but don't fail the like operation
+                        Console.WriteLine($"Failed to send notification: {ex.Message}");
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            likeCount = await _context.CommentLikes.CountAsync(cl => cl.CommentId == commentId);
+
+            return new JsonResult(new 
+            { 
+                success = true, 
+                liked = isLiked, 
+                likeCount = likeCount
+            });
+        }
+
+        public async Task<IActionResult> OnPostAddReplyAsync(int commentId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content) || content.Length > 500)
+            {
+                return new JsonResult(new { success = false, message = "Reply content is invalid" });
+            }
+
+            var parentComment = await _context.Comments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+            if (parentComment == null || parentComment.IsDeleted)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            var reply = new CommentReply
+            {
+                CommentId = commentId,
+                UserId = user.Id,
+                Content = content,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.CommentReplies.Add(reply);
+            await _context.SaveChangesAsync();
+            
+            // Send notification to comment author (if not replying to own comment)
+            if (parentComment.UserId != user.Id && !string.IsNullOrEmpty(parentComment.UserId))
+            {
+                try
+                {
+                    await _notificationService.SendNotificationAsync(
+                        parentComment.UserId,
+                        $"{user.FirstName} {user.LastName} replied to your comment",
+                        NotificationType.Comment,
+                        reply.Id.ToString()
+                    );
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but don't fail the reply operation
+                    Console.WriteLine($"Failed to send notification: {ex.Message}");
+                }
+            }
+
+            // Load the reply with user data
+            var replyWithUser = await _context.CommentReplies
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Id == reply.Id);
+
+            if (replyWithUser == null)
+            {
+                return new JsonResult(new { success = false, message = "Reply not found" });
+            }
+
+            return new JsonResult(new 
+            { 
+                success = true, 
+                reply = new 
+                {
+                    id = replyWithUser.Id,
+                    content = replyWithUser.Content,
+                    createdAt = replyWithUser.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new 
+                    {
+                        firstName = replyWithUser.User?.FirstName,
+                        lastName = replyWithUser.User?.LastName,
+                        profilePictureUrl = replyWithUser.User?.ProfilePictureUrl
+                    }
+                }
+            });
+        }
+
+        public async Task<IActionResult> OnPostDeleteReplyAsync(int replyId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var reply = await _context.CommentReplies
+                .Include(r => r.Comment)
+                .ThenInclude(c => c!.Post)
+                .FirstOrDefaultAsync(r => r.Id == replyId);
+
+            if (reply == null)
+            {
+                return new JsonResult(new { success = false, message = "Reply not found" });
+            }
+
+            // Check if user owns the reply, comment, or post
+            if (reply.UserId != user.Id && 
+                reply.Comment?.UserId != user.Id && 
+                reply.Comment?.Post?.UserId != user.Id)
+            {
+                return new JsonResult(new { success = false, message = "You don't have permission to delete this reply" });
+            }
+
+            reply.IsDeleted = true;
+            reply.DeletedAt = DateTime.UtcNow;
+            reply.DeletedByUserId = user.Id;
+
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new { success = true });
+        }
+
         private async Task LoadPostsAsync(string userId)
         {
             Posts = await _context.Posts
                 .Where(p => p.UserId == userId && p.IsActive && !p.IsDeleted)
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.Comments.Where(c => !c.IsDeleted))
-                .ThenInclude(c => c.User)
+                    .ThenInclude(c => c.User)
+                .Include(p => p.Comments.Where(c => !c.IsDeleted))
+                    .ThenInclude(c => c.CommentLikes)
+                        .ThenInclude(cl => cl.User)
+                .Include(p => p.Comments.Where(c => !c.IsDeleted))
+                    .ThenInclude(c => c.CommentReplies.Where(cr => !cr.IsDeleted))
+                        .ThenInclude(cr => cr.User)
                 .Include(p => p.Likes)
-                .ThenInclude(l => l.User)
+                    .ThenInclude(l => l.User)
                 .ToListAsync();
         }
     }

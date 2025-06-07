@@ -33,7 +33,21 @@
                     firstName = c.User?.FirstName,
                     lastName = c.User?.LastName,
                     profilePictureUrl = c.User?.ProfilePictureUrl
-                }
+                },
+                canDelete = c.UserId == Model.CurrentUser.Id || p.UserId == Model.CurrentUser.Id,
+                likeCount = c.CommentLikes.Count,
+                isLikedByCurrentUser = c.CommentLikes.Any(cl => cl.UserId == Model.CurrentUser.Id),
+                replies = c.CommentReplies.Select(cr => new {
+                    id = cr.Id,
+                    content = cr.Content,
+                    createdAt = cr.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new {
+                        firstName = cr.User?.FirstName,
+                        lastName = cr.User?.LastName,
+                        profilePictureUrl = cr.User?.ProfilePictureUrl
+                    },
+                    canDelete = cr.UserId == Model.CurrentUser.Id || c.UserId == Model.CurrentUser.Id || p.UserId == Model.CurrentUser.Id
+                }).ToList()
             }).ToList(),
             likes = p.Likes.Select(l => new {
                 id = l.Id,
@@ -48,6 +62,14 @@
             likeCount = p.Likes.Count,
             isLikedByCurrentUser = p.Likes.Any(l => l.UserId == Model.CurrentUser.Id)
         }).ToList()));
+        
+        // Pass current user data for UI
+        window.currentUserData = {
+            id: '@Model.CurrentUser.Id',
+            firstName: '@Model.CurrentUser.FirstName',
+            lastName: '@Model.CurrentUser.LastName',
+            profilePictureUrl: '@(Model.CurrentUser.ProfilePictureUrl ?? "")'
+        };
     </script>
     
     <script src="~/js/profile.js" asp-append-version="true"></script>

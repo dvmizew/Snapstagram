@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Snapstagram.Data;
 
@@ -11,9 +12,11 @@ using Snapstagram.Data;
 namespace Snapstagram.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250607140504_AddCommentLikesAndReplies")]
+    partial class AddCommentLikesAndReplies
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -288,8 +291,8 @@ namespace Snapstagram.Migrations
                         {
                             Id = "admin-id",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "4f1abbd3-41b4-4ce4-8933-fc0c330c3b36",
-                            CreatedAt = new DateTime(2025, 6, 7, 14, 9, 23, 181, DateTimeKind.Utc).AddTicks(9195),
+                            ConcurrencyStamp = "86020a35-a904-4b8b-b843-af97025194f3",
+                            CreatedAt = new DateTime(2025, 6, 7, 14, 5, 4, 222, DateTimeKind.Utc).AddTicks(250),
                             Email = "admin@snapstagram.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -299,9 +302,9 @@ namespace Snapstagram.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@SNAPSTAGRAM.COM",
                             NormalizedUserName = "ADMIN@SNAPSTAGRAM.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEN6DIEnrqeJm2m3Q/kdFk2ABidAqk7yAfxyIHqUse+mFY6tHTAGz5wvIKrMavax9sw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEKWhSqSgRrRX/TIIyIt+5rbipz5kHA135TlDzLZj6WQ1Bb+Nx9llVerX9tygfu1gKA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "5728a970-ccc0-4c4a-a448-019c3278c684",
+                            SecurityStamp = "e0b47ab4-6f78-4327-897c-120f366606b6",
                             TwoFactorEnabled = false,
                             UserName = "admin@snapstagram.com"
                         });
