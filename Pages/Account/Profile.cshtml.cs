@@ -38,6 +38,10 @@ namespace Snapstagram.Pages.Account
 
         public class InputModel
         {
+            [Display(Name = "Username")]
+            [StringLength(50)]
+            public string? UserName { get; set; }
+
             [Display(Name = "First Name")]
             [StringLength(50)]
             public string? FirstName { get; set; }
@@ -74,6 +78,9 @@ namespace Snapstagram.Pages.Account
             [Display(Name = "Occupation")]
             [StringLength(100)]
             public string? Occupation { get; set; }
+
+            [Display(Name = "Profile Picture")]
+            public IFormFile? ProfilePicture { get; set; }
 
             [Display(Name = "Profile is Public")]
             public bool IsProfilePublic { get; set; }
@@ -140,6 +147,7 @@ namespace Snapstagram.Pages.Account
             {
                 Input = new InputModel
                 {
+                    UserName = CurrentUser.UserName,
                     FirstName = CurrentUser.FirstName,
                     LastName = CurrentUser.LastName,
                     Bio = CurrentUser.Bio,
@@ -164,6 +172,14 @@ namespace Snapstagram.Pages.Account
                 return RedirectToPage("/Account/Login");
             }
 
+            // Clear ModelState errors for non-Input fields to avoid validation conflicts
+            // This is necessary because the page has multiple forms and input models
+            var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("Input.")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                ModelState.Remove(key);
+            }
+
             if (!ModelState.IsValid)
             {
                 CurrentUser = user;
@@ -171,6 +187,99 @@ namespace Snapstagram.Pages.Account
                 CanViewProfile = true;
                 await LoadPostsAsync(user.Id);
                 return Page();
+            }
+
+            // Handle profile picture upload if provided
+            if (Input.ProfilePicture != null)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(Input.ProfilePicture.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "Please upload a valid image file (JPG, PNG, or GIF).");
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
+                
+                if (Input.ProfilePicture.Length > 5 * 1024 * 1024) // 5MB limit
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "Profile picture size must be less than 5MB.");
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
+
+                try
+                {
+                    var uploadsFolder = Path.Combine("wwwroot", "uploads", "profiles");
+                    Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(Input.ProfilePicture.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await Input.ProfilePicture.CopyToAsync(fileStream);
+                    }
+
+                    // Delete old profile picture if it exists
+                    if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                    {
+                        var oldImagePath = Path.Combine("wwwroot", user.ProfilePictureUrl.TrimStart('/'));
+                        if (System.IO.File.Exists(oldImagePath))
+                        {
+                            System.IO.File.Delete(oldImagePath);
+                        }
+                    }
+
+                    user.ProfilePictureUrl = $"/uploads/profiles/{uniqueFileName}";
+                }
+                catch (Exception)
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "Failed to upload profile picture. Please try again.");
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
+            }
+
+            // Check if username is changing and validate it
+            if (!string.IsNullOrWhiteSpace(Input.UserName) && !string.Equals(user.UserName, Input.UserName, StringComparison.OrdinalIgnoreCase))
+            {
+                // Check if username is already taken
+                var existingUser = await _userManager.FindByNameAsync(Input.UserName);
+                if (existingUser != null && existingUser.Id != user.Id)
+                {
+                    ModelState.AddModelError("Input.UserName", "This username is already taken. Please choose a different one.");
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
+
+                // Update the username
+                var setUserNameResult = await _userManager.SetUserNameAsync(user, Input.UserName);
+                if (!setUserNameResult.Succeeded)
+                {
+                    foreach (var error in setUserNameResult.Errors)
+                    {
+                        ModelState.AddModelError("Input.UserName", error.Description);
+                    }
+                    CurrentUser = user;
+                    IsOwnProfile = true;
+                    CanViewProfile = true;
+                    await LoadPostsAsync(user.Id);
+                    return Page();
+                }
             }
 
             // Update user properties
@@ -434,6 +543,30 @@ namespace Snapstagram.Pages.Account
             post.DeletedByUserId = user.Id;
             
             await _context.SaveChangesAsync();
+
+            return new JsonResult(new { success = true });
+        }
+
+        public async Task<IActionResult> OnPostRemoveProfilePictureAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            // Delete the profile picture file if it exists
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
+                var imagePath = Path.Combine("wwwroot", user.ProfilePictureUrl.TrimStart('/'));
+                if (System.IO.File.Exists(imagePath))
+                {
+                    System.IO.File.Delete(imagePath);
+                }
+
+                user.ProfilePictureUrl = null;
+                await _userManager.UpdateAsync(user);
+            }
 
             return new JsonResult(new { success = true });
         }

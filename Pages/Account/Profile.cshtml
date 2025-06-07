@@ -309,6 +309,116 @@
             `;
             document.head.appendChild(style);
         });
+
+        // Profile picture preview function
+        function previewProfilePicture(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const currentProfilePic = document.getElementById('currentProfilePic');
+                    if (currentProfilePic.tagName === 'IMG') {
+                        currentProfilePic.src = e.target.result;
+                    } else {
+                        // Replace the placeholder div with an image
+                        const newImg = document.createElement('img');
+                        newImg.id = 'currentProfilePic';
+                        newImg.src = e.target.result;
+                        newImg.alt = 'Profile Picture Preview';
+                        newImg.className = 'rounded-circle';
+                        newImg.style.cssText = 'width: 80px; height: 80px; object-fit: cover;';
+                        currentProfilePic.parentNode.replaceChild(newImg, currentProfilePic);
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Remove profile picture function
+        function removeProfilePicture() {
+            if (!confirm('Are you sure you want to remove your profile picture?')) return;
+            
+            fetch('/Account/Profile?handler=RemoveProfilePicture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Replace image with placeholder
+                    const currentProfilePic = document.getElementById('currentProfilePic');
+                    const newDiv = document.createElement('div');
+                    newDiv.id = 'currentProfilePic';
+                    newDiv.className = 'rounded-circle bg-secondary d-flex align-items-center justify-content-center';
+                    newDiv.style.cssText = 'width: 80px; height: 80px;';
+                    newDiv.innerHTML = '<i class="fas fa-user fa-2x text-white"></i>';
+                    currentProfilePic.parentNode.replaceChild(newDiv, currentProfilePic);
+                    
+                    // Hide the remove button
+                    const removeBtn = document.querySelector('.btn-outline-danger');
+                    if (removeBtn) {
+                        removeBtn.style.display = 'none';
+                    }
+                    
+                    alert('Profile picture removed successfully!');
+                } else {
+                    alert('Failed to remove profile picture: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while removing the profile picture');
+            });
+        }
+
+        // Handle edit profile form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const editProfileForm = document.getElementById('editProfileForm');
+            if (editProfileForm) {
+                editProfileForm.addEventListener('submit', function(e) {
+                    console.log('Edit profile form submitted');
+                    // Let the form submit normally - don't prevent default
+                    // This will trigger the OnPostUpdateProfileAsync method
+                });
+            }
+        });
+
+        // Remove profile picture function
+        function removeProfilePicture() {
+            if (!confirm('Are you sure you want to remove your profile picture?')) return;
+            
+            fetch('/Account/Profile?handler=RemoveProfilePicture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Replace image with placeholder
+                    const currentProfilePic = document.getElementById('currentProfilePic');
+                    const newDiv = document.createElement('div');
+                    newDiv.id = 'currentProfilePic';
+                    newDiv.className = 'rounded-circle bg-secondary d-flex align-items-center justify-content-center';
+                    newDiv.style.cssText = 'width: 80px; height: 80px;';
+                    newDiv.innerHTML = '<i class="fas fa-user fa-2x text-white"></i>';
+                    currentProfilePic.parentNode.replaceChild(newDiv, currentProfilePic);
+                    
+                    // Reload page to reflect changes
+                    location.reload();
+                } else {
+                    alert('Failed to remove profile picture: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while removing the profile picture');
+            });
+        }
     </script>
 }
 
@@ -610,14 +720,62 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form method="post" asp-page-handler="UpdateProfile" id="editProfileForm">
+                    <form method="post" asp-page-handler="UpdateProfile" enctype="multipart/form-data" id="editProfileForm">
+                        @Html.AntiForgeryToken()
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                         
+                        <!-- Profile Picture Section -->
+                        <div class="mb-4">
+                            <h6 class="section-title text-accent mb-3">
+                                <i class="fas fa-camera me-2"></i>Profile Picture
+                            </h6>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                                    {
+                                        <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Current Profile Picture" id="currentProfilePic" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div id="currentProfilePic" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label asp-for="Input.ProfilePicture" class="form-label">
+                                        <i class="fas fa-upload me-1"></i>Upload New Picture
+                                    </label>
+                                    <input asp-for="Input.ProfilePicture" class="form-control mb-2" type="file" accept="image/*" onchange="previewProfilePicture(this)" />
+                                    <span asp-validation-for="Input.ProfilePicture" class="text-danger"></span>
+                                    <div class="d-flex gap-2 mb-2">
+                                        @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                                        {
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeProfilePicture()">
+                                                <i class="fas fa-trash me-1"></i>Remove Current Picture
+                                            </button>
+                                        }
+                                    </div>
+                                    <small class="form-text text-muted">JPG, PNG, GIF • Max 5MB</small>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Basic Information Section -->
                         <div class="mb-4">
                             <h6 class="section-title text-accent mb-3">
                                 <i class="fas fa-user me-2"></i>Basic Information
                             </h6>
+                            
+                            <div class="mb-3">
+                                <label asp-for="Input.UserName" class="form-label">
+                                    <i class="fas fa-at me-1"></i>Username
+                                </label>
+                                <input asp-for="Input.UserName" class="form-control" placeholder="Enter your username" />
+                                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+                                <small class="form-text text-muted">This is how other users will find you.</small>
+                            </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
