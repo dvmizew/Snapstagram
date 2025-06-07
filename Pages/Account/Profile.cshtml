@@ -642,29 +642,39 @@
 <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
-            <div class="modal-header" style="background: var(--primary-gradient); border-radius: 16px 16px 0 0; padding: 1.5rem 2rem;">
+            <div class="modal-header border-0" style="background: var(--background-primary); padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-color);">
                 <div class="d-flex align-items-center">
-                    <img id="postUserAvatar" src="" alt="User Avatar" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);" />
-                    <div class="text-white">
-                        <h6 class="mb-0 fw-bold" id="postUserName"></h6>
-                        <small class="opacity-75" id="postDate"></small>
+                    <img id="postUserAvatar" src="" alt="User Avatar" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid var(--border-color);" />
+                    <div>
+                        <h6 class="mb-0 fw-bold" id="postUserName" style="color: var(--text-primary); font-size: 1rem;"></h6>
+                        <small class="text-muted" id="postDate" style="color: var(--text-secondary); font-size: 0.875rem;"></small>
                     </div>
                 </div>
-                <div class="d-flex">
+                <div class="d-flex align-items-center">
                     @if (Model.IsOwnProfile)
                     {
-                        <div class="dropdown me-2">
-                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius: 8px;">
-                                <i class="fas fa-ellipsis-h"></i>
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-secondary); background: transparent; width: 36px; height: 36px; padding: 0;">
+                                <i class="fas fa-ellipsis-h" style="font-size: 0.875rem;"></i>
                             </button>
-                            <ul class="dropdown-menu" style="border-radius: 12px; border: none; box-shadow: var(--shadow-medium);">
-                                <li><a class="dropdown-item" href="#" onclick="editPost()"><i class="fas fa-edit me-2 text-primary"></i>Edit Post</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="deletePost()"><i class="fas fa-trash me-2"></i>Delete Post</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="border: none; border-radius: var(--border-radius); box-shadow: var(--shadow-medium); min-width: 160px; background: var(--background-primary);">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editPost()" style="color: var(--text-primary); transition: background-color 0.2s ease;">
+                                        <i class="fas fa-edit me-2" style="color: var(--accent-color); width: 16px;"></i>
+                                        Edit Post
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider my-1" style="border-color: var(--border-color);"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deletePost()" style="transition: background-color 0.2s ease;">
+                                        <i class="fas fa-trash me-2" style="width: 16px;"></i>
+                                        Delete Post
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     }
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-size: 1rem; opacity: 0.6;"></button>
                 </div>
             </div>
             <div class="modal-body p-0" style="min-height: 600px;">

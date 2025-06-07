@@ -675,9 +675,70 @@
 }
 
 #postModal .modal-header {
-    background: var(--primary-gradient);
+    background: var(--background-primary);
     border: none;
-    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 2rem;
+    border-radius: 16px 16px 0 0;
+}
+
+#postModal .modal-header .dropdown-toggle {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+#postModal .modal-header .dropdown-toggle:hover {
+    background: var(--background-secondary);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+#postModal .modal-header .dropdown-toggle:focus {
+    box-shadow: 0 0 0 0.2rem rgba(15, 173, 255, 0.25);
+    border-color: var(--accent-color);
+}
+
+#postModal .dropdown-menu {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+    background: var(--background-primary);
+    padding: 0.5rem 0;
+}
+
+#postModal .dropdown-item {
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+}
+
+#postModal .dropdown-item:hover {
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+}
+
+#postModal .dropdown-item.text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+#postModal .dropdown-divider {
+    border-color: var(--border-color);
+    margin: 0.25rem 0;
+}
+
+#postModal .btn-close {
+    background-size: 1rem;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+#postModal .btn-close:hover {
+    opacity: 1;
 }
 
 #postModal .modal-body {
