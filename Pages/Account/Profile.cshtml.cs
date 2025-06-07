@@ -130,6 +130,8 @@ namespace Snapstagram.Pages.Account
                     .OrderByDescending(p => p.CreatedAt)
                     .Include(p => p.Comments.Where(c => !c.IsDeleted))
                     .ThenInclude(c => c.User)
+                    .Include(p => p.Likes)
+                    .ThenInclude(l => l.User)
                     .ToListAsync();
             }
 
@@ -294,11 +296,65 @@ namespace Snapstagram.Pages.Account
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound();
+                return new JsonResult(new { success = false, message = "User not authenticated" });
             }
 
-            // For now, just return success - like functionality can be implemented later
-            return new JsonResult(new { success = true, liked = true });
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null)
+            {
+                return new JsonResult(new { success = false, message = "Post not found" });
+            }
+
+            // Check if user already liked this post
+            var existingLike = await _context.Likes
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == user.Id);
+
+            bool isLiked;
+
+            if (existingLike != null)
+            {
+                // Unlike the post
+                _context.Likes.Remove(existingLike);
+                isLiked = false;
+            }
+            else
+            {
+                // Like the post
+                var like = new Like
+                {
+                    PostId = postId,
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Likes.Add(like);
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Get updated likes with user information
+            var updatedLikes = await _context.Likes
+                .Where(l => l.PostId == postId)
+                .Include(l => l.User)
+                .OrderByDescending(l => l.CreatedAt)
+                .Select(l => new {
+                    id = l.Id,
+                    userId = l.UserId,
+                    createdAt = l.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new {
+                        firstName = l.User!.FirstName,
+                        lastName = l.User!.LastName,
+                        profilePictureUrl = l.User!.ProfilePictureUrl
+                    }
+                })
+                .ToListAsync();
+
+            return new JsonResult(new { 
+                success = true, 
+                liked = isLiked, 
+                likeCount = updatedLikes.Count,
+                likes = updatedLikes
+            });
         }
 
         public async Task<IActionResult> OnPostAddCommentAsync()
@@ -389,6 +445,8 @@ namespace Snapstagram.Pages.Account
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.Comments.Where(c => !c.IsDeleted))
                 .ThenInclude(c => c.User)
+                .Include(p => p.Likes)
+                .ThenInclude(l => l.User)
                 .ToListAsync();
         }
     }

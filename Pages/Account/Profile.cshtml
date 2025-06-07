@@ -39,7 +39,19 @@
                     lastName = c.User?.LastName,
                     profilePictureUrl = c.User?.ProfilePictureUrl
                 }
-            }).ToList()
+            }).ToList(),
+            likes = p.Likes.Select(l => new {
+                id = l.Id,
+                userId = l.UserId,
+                createdAt = l.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                user = new {
+                    firstName = l.User?.FirstName,
+                    lastName = l.User?.LastName,
+                    profilePictureUrl = l.User?.ProfilePictureUrl
+                }
+            }).ToList(),
+            likeCount = p.Likes.Count,
+            isLikedByCurrentUser = p.Likes.Any(l => l.UserId == Model.CurrentUser.Id)
         }).ToList()));
         
         function openPostModal(postId) {
@@ -77,6 +89,23 @@
             
             // Set caption
             document.getElementById('postCaption').textContent = currentPostData.caption;
+            
+            // Initialize like button state
+            const likeBtn = document.getElementById('likeBtn');
+            const likeIcon = likeBtn.querySelector('i');
+            const likeCount = document.getElementById('likeCount');
+            
+            if (currentPostData.isLikedByCurrentUser) {
+                likeIcon.classList.remove('far');
+                likeIcon.classList.add('fas');
+                likeIcon.style.color = '#e91e63';
+            } else {
+                likeIcon.classList.remove('fas');
+                likeIcon.classList.add('far');
+                likeIcon.style.color = '';
+            }
+            
+            likeCount.textContent = `${currentPostData.likeCount} like${currentPostData.likeCount !== 1 ? 's' : ''}`;
             
             // Load comments
             loadComments();
@@ -117,19 +146,88 @@
         }
         
         function toggleLike() {
-            // Placeholder for like functionality
-            const likeBtn = document.getElementById('likeBtn');
-            const icon = likeBtn.querySelector('i');
+            if (!currentPostId) return;
             
-            if (icon.classList.contains('far')) {
-                icon.classList.remove('far');
-                icon.classList.add('fas');
-                icon.style.color = '#e91e63';
+            fetch('/Account/Profile?handler=LikePost', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `postId=${currentPostId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    const likeBtn = document.getElementById('likeBtn');
+                    const icon = likeBtn.querySelector('i');
+                    const likeCount = document.getElementById('likeCount');
+                    
+                    if (data.liked) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        icon.style.color = '#e91e63';
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        icon.style.color = '';
+                    }
+                    
+                    likeCount.textContent = `${data.likeCount} like${data.likeCount !== 1 ? 's' : ''}`;
+                    
+                    // Update post data with new likes information
+                    currentPostData.isLikedByCurrentUser = data.liked;
+                    currentPostData.likeCount = data.likeCount;
+                    currentPostData.likes = data.likes || [];
+                    
+                    // Update the post in postsData array
+                    const postIndex = postsData.findIndex(p => p.id === currentPostId);
+                    if (postIndex !== -1) {
+                        postsData[postIndex].isLikedByCurrentUser = data.liked;
+                        postsData[postIndex].likeCount = data.likeCount;
+                        postsData[postIndex].likes = data.likes || [];
+                    }
+                } else {
+                    alert('Failed to like/unlike post: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while toggling like');
+            });
+        }
+        
+        function showLikesModal() {
+            if (!currentPostId || !currentPostData) return;
+            
+            const likesContent = document.getElementById('likesContent');
+            
+            if (currentPostData.likes.length === 0) {
+                likesContent.innerHTML = `
+                    <div class="text-center p-4">
+                        <i class="far fa-heart fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No likes yet</p>
+                    </div>
+                `;
             } else {
-                icon.classList.remove('fas');
-                icon.classList.add('far');
-                icon.style.color = '';
+                likesContent.innerHTML = currentPostData.likes.map(like => `
+                    <div class="d-flex align-items-center p-3 border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="me-3">
+                            ${like.user?.profilePictureUrl ? 
+                                `<img src="${like.user.profilePictureUrl}" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />` :
+                                '<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-user text-white"></i></div>'
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold" style="color: var(--text-primary);">${like.user?.firstName || 'Unknown'} ${like.user?.lastName || 'User'}</div>
+                            <small class="text-muted">${like.createdAt}</small>
+                        </div>
+                    </div>
+                `).join('');
             }
+            
+            new bootstrap.Modal(document.getElementById('likesModal')).show();
         }
         
         function editPost() {
@@ -358,7 +456,7 @@
                                                 <img src="@post.ImageUrl" alt="Post" class="w-100 h-100" style="object-fit: cover;" />
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
                                                     <div class="text-white text-center">
-                                                        <span class="me-3"><i class="fas fa-heart"></i> 0</span>
+                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
                                                         <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
                                                     </div>
                                                 </div>
@@ -371,7 +469,7 @@
                                                     <i class="fas fa-font text-muted mb-2 fa-2x"></i>
                                                     <p class="small text-muted mb-2">@(post.Caption.Length > 50 ? post.Caption.Substring(0, 50) + "..." : post.Caption)</p>
                                                     <div class="small text-muted">
-                                                        <span class="me-2"><i class="fas fa-heart"></i> 0</span>
+                                                        <span class="me-2"><i class="fas fa-heart"></i> @post.Likes.Count</span>
                                                         <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
                                                     </div>
                                                 </div>
@@ -712,7 +810,7 @@
                                         <i class="far fa-comment fa-lg"></i>
                                     </button>
                                     <div class="mt-2">
-                                        <span id="likeCount" class="small fw-bold" style="color: var(--text-primary);">0 likes</span>
+                                        <span id="likeCount" class="small fw-bold" style="color: var(--text-primary); cursor: pointer;" onclick="showLikesModal()">0 likes</span>
                                     </div>
                                 </div>
                                 
@@ -724,6 +822,25 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Likes Modal -->
+<div class="modal fade" id="likesModal" tabindex="-1" aria-labelledby="likesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);">
+            <div class="modal-header border-0" style="background: var(--background-primary); padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title fw-bold" id="likesModalLabel" style="color: var(--text-primary);">
+                    <i class="fas fa-heart me-2" style="color: #e91e63;"></i>Likes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div id="likesContent">
+                    <!-- Likes content will be loaded here -->
                 </div>
             </div>
         </div>

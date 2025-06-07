@@ -14,6 +14,7 @@ namespace Snapstagram.Data
         
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Like> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
@@ -58,6 +59,23 @@ namespace Snapstagram.Data
                     UserId = "admin-id"
                 }
             );
+
+            // Configure Like entity relationships and constraints
+            builder.Entity<Like>()
+                .HasIndex(l => new { l.UserId, l.PostId })
+                .IsUnique(); // Ensure one like per user per post
+
+            builder.Entity<Like>()
+                .HasOne(l => l.Post)
+                .WithMany(p => p.Likes)
+                .HasForeignKey(l => l.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Like>()
+                .HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
