@@ -26,6 +26,7 @@ namespace Snapstagram.Pages.Account
 
         public ApplicationUser CurrentUser { get; set; } = default!;
         public List<Post> Posts { get; set; } = new List<Post>();
+        public List<Album> Albums { get; set; } = new List<Album>();
         public bool IsOwnProfile { get; set; }
         public bool CanViewProfile { get; set; }
         public string? StatusMessage { get; set; }
@@ -44,6 +45,9 @@ namespace Snapstagram.Pages.Account
 
         [BindProperty]
         public CommentInputModel CommentInput { get; set; } = default!;
+
+        [BindProperty]
+        public CreateAlbumInputModel AlbumInput { get; set; } = new CreateAlbumInputModel();
 
         public class InputModel
         {
@@ -115,6 +119,20 @@ namespace Snapstagram.Pages.Account
             public int PostId { get; set; }
         }
 
+        public class CreateAlbumInputModel
+        {
+            [Required]
+            [StringLength(100)]
+            public string Name { get; set; } = string.Empty;
+
+            [StringLength(500)]
+            public string? Description { get; set; }
+
+            [Required]
+            [Display(Name = "Photos")]
+            public List<IFormFile> Photos { get; set; } = new List<IFormFile>();
+        }
+
         public async Task<IActionResult> OnGetAsync(string? id = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -162,6 +180,17 @@ namespace Snapstagram.Pages.Account
                             .ThenInclude(cr => cr.User)
                     .Include(p => p.Likes)
                         .ThenInclude(l => l.User)
+                    .ToListAsync();                // Load user's albums with photos and creator information
+                Albums = await _context.Albums
+                    .Where(a => a.UserId == targetUser.Id && !a.IsDeleted)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                    .Include(a => a.User)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Likes)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Comments.Where(c => !c.IsDeleted))
+                            .ThenInclude(c => c.User)
                     .ToListAsync();
             }
 
@@ -1098,6 +1127,224 @@ namespace Snapstagram.Pages.Account
             {
                 FriendshipStatus = CurrentFriendRequest.Status;
             }
+        }
+
+        public async Task<IActionResult> OnPostCreateAlbumAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            // Clear ModelState errors for non-AlbumInput fields
+            var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("AlbumInput.")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                ModelState.Remove(key);
+            }
+
+            // Validate photos
+            if (AlbumInput.Photos.Count == 0)
+            {
+                ModelState.AddModelError("AlbumInput.Photos", "Please select at least one photo for the album.");
+            }
+            else
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                foreach (var photo in AlbumInput.Photos)
+                {
+                    var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        ModelState.AddModelError("AlbumInput.Photos", $"File '{photo.FileName}' is not a valid image. Please upload only JPG, PNG, or GIF files.");
+                    }
+                    if (photo.Length > 5 * 1024 * 1024) // 5MB limit
+                    {
+                        ModelState.AddModelError("AlbumInput.Photos", $"File '{photo.FileName}' exceeds the 5MB size limit.");
+                    }
+                }
+            }
+
+            if (!ModelState.IsValid)
+            {
+                CurrentUser = user;
+                IsOwnProfile = true;
+                CanViewProfile = true;
+                await LoadPostsAsync(user.Id);
+                return Page();
+            }
+
+            // Create album
+            var album = new Album
+            {
+                UserId = user.Id,
+                Name = AlbumInput.Name,
+                Description = AlbumInput.Description,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Albums.Add(album);
+            await _context.SaveChangesAsync(); // Save to get the album ID
+
+            // Process and save photos
+            var uploadsFolder = Path.Combine("wwwroot", "uploads", "albums", album.Id.ToString());
+            Directory.CreateDirectory(uploadsFolder);
+
+            int orderIndex = 0;
+            foreach (var photo in AlbumInput.Photos)
+            {
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(photo.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await photo.CopyToAsync(fileStream);
+                }
+
+                var albumPhoto = new AlbumPhoto
+                {
+                    AlbumId = album.Id,
+                    Url = $"/uploads/albums/{album.Id}/{uniqueFileName}",
+                    Name = Path.GetFileNameWithoutExtension(photo.FileName),
+                    CreatedAt = DateTime.UtcNow,
+                    OrderIndex = orderIndex++
+                };
+
+                _context.AlbumPhotos.Add(albumPhoto);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Reload posts and albums for the current user so the new album appears
+            CurrentUser = user;
+            IsOwnProfile = true;
+            CanViewProfile = true;
+            await LoadPostsAsync(user.Id);
+            Albums = await _context.Albums
+                .Where(a => a.UserId == user.Id && !a.IsDeleted)
+                .OrderByDescending(a => a.CreatedAt)
+                .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                .Include(a => a.User)
+                .Include(a => a.Photos)
+                    .ThenInclude(p => p.Likes)
+                .Include(a => a.Photos)
+                    .ThenInclude(p => p.Comments.Where(c => !c.IsDeleted))
+                        .ThenInclude(c => c.User)
+                .ToListAsync();
+
+            StatusMessage = "Your album has been created successfully.";
+            return RedirectToPage(new { id = user.Id });
+        }
+
+        public async Task<IActionResult> OnPostLikeAlbumPhotoAsync(int photoId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var photo = await _context.AlbumPhotos.FindAsync(photoId);
+            if (photo == null)
+            {
+                return new JsonResult(new { success = false, message = "Photo not found" });
+            }
+
+            // Check if user already liked this photo
+            var existingLike = await _context.AlbumPhotoLikes
+                .FirstOrDefaultAsync(l => l.PhotoId == photoId && l.UserId == user.Id);
+
+            bool isLiked;
+
+            if (existingLike != null)
+            {
+                // Unlike the photo
+                _context.AlbumPhotoLikes.Remove(existingLike);
+                isLiked = false;
+            }
+            else
+            {
+                // Like the photo
+                var like = new AlbumPhotoLike
+                {
+                    PhotoId = photoId,
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.AlbumPhotoLikes.Add(like);
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Get updated likes count
+            var likesCount = await _context.AlbumPhotoLikes
+                .CountAsync(l => l.PhotoId == photoId);
+
+            return new JsonResult(new { 
+                success = true, 
+                liked = isLiked, 
+                likeCount = likesCount
+            });
+        }
+
+        public async Task<IActionResult> OnPostAddAlbumPhotoCommentAsync(int photoId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return new JsonResult(new { success = false, message = "Comment cannot be empty" });
+            }
+
+            var photo = await _context.AlbumPhotos.FindAsync(photoId);
+            if (photo == null)
+            {
+                return new JsonResult(new { success = false, message = "Photo not found" });
+            }
+
+            var comment = new AlbumPhotoComment
+            {
+                PhotoId = photoId,
+                UserId = user.Id,
+                Content = content,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.AlbumPhotoComments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            // Load the comment with user data
+            var commentWithUser = await _context.AlbumPhotoComments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == comment.Id);
+
+            if (commentWithUser == null)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            return new JsonResult(new 
+            { 
+                success = true, 
+                comment = new 
+                {
+                    id = commentWithUser.Id,
+                    content = commentWithUser.Content,
+                    createdAt = commentWithUser.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new 
+                    {
+                        firstName = commentWithUser.User?.FirstName,
+                        lastName = commentWithUser.User?.LastName,
+                        profilePictureUrl = commentWithUser.User?.ProfilePictureUrl
+                    }
+                }
+            });
         }
     }
 }

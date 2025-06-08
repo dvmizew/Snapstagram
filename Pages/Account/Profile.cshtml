@@ -243,6 +243,9 @@
                     <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                         <i class="fas fa-edit me-2"></i>Edit Profile
                     </button>
+                    <button type="button" class="btn btn-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#createAlbumModal">
+                        <i class="fas fa-images me-2"></i>Create an Album
+                    </button>
                 </div>
             }
         </div>
@@ -258,6 +261,62 @@
                         <button type="button" class="btn btn-accent btn-lg" data-bs-toggle="modal" data-bs-target="#createPostModal">
                             <i class="fas fa-plus me-2"></i>Create New Post
                         </button>
+                    </div>
+                }
+
+                <!-- Albums Grid -->
+                @if (Model.Albums != null && Model.Albums.Any())
+                {
+                    <div class="albums-grid-container mb-4">
+                        <h5 class="text-primary mb-3"><i class="fas fa-images me-2"></i>My Albums</h5>
+                        <div class="row g-2">
+                            @foreach (var album in Model.Albums)
+                            {
+                                <div class="col-md-4 col-6">
+                                    <div class="album-grid-item card h-100">
+                                        <div class="position-relative album-cover" style="aspect-ratio: 1; overflow: hidden;">
+                                            @if (album.Photos.Any())
+                                            {
+                                                var coverPhoto = album.Photos.FirstOrDefault();
+                                                if (coverPhoto != null)
+                                                {
+                                                    <img src="@coverPhoto.Url" alt="@album.Name" class="w-100 h-100" style="object-fit: cover;" />
+                                                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 album-hover-overlay">
+                                                        <div class="text-white text-center">
+                                                            <h6 class="album-title mb-2">@album.Name</h6>
+                                                            <p class="album-meta mb-0">
+                                                                <span class="me-3"><i class="fas fa-image"></i> @album.Photos.Count</span>
+                                                                <span><i class="fas fa-heart"></i> @album.Photos.Sum(p => p.Likes.Count)</span>
+                                                            </p>
+                                                            @if (!string.IsNullOrEmpty(album.Description))
+                                                            {
+                                                                <small class="album-description d-block mt-2">@(album.Description.Length > 50 ? album.Description.Substring(0, 47) + "..." : album.Description)</small>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+                                                    <div class="text-center text-muted">
+                                                        <i class="fas fa-images fa-2x mb-2"></i>
+                                                        <p class="mb-0">Empty Album</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No albums to show.</h5>
                     </div>
                 }
 
@@ -293,12 +352,6 @@
                                                         <div class="text-post-text">
                                                             @(post.Caption.Length > 80 ? post.Caption.Substring(0, 80) + "..." : post.Caption)
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
-                                                    <div class="text-white text-center">
-                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
-                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -606,6 +659,50 @@
                     </button>
                     <button type="submit" form="editProfileForm" class="btn btn-accent">
                         <i class="fas fa-save me-2"></i>Update Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Create Album Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="createAlbumModal" tabindex="-1" aria-labelledby="createAlbumModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="createAlbumModalLabel">
+                        <i class="fas fa-images me-2"></i>Create New Album
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="CreateAlbum" enctype="multipart/form-data" id="createAlbumForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        <div class="mb-3">
+                            <label for="AlbumName" class="form-label">Album Name</label>
+                            <input type="text" class="form-control" id="AlbumName" name="AlbumInput.Name" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="AlbumDescription" class="form-label">Description (optional)</label>
+                            <textarea class="form-control" id="AlbumDescription" name="AlbumInput.Description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="AlbumPhotos" class="form-label">Upload Photos</label>
+                            <input type="file" class="form-control" id="AlbumPhotos" name="AlbumInput.Photos" accept="image/*" multiple required />
+                            <small class="form-text text-muted">You can select multiple images (JPG, PNG, GIF, max 5MB each).</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="createAlbumForm" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Album
                     </button>
                 </div>
             </div>
