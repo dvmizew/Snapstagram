@@ -1,0 +1,451 @@
+@page
+@model Snapstagram.Pages.FriendsModel
+@{
+    ViewData["Title"] = "Friends";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <ul class="nav nav-tabs" id="friendsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="friends-tab" data-bs-toggle="tab" data-bs-target="#friends" type="button" role="tab" aria-controls="friends" aria-selected="true">
+                        <i class="bi bi-people-fill"></i> Friends
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab" aria-controls="requests" aria-selected="false">
+                        <i class="bi bi-person-plus-fill"></i> Friend Requests 
+                        @if (Model.ReceivedRequests.Any())
+                        {
+                            <span class="badge bg-danger">@Model.ReceivedRequests.Count</span>
+                        }
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab" aria-controls="sent" aria-selected="false">
+                        <i class="bi bi-send"></i> Sent Requests
+                        @if (Model.SentRequests.Any())
+                        {
+                            <span class="badge bg-primary">@Model.SentRequests.Count</span>
+                        }
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="friendsTabContent">
+                <!-- Friends Tab -->
+                <div class="tab-pane fade show active" id="friends" role="tabpanel" aria-labelledby="friends-tab">
+                    @if (!Model.Friends.Any())
+                    {
+                        <div class="text-center my-5">
+                            <h5>You don't have any friends yet</h5>
+                            <p class="text-muted">Search for users and send friend requests to connect with them</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row row-cols-1 row-cols-md-2 g-3">
+                            @foreach (var friend in Model.Friends)
+                            {
+                                <div class="col">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    @if (string.IsNullOrEmpty(friend.ProfileImageUrl))
+                                                    {
+                                                        <div class="profile-pic-placeholder">
+                                                            <i class="bi bi-person-fill"></i>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <img src="@friend.ProfileImageUrl" class="rounded-circle" style="width: 64px; height: 64px; object-fit: cover;" alt="@friend.DisplayName's profile picture">
+                                                    }
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h5 class="mb-1">@friend.DisplayName</h5>
+                                                    <p class="text-muted mb-2">@@@friend.UserName</p>
+                                                    <div class="d-flex">
+                                                        <a href="/Profile/@friend.Id" class="btn btn-sm btn-outline-primary me-2">
+                                                            <i class="bi bi-person-fill"></i> View Profile
+                                                        </a>
+                                                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="openChatWithFriend('@friend.Id', '@friend.DisplayName')">
+                                                            <i class="bi bi-chat-dots-fill"></i> Message
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="unfriendUser('@friend.Id', '@friend.DisplayName')">
+                                                            <i class="bi bi-person-dash-fill"></i> Unfriend
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <!-- Friend Requests Tab -->
+                <div class="tab-pane fade" id="requests" role="tabpanel" aria-labelledby="requests-tab">
+                    @if (!Model.ReceivedRequests.Any())
+                    {
+                        <div class="text-center my-5">
+                            <h5>No pending friend requests</h5>
+                            <p class="text-muted">When someone sends you a friend request, it will appear here</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var request in Model.ReceivedRequests)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            @if (string.IsNullOrEmpty(request.Sender.ProfileImageUrl))
+                                            {
+                                                <div class="profile-pic-placeholder">
+                                                    <i class="bi bi-person-fill"></i>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <img src="@request.Sender.ProfileImageUrl" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="@request.Sender.DisplayName's profile picture">
+                                            }
+                                            <div>
+                                                <h5 class="mb-1">@request.Sender.DisplayName</h5>
+                                                <small class="text-muted">Requested @request.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-success me-2" onclick="acceptFriendRequest(@request.Id)">
+                                                <i class="bi bi-check-lg"></i> Accept
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="rejectFriendRequest(@request.Id)">
+                                                <i class="bi bi-x-lg"></i> Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <!-- Sent Requests Tab -->
+                <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+                    @if (!Model.SentRequests.Any())
+                    {
+                        <div class="text-center my-5">
+                            <h5>No sent friend requests</h5>
+                            <p class="text-muted">When you send friend requests, they will appear here</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var request in Model.SentRequests)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            @if (string.IsNullOrEmpty(request.Receiver.ProfileImageUrl))
+                                            {
+                                                <div class="profile-pic-placeholder">
+                                                    <i class="bi bi-person-fill"></i>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <img src="@request.Receiver.ProfileImageUrl" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="@request.Receiver.DisplayName's profile picture">
+                                            }
+                                            <div>
+                                                <h5 class="mb-1">@request.Receiver.DisplayName</h5>
+                                                <small class="text-muted">Sent @request.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="cancelFriendRequest(@request.Id)">
+                                            <i class="bi bi-x-lg"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Find People</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by name or username...">
+                        <button class="btn btn-primary" type="button" id="searchButton">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="mt-3">
+                        <!-- Search results will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .profile-pic-placeholder {
+            width: 64px;
+            height: 64px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .list-group-item .profile-pic-placeholder {
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+        }
+        
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-pic {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Search users
+        document.getElementById('searchButton').addEventListener('click', searchUsers);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+        
+        async function searchUsers() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+            
+            try {
+                const response = await fetch(`/api/Users/Search?q=${encodeURIComponent(query)}`);
+                if (response.ok) {
+                    const users = await response.json();
+                    displaySearchResults(users);
+                }
+            } catch (error) {
+                console.error('Error searching users:', error);
+            }
+        }
+        
+        async function displaySearchResults(users) {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = '';
+            
+            if (users.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center py-3">No users found</div>';
+                return;
+            }
+            
+            for (const user of users) {
+                const result = document.createElement('div');
+                result.className = 'search-result-item';
+                
+                // Check friendship status
+                const friendshipStatus = await checkFriendshipStatus(user.id);
+                
+                const profileImg = user.profileImageUrl 
+                    ? `<img src="${user.profileImageUrl}" class="rounded-circle search-result-pic">`
+                    : `<div class="search-result-pic profile-pic-placeholder"><i class="bi bi-person-fill"></i></div>`;
+                
+                result.innerHTML = `
+                    <div class="d-flex align-items-center w-100">
+                        <div class="flex-shrink-0">
+                            ${profileImg}
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div>${user.displayName}</div>
+                            <small class="text-muted">@@${user.userName}</small>
+                        </div>
+                        <div class="friendship-action" data-user-id="${user.id}">
+                            ${getFriendshipActionButton(friendshipStatus, user.id, user.displayName)}
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(result);
+            }
+        }
+        
+        async function checkFriendshipStatus(userId) {
+            try {
+                const response = await fetch(`/api/Friends/Check/${userId}`);
+                if (response.ok) {
+                    return await response.json();
+                }
+                return { status: 'None' };
+            } catch (error) {
+                console.error('Error checking friendship status:', error);
+                return { status: 'None' };
+            }
+        }
+        
+        function getFriendshipActionButton(status, userId, displayName) {
+            switch (status.status) {
+                case 'Friends':
+                    return `
+                        <button class="btn btn-sm btn-success" disabled>
+                            <i class="bi bi-people-fill"></i> Friends
+                        </button>
+                    `;
+                case 'RequestSent':
+                    return `
+                        <button class="btn btn-sm btn-outline-primary" disabled>
+                            <i class="bi bi-hourglass-split"></i> Request Sent
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger mt-1" onclick="cancelFriendRequest(${status.requestId})">
+                            <i class="bi bi-x-lg"></i> Cancel
+                        </button>
+                    `;
+                case 'RequestReceived':
+                    return `
+                        <button class="btn btn-sm btn-success mb-1" onclick="acceptFriendRequest(${status.requestId})">
+                            <i class="bi bi-check-lg"></i> Accept
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="rejectFriendRequest(${status.requestId})">
+                            <i class="bi bi-x-lg"></i> Decline
+                        </button>
+                    `;
+                case 'Self':
+                    return `<span class="text-muted">This is you</span>`;
+                default:
+                    return `
+                        <button class="btn btn-sm btn-primary" onclick="sendFriendRequest('${userId}', '${displayName}')">
+                            <i class="bi bi-person-plus"></i> Add Friend
+                        </button>
+                    `;
+            }
+        }
+        
+        // Friend request actions
+        async function sendFriendRequest(userId, displayName) {
+            try {
+                const response = await fetch('/api/Friends/Request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userId)
+                });
+                
+                if (response.ok) {
+                    // Update the button
+                    const actionContainer = document.querySelector(`.friendship-action[data-user-id="${userId}"]`);
+                    if (actionContainer) {
+                        actionContainer.innerHTML = `
+                            <button class="btn btn-sm btn-outline-primary" disabled>
+                                <i class="bi bi-hourglass-split"></i> Request Sent
+                            </button>
+                        `;
+                    }
+                    
+                    alert(`Friend request sent to ${displayName}`);
+                }
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+            }
+        }
+        
+        async function acceptFriendRequest(requestId) {
+            try {
+                const response = await fetch(`/api/Friends/Accept/${requestId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error accepting friend request:', error);
+            }
+        }
+        
+        async function rejectFriendRequest(requestId) {
+            try {
+                const response = await fetch(`/api/Friends/Reject/${requestId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error rejecting friend request:', error);
+            }
+        }
+        
+        async function cancelFriendRequest(requestId) {
+            try {
+                const response = await fetch(`/api/Friends/Cancel/${requestId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error cancelling friend request:', error);
+            }
+        }
+        
+        async function unfriendUser(userId, displayName) {
+            if (confirm(`Are you sure you want to remove ${displayName} from your friends list?`)) {
+                try {
+                    const response = await fetch('/api/Friends/Unfriend', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(userId)
+                    });
+                    
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('Error removing friend:', error);
+                }
+            }
+        }
+        
+        function openChatWithFriend(userId, displayName) {
+            window.location.href = `/Messages?userId=${userId}`;
+        }
+    </script>
+}

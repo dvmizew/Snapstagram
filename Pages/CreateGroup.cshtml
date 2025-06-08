@@ -1,0 +1,17 @@
+@page
+@model CreateGroupModel
+@{
+    ViewData["Title"] = "Create Group";
+}
+<h2>Create Group</h2>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" required maxlength="50" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Create Group</button>
+</form>

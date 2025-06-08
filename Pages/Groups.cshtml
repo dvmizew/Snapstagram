@@ -1,0 +1,13 @@
+@page
+@model GroupsModel
+@{
+    ViewData["Title"] = "Groups";
+}
+<h2>Groups</h2>
+<a class="btn btn-primary mb-3" asp-page="/CreateGroup">Create New Group</a>
+<ul>
+@foreach (var group in Model.Groups)
+{
+    <li>@group.Name - <a asp-page="/GroupChat" asp-route-groupId="@group.Id">Chat</a></li>
+}
+</ul>

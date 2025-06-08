@@ -1,0 +1,39 @@
+@page "{photoId:int}"
+@model PhotoCommentsModel
+@{
+    ViewData["Title"] = "Photo Comments";
+}
+<h2>Photo Comments</h2>
+<div>
+    <img src="@Model.Photo?.Url" alt="Photo" class="img-fluid mb-3" style="max-width:300px;" />
+    <p>@Model.Photo?.Caption</p>
+</div>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <form method="post">
+        <input type="hidden" asp-for="PhotoId" />
+        <div class="mb-3">
+            <label class="form-label">Add Comment</label>
+            <textarea asp-for="CommentText" class="form-control" maxlength="500" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+}
+<hr />
+<h4>Comments</h4>
+@foreach (var comment in Model.Comments)
+{
+    <div class="mb-2">
+        <b>@comment.User?.DisplayName</b>: @comment.Text
+        @if (Model.IsOwner && !comment.IsAccepted)
+        {
+            <form method="post" asp-page-handler="Accept" asp-route-commentId="@comment.Id" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-success">Accept</button>
+            </form>
+        }
+        @if (!comment.IsAccepted)
+        {
+            <span class="badge bg-warning text-dark">Pending</span>
+        }
+    </div>
+}

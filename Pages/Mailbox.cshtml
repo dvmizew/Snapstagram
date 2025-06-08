@@ -1,0 +1,43 @@
+@page
+@model MailboxModel
+@{
+    ViewData["Title"] = "Mailbox";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h2 class="text-primary">Mailbox</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <h5>Conversations</h5>
+            <ul class="list-group">
+                @foreach (var conversation in Model.Conversations)
+                {
+                    <li class="list-group-item">
+                        <a asp-page="Mailbox" asp-route-conversationId="@conversation.Id">
+                            @conversation.FriendName
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-8">
+            <h5>Messages</h5>
+            <div class="messages-box">
+                @foreach (var message in Model.Messages)
+                {
+                    <div class="message @message.IsSentByUser ? "sent" : "received"">
+                        <p>@message.Content</p>
+                        <small>@message.Timestamp.ToString("g")</small>
+                    </div>
+                }
+            </div>
+            <form method="post">
+                <div class="input-group mt-3">
+                    <input type="text" name="MessageContent" class="form-control" placeholder="Type a message...">
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,27 @@
+@page
+@model UploadPhotoModel
+@{
+    ViewData["Title"] = "Upload Photo";
+}
+<h2>Upload Photo</h2>
+<form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Album</label>
+        <select asp-for="AlbumId" class="form-select" required>
+            <option value="">Select album...</option>
+            @foreach (var album in Model.UserAlbums)
+            {
+                <option value="@album.Id">@album.Title</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Photo</label>
+        <input type="file" asp-for="PhotoFile" class="form-control" accept="image/*" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Caption</label>
+        <input asp-for="Caption" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-success">Upload</button>
+</form>

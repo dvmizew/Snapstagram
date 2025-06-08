@@ -20,6 +20,7 @@ namespace Snapstagram.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<FriendRequest> FriendRequests { get; set; }
+        public DbSet<Conversation> Conversations { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
