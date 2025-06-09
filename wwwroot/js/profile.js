@@ -2242,11 +2242,18 @@ let photosToRemove = new Set();
 function togglePhotoRemoval(photoId) {
     console.log('togglePhotoRemoval called with photoId:', photoId);
     
-    const photoItem = document.querySelector(`[data-photo-id="${photoId}"]`);
+    // Ensure photoId is a number for consistent comparison
+    const numericPhotoId = parseInt(photoId);
+    if (isNaN(numericPhotoId)) {
+        console.error('Invalid photoId provided:', photoId);
+        return;
+    }
+    
+    const photoItem = document.querySelector(`[data-photo-id="${numericPhotoId}"]`);
     console.log('Found photoItem:', photoItem);
     
     if (!photoItem) {
-        console.error('Photo item not found for photoId:', photoId);
+        console.error('Photo item not found for photoId:', numericPhotoId);
         return;
     }
     
@@ -2256,24 +2263,35 @@ function togglePhotoRemoval(photoId) {
     console.log('Found removeOverlay:', removeOverlay);
     console.log('Found removeBtn:', removeBtn);
     
-    if (photosToRemove.has(photoId)) {
+    if (!removeOverlay || !removeBtn) {
+        console.error('Required elements not found in photo item');
+        return;
+    }
+    
+    // Add visual feedback animation
+    photoItem.classList.add('removing');
+    setTimeout(() => photoItem.classList.remove('removing'), 300);
+    
+    if (photosToRemove.has(numericPhotoId)) {
         // Unmark for removal
         console.log('Unmarking photo for removal');
-        photosToRemove.delete(photoId);
+        photosToRemove.delete(numericPhotoId);
         removeOverlay.classList.add('d-none');
         removeBtn.innerHTML = '<i class="fas fa-times"></i>';
         removeBtn.classList.remove('btn-success');
         removeBtn.classList.add('btn-danger');
         removeBtn.title = 'Remove this photo';
+        photoItem.style.opacity = '1';
     } else {
         // Mark for removal
         console.log('Marking photo for removal');
-        photosToRemove.add(photoId);
+        photosToRemove.add(numericPhotoId);
         removeOverlay.classList.remove('d-none');
         removeBtn.innerHTML = '<i class="fas fa-undo"></i>';
         removeBtn.classList.remove('btn-danger');
         removeBtn.classList.add('btn-success');
         removeBtn.title = 'Keep this photo';
+        photoItem.style.opacity = '0.6';
     }
     
     // Update hidden input
@@ -2286,6 +2304,12 @@ function togglePhotoRemoval(photoId) {
         console.log('Updated hidden input value:', hiddenInput.value);
     } else {
         console.error('photosToRemove hidden input not found');
+    }
+    
+    // Provide user feedback
+    const removeCount = photosToRemove.size;
+    if (removeCount > 0) {
+        console.log(`${removeCount} photo(s) marked for removal`);
     }
 }
 
@@ -2470,7 +2494,21 @@ function resetEditAlbumModal() {
         photosToRemoveInput.value = '';
     }
     
-    // Reset to first tab
+    // Reset current album photos visual state
+    document.querySelectorAll('.current-photo-item').forEach(item => {
+        item.style.opacity = '1';
+        const overlay = item.querySelector('.remove-overlay');
+        const btn = item.querySelector('.photo-remove-btn');
+        if (overlay) overlay.classList.add('d-none');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-times"></i>';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-danger');
+            btn.title = 'Remove this photo';
+        }
+    });
+    
+    // Reset to first tab with proper Bootstrap 5 syntax
     const uploadTab = document.getElementById('edit-upload-tab');
     const existingTabEl = document.getElementById('edit-existing-tab');
     const uploadPane = document.getElementById('edit-upload-pane');
