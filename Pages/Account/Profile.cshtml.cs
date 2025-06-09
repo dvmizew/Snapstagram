@@ -541,9 +541,10 @@ namespace Snapstagram.Pages.Account
                 return RedirectToPage("/Account/Login");
             }
 
-            if (!ModelState.IsValid)
+            // Manual validation for comment content
+            if (string.IsNullOrWhiteSpace(CommentInput.Content) || CommentInput.Content.Length > 500)
             {
-                return new JsonResult(new { success = false, message = "Invalid comment" });
+                return new JsonResult(new { success = false, message = "Comment must not be empty and must be less than 500 characters." });
             }
 
             var post = await _context.Posts.FindAsync(CommentInput.PostId);
