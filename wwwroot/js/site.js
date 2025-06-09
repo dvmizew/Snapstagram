@@ -123,7 +123,7 @@
         
         const resultsHtml = users.map(user => {
             const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-            const displayName = fullName || user.email;
+            const displayName = fullName || user.email || 'Unknown User';
             
             const avatar = user.profilePictureUrl 
                 ? `<img src="${user.profilePictureUrl}" alt="${displayName}" class="search-result-avatar">`
@@ -133,6 +133,9 @@
                 ? '<i class="fas fa-globe" style="color: var(--accent-color);" title="Public profile"></i>'
                 : '<i class="fas fa-lock" style="color: var(--text-secondary);" title="Private profile"></i>';
             
+            // Only show email if it's available
+            const emailDisplay = user.email ? `<div class="search-result-email">${escapeHtml(user.email)}</div>` : '';
+            
             return `
                 <a href="/Account/Profile/${user.id}" class="search-result">
                     ${avatar}
@@ -140,7 +143,7 @@
                         <div class="search-result-name">
                             ${escapeHtml(displayName)} ${privacyIcon}
                         </div>
-                        <div class="search-result-email">${escapeHtml(user.email)}</div>
+                        ${emailDisplay}
                     </div>
                 </a>
             `;
