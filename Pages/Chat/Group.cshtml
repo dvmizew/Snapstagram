@@ -1,0 +1,346 @@
+@page "/Chat/Group/{groupId:int}"
+@model Snapstagram.Pages.Chat.GroupModel
+@using Snapstagram.Models
+@{
+    ViewData["Title"] = $"Group: {Model.Group?.Name}";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <!-- Chat Header -->
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <a href="/Chat/Index" class="btn btn-light btn-sm me-3">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                 style="width: 40px; height: 40px;">
+                                <i class="fas fa-users text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">@Model.Group?.Name</h6>
+                                <small class="text-light">@Model.Members.Count members</small>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupInfoModal">
+                                    <i class="fas fa-info-circle me-2"></i>Group Info</a></li>
+                                @if (Model.CurrentUserRole == GroupMemberRole.Owner || Model.CurrentUserRole == GroupMemberRole.Admin)
+                                {
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                                        <i class="fas fa-user-plus me-2"></i>Add Members</a></li>
+                                }
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="leaveGroup()">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Leave Group</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="card-body p-0" style="height: 60vh;">
+                    <div id="messagesContainer" class="h-100 overflow-auto p-3">
+                        @if (Model.Messages.Any())
+                        {
+                            @foreach (var message in Model.Messages)
+                            {
+                                <div class="message-item mb-3 @(message.SenderId == Model.CurrentUserId ? "text-end" : "text-start")">
+                                    @if (message.SenderId != Model.CurrentUserId)
+                                    {
+                                        <div class="message-sender">
+                                            <small class="text-muted">@message.Sender?.FirstName @message.Sender?.LastName</small>
+                                        </div>
+                                    }
+                                    <div class="message-bubble @(message.SenderId == Model.CurrentUserId ? "sent" : "received")">
+                                        <div class="message-content">@message.Content</div>
+                                        <div class="message-time">
+                                            @message.SentAt.ToString("HH:mm")
+                                            @if (message.SenderId == Model.CurrentUserId)
+                                            {
+                                                <small class="text-muted ms-1">@Model.GetReadCount(message.Id) read</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                <p>No messages yet. Start the conversation!</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="card-footer bg-light">
+                    <form id="messageForm" class="d-flex">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="groupId" value="@Model.Group?.Id" />
+                        <div class="input-group">
+                            <input type="text" id="messageInput" class="form-control" 
+                                   placeholder="Type your message..." required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Group Info Modal -->
+<div class="modal fade" id="groupInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Group Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Name:</strong> @Model.Group?.Name
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Group?.Description))
+                {
+                    <div class="mb-3">
+                        <strong>Description:</strong> @Model.Group.Description
+                    </div>
+                }
+                <div class="mb-3">
+                    <strong>Created:</strong> @Model.Group?.CreatedAt.ToString("MMM dd, yyyy")
+                </div>
+                <div class="mb-3">
+                    <strong>Members (@Model.Members.Count):</strong>
+                    <div class="mt-2">
+                        @foreach (var member in Model.Members.OrderBy(m => m.Role))
+                        {
+                            <div class="d-flex align-items-center justify-content-between py-1">
+                                <div class="d-flex align-items-center">
+                                    <img src="@(member.User?.ProfilePictureUrl ?? "/images/default-avatar.png")" 
+                                         alt="@member.User?.UserName" 
+                                         class="rounded-circle me-2" 
+                                         style="width: 30px; height: 30px; object-fit: cover;">
+                                    <span>@member.User?.FirstName @member.User?.LastName</span>
+                                </div>
+                                <span class="badge bg-secondary">@member.Role</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+@if (Model.CurrentUserRole == GroupMemberRole.Owner || Model.CurrentUserRole == GroupMemberRole.Admin)
+{
+    <div class="modal fade" id="addMemberModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Members</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select friends to add:</label>
+                        <div class="form-check-list" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var friend in Model.AvailableFriends)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="@friend.Id" id="friend_@friend.Id">
+                                    <label class="form-check-label" for="friend_@friend.Id">
+                                        @friend.FirstName @friend.LastName
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addMembers()">Add Members</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <style>
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message-bubble.sent {
+            background-color: var(--bs-primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message-bubble.received {
+            background-color: var(--bs-light);
+            color: var(--bs-dark);
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-content {
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .message-sender {
+            margin-bottom: 2px;
+        }
+
+        .message-bubble.sent .message-time {
+            text-align: right;
+        }
+
+        .message-bubble.received .message-time {
+            text-align: left;
+        }
+
+        #messagesContainer {
+            scrollbar-width: thin;
+            scrollbar-color: var(--bs-secondary) transparent;
+        }
+
+        #messagesContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #messagesContainer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #messagesContainer::-webkit-scrollbar-thumb {
+            background: var(--bs-secondary);
+            border-radius: 3px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageForm = document.getElementById('messageForm');
+            const messageInput = document.getElementById('messageInput');
+            const groupId = document.getElementById('groupId').value;
+
+            // Scroll to bottom on load
+            scrollToBottom();
+
+            // Handle form submission
+            messageForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const content = messageInput.value.trim();
+                if (!content) return;
+
+                // Add message to UI immediately
+                addMessageToUI(content, '@Model.CurrentUserId', new Date());
+                messageInput.value = '';
+                scrollToBottom();
+
+                // Send message to server
+                try {
+                    const formData = new FormData();
+                    formData.append('Content', content);
+                    formData.append('GroupId', groupId);
+
+                    const response = await fetch('/Chat/SendMessage', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error('Failed to send message:', result.message);
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                }
+            });
+
+            function addMessageToUI(content, senderId, sentAt) {
+                const messageDiv = document.createElement('div');
+                const isCurrentUser = senderId === '@Model.CurrentUserId';
+                
+                messageDiv.className = `message-item mb-3 ${isCurrentUser ? 'text-end' : 'text-start'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-bubble ${isCurrentUser ? 'sent' : 'received'}">
+                        <div class="message-content">${escapeHtml(content)}</div>
+                        <div class="message-time">
+                            ${formatTime(sentAt)}
+                        </div>
+                    </div>
+                `;
+
+                messagesContainer.appendChild(messageDiv);
+            }
+
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function formatTime(date) {
+                return new Intl.DateTimeFormat('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(date);
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        });
+
+        function leaveGroup() {
+            if (confirm('Are you sure you want to leave this group?')) {
+                // Implementation for leaving group
+                window.location.href = '/Chat/Index';
+            }
+        }
+
+        function addMembers() {
+            const selectedMembers = Array.from(document.querySelectorAll('#addMemberModal .form-check-input:checked')).map(cb => cb.value);
+            if (selectedMembers.length > 0) {
+                // Implementation for adding members
+                console.log('Adding members:', selectedMembers);
+            }
+        }
+    </script>
+}

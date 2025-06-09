@@ -22,6 +22,8 @@ namespace Snapstagram.Models
         Comment,
         Reply,
         FriendRequest,
-        FriendRequestAccepted
+        FriendRequestAccepted,
+        NewMessage,
+        NewGroupMessage
     }
 }

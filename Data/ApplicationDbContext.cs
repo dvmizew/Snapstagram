@@ -24,6 +24,10 @@ namespace Snapstagram.Data
         public DbSet<AlbumPhoto> AlbumPhotos { get; set; }
         public DbSet<AlbumPhotoLike> AlbumPhotoLikes { get; set; }
         public DbSet<AlbumPhotoComment> AlbumPhotoComments { get; set; }
+        public DbSet<ChatGroup> ChatGroups { get; set; }
+        public DbSet<ChatGroupMember> ChatGroupMembers { get; set; }
+        public DbSet<GroupMessage> GroupMessages { get; set; }
+        public DbSet<GroupMessageRead> GroupMessageReads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -188,6 +192,91 @@ namespace Snapstagram.Data
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Message entity relationships
+            builder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Message>()
+                .HasOne(m => m.Recipient)
+                .WithMany()
+                .HasForeignKey(m => m.RecipientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure ChatGroup entity relationships
+            builder.Entity<ChatGroup>()
+                .HasOne(g => g.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(g => g.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ChatGroup>()
+                .HasOne(g => g.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(g => g.DeletedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure ChatGroupMember entity relationships
+            builder.Entity<ChatGroupMember>()
+                .HasOne(m => m.ChatGroup)
+                .WithMany(g => g.Members)
+                .HasForeignKey(m => m.ChatGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ChatGroupMember>()
+                .HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ChatGroupMember>()
+                .HasOne(m => m.AddedByUser)
+                .WithMany()
+                .HasForeignKey(m => m.AddedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ChatGroupMember>()
+                .HasIndex(m => new { m.ChatGroupId, m.UserId })
+                .IsUnique(); // Ensure one membership per user per group
+
+            // Configure GroupMessage entity relationships
+            builder.Entity<GroupMessage>()
+                .HasOne(m => m.ChatGroup)
+                .WithMany(g => g.Messages)
+                .HasForeignKey(m => m.ChatGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<GroupMessage>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<GroupMessage>()
+                .HasOne(m => m.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(m => m.DeletedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure GroupMessageRead entity relationships
+            builder.Entity<GroupMessageRead>()
+                .HasOne(r => r.GroupMessage)
+                .WithMany(m => m.ReadByMembers)
+                .HasForeignKey(r => r.GroupMessageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<GroupMessageRead>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<GroupMessageRead>()
+                .HasIndex(r => new { r.GroupMessageId, r.UserId })
+                .IsUnique(); // Ensure one read status per user per message
         }
     }
 }
