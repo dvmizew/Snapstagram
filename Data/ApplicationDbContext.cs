@@ -20,6 +20,10 @@ namespace Snapstagram.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<FriendRequest> FriendRequests { get; set; }
+        public DbSet<Album> Albums { get; set; }
+        public DbSet<AlbumPhoto> AlbumPhotos { get; set; }
+        public DbSet<AlbumPhotoLike> AlbumPhotoLikes { get; set; }
+        public DbSet<AlbumPhotoComment> AlbumPhotoComments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -131,6 +135,58 @@ namespace Snapstagram.Data
                 .HasOne(fr => fr.Receiver)
                 .WithMany()
                 .HasForeignKey(fr => fr.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Album entity relationships
+            builder.Entity<Album>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Album>()
+                .HasMany(a => a.Photos)
+                .WithOne(p => p.Album)
+                .HasForeignKey(p => p.AlbumId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AlbumPhoto>()
+                .HasOne(p => p.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(p => p.DeletedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Album soft delete
+            builder.Entity<Album>()
+                .HasOne(a => a.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.DeletedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure AlbumPhotoLike entity relationships
+            builder.Entity<AlbumPhotoLike>()
+                .HasOne(l => l.Photo)
+                .WithMany(p => p.Likes)
+                .HasForeignKey(l => l.PhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AlbumPhotoLike>()
+                .HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure AlbumPhotoComment entity relationships
+            builder.Entity<AlbumPhotoComment>()
+                .HasOne(c => c.Photo)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(c => c.PhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AlbumPhotoComment>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

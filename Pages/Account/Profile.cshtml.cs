@@ -26,6 +26,7 @@ namespace Snapstagram.Pages.Account
 
         public ApplicationUser CurrentUser { get; set; } = default!;
         public List<Post> Posts { get; set; } = new List<Post>();
+        public List<Album> Albums { get; set; } = new List<Album>();
         public bool IsOwnProfile { get; set; }
         public bool CanViewProfile { get; set; }
         public string? StatusMessage { get; set; }
@@ -44,6 +45,15 @@ namespace Snapstagram.Pages.Account
 
         [BindProperty]
         public CommentInputModel CommentInput { get; set; } = default!;
+
+        [BindProperty]
+        public CreateAlbumInputModel AlbumInput { get; set; } = new CreateAlbumInputModel();
+
+        [BindProperty]
+        public EditAlbumInputModel EditAlbumInput { get; set; } = new EditAlbumInputModel();
+
+        [BindProperty]
+        public DeleteAlbumInputModel DeleteAlbumInput { get; set; } = new DeleteAlbumInputModel();
 
         public class InputModel
         {
@@ -115,6 +125,50 @@ namespace Snapstagram.Pages.Account
             public int PostId { get; set; }
         }
 
+        public class CreateAlbumInputModel
+        {
+            [Required]
+            [StringLength(100)]
+            public string Name { get; set; } = string.Empty;
+
+            [StringLength(500)]
+            public string? Description { get; set; }
+
+            [Display(Name = "Photos")]
+            public List<IFormFile> Photos { get; set; } = new List<IFormFile>();
+            
+            [Display(Name = "Selected Post IDs")]
+            public string? SelectedPostIds { get; set; }
+        }
+
+        public class EditAlbumInputModel
+        {
+            [Required]
+            public int AlbumId { get; set; }
+
+            [Required]
+            [StringLength(100)]
+            public string Name { get; set; } = string.Empty;
+
+            [StringLength(500)]
+            public string? Description { get; set; }
+
+            [Display(Name = "Photos to Remove")]
+            public string? PhotosToRemove { get; set; }
+
+            [Display(Name = "New Photos")]
+            public List<IFormFile> Photos { get; set; } = new List<IFormFile>();
+            
+            [Display(Name = "Selected Post IDs")]
+            public string? SelectedPostIds { get; set; }
+        }
+
+        public class DeleteAlbumInputModel
+        {
+            [Required]
+            public int AlbumId { get; set; }
+        }
+
         public async Task<IActionResult> OnGetAsync(string? id = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -162,6 +216,17 @@ namespace Snapstagram.Pages.Account
                             .ThenInclude(cr => cr.User)
                     .Include(p => p.Likes)
                         .ThenInclude(l => l.User)
+                    .ToListAsync();                // Load user's albums with photos and creator information
+                Albums = await _context.Albums
+                    .Where(a => a.UserId == targetUser.Id && !a.IsDeleted)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                    .Include(a => a.User)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Likes)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Comments.Where(c => !c.IsDeleted))
+                            .ThenInclude(c => c.User)
                     .ToListAsync();
             }
 
@@ -512,9 +577,10 @@ namespace Snapstagram.Pages.Account
                 return RedirectToPage("/Account/Login");
             }
 
-            if (!ModelState.IsValid)
+            // Manual validation for comment content
+            if (string.IsNullOrWhiteSpace(CommentInput.Content) || CommentInput.Content.Length > 500)
             {
-                return new JsonResult(new { success = false, message = "Invalid comment" });
+                return new JsonResult(new { success = false, message = "Comment must not be empty and must be less than 500 characters." });
             }
 
             var post = await _context.Posts.FindAsync(CommentInput.PostId);
@@ -1098,6 +1164,632 @@ namespace Snapstagram.Pages.Account
             {
                 FriendshipStatus = CurrentFriendRequest.Status;
             }
+        }
+
+        public async Task<IActionResult> OnPostCreateAlbumAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            // Clear ModelState errors for non-AlbumInput fields
+            var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("AlbumInput.")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                ModelState.Remove(key);
+            }
+
+            // Parse selected post IDs
+            var selectedPostIds = new List<int>();
+            if (!string.IsNullOrEmpty(AlbumInput.SelectedPostIds))
+            {
+                var postIdStrings = AlbumInput.SelectedPostIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var postIdString in postIdStrings)
+                {
+                    if (int.TryParse(postIdString.Trim(), out var postId))
+                    {
+                        selectedPostIds.Add(postId);
+                    }
+                }
+            }
+
+            // Validate that at least one photo is provided (either uploaded or selected)
+            if (AlbumInput.Photos.Count == 0 && selectedPostIds.Count == 0)
+            {
+                ModelState.AddModelError("AlbumInput.Photos", "Please select at least one photo for the album.");
+            }
+
+            // Validate uploaded photos
+            if (AlbumInput.Photos.Count > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                foreach (var photo in AlbumInput.Photos)
+                {
+                    var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        ModelState.AddModelError("AlbumInput.Photos", $"File '{photo.FileName}' is not a valid image. Please upload only JPG, PNG, or GIF files.");
+                    }
+                    if (photo.Length > 5 * 1024 * 1024) // 5MB limit
+                    {
+                        ModelState.AddModelError("AlbumInput.Photos", $"File '{photo.FileName}' exceeds the 5MB size limit.");
+                    }
+                }
+            }
+
+            // Validate selected posts exist and belong to the user
+            if (selectedPostIds.Count > 0)
+            {
+                var validPostIds = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+
+                var invalidPostIds = selectedPostIds.Except(validPostIds).ToList();
+                if (invalidPostIds.Any())
+                {
+                    ModelState.AddModelError("AlbumInput.SelectedPostIds", "Some selected posts are not valid or don't belong to you.");
+                }
+            }
+
+            if (!ModelState.IsValid)
+            {
+                CurrentUser = user;
+                IsOwnProfile = true;
+                CanViewProfile = true;
+                await LoadPostsAsync(user.Id);
+                return Page();
+            }
+
+            // Create album
+            var album = new Album
+            {
+                UserId = user.Id,
+                Name = AlbumInput.Name,
+                Description = AlbumInput.Description,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Albums.Add(album);
+            await _context.SaveChangesAsync(); // Save to get the album ID
+
+            // Process and save photos
+            var uploadsFolder = Path.Combine("wwwroot", "uploads", "albums", album.Id.ToString());
+            Directory.CreateDirectory(uploadsFolder);
+
+            int orderIndex = 0;
+            
+            // Process uploaded photos
+            foreach (var photo in AlbumInput.Photos)
+            {
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(photo.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await photo.CopyToAsync(fileStream);
+                }
+
+                var albumPhoto = new AlbumPhoto
+                {
+                    AlbumId = album.Id,
+                    Url = $"/uploads/albums/{album.Id}/{uniqueFileName}",
+                    Name = Path.GetFileNameWithoutExtension(photo.FileName),
+                    CreatedAt = DateTime.UtcNow,
+                    OrderIndex = orderIndex++
+                };
+
+                _context.AlbumPhotos.Add(albumPhoto);
+            }
+
+            // Process selected existing photos
+            if (selectedPostIds.Count > 0)
+            {
+                var selectedPosts = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .ToListAsync();
+
+                foreach (var post in selectedPosts)
+                {
+                    // Copy the existing post image to the album folder
+                    var sourceImagePath = Path.Combine("wwwroot", post.ImageUrl!.TrimStart('/'));
+                    var extension = Path.GetExtension(sourceImagePath);
+                    var uniqueFileName = Guid.NewGuid().ToString() + extension;
+                    var destinationPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    try
+                    {
+                        if (System.IO.File.Exists(sourceImagePath))
+                        {
+                            System.IO.File.Copy(sourceImagePath, destinationPath);
+                        }
+                        else
+                        {
+                            // If the original file doesn't exist, we'll still create the album photo record
+                            // but use the original URL (this handles cases where images might be stored elsewhere)
+                        }
+
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = System.IO.File.Exists(sourceImagePath) ? $"/uploads/albums/{album.Id}/{uniqueFileName}" : post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but continue with other photos
+                        // In a production app, you'd want proper logging here
+                        Console.WriteLine($"Error copying image from post {post.Id}: {ex.Message}");
+                        
+                        // Still create the album photo record with the original URL
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Reload posts and albums for the current user so the new album appears
+            CurrentUser = user;
+            IsOwnProfile = true;
+            CanViewProfile = true;
+            await LoadPostsAsync(user.Id);
+            Albums = await _context.Albums
+                .Where(a => a.UserId == user.Id && !a.IsDeleted)
+                .OrderByDescending(a => a.CreatedAt)
+                .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                .Include(a => a.User)
+                .Include(a => a.Photos)
+                    .ThenInclude(p => p.Likes)
+                .Include(a => a.Photos)
+                    .ThenInclude(p => p.Comments.Where(c => !c.IsDeleted))
+                        .ThenInclude(c => c.User)
+                .ToListAsync();
+
+            StatusMessage = "Your album has been created successfully.";
+            return RedirectToPage(new { id = user.Id });
+        }
+
+        public async Task<IActionResult> OnPostEditAlbumAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            // Clear ModelState errors for non-EditAlbumInput fields
+            var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("EditAlbumInput.")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                ModelState.Remove(key);
+            }
+
+            // Find the album
+            var album = await _context.Albums
+                .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                .FirstOrDefaultAsync(a => a.Id == EditAlbumInput.AlbumId && a.UserId == user.Id && !a.IsDeleted);
+
+            if (album == null)
+            {
+                return NotFound();
+            }
+
+            // Parse photos to remove
+            var photosToRemove = new List<int>();
+            Console.WriteLine($"DEBUG: PhotosToRemove received: '{EditAlbumInput.PhotosToRemove}'");
+            if (!string.IsNullOrEmpty(EditAlbumInput.PhotosToRemove))
+            {
+                var photoIdStrings = EditAlbumInput.PhotosToRemove.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                Console.WriteLine($"DEBUG: PhotoIdStrings: [{string.Join(", ", photoIdStrings)}]");
+                foreach (var photoIdString in photoIdStrings)
+                {
+                    if (int.TryParse(photoIdString.Trim(), out var photoId))
+                    {
+                        photosToRemove.Add(photoId);
+                        Console.WriteLine($"DEBUG: Added photo ID to remove: {photoId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"DEBUG: Failed to parse photo ID: '{photoIdString}'");
+                    }
+                }
+            }
+            Console.WriteLine($"DEBUG: Total photos to remove: {photosToRemove.Count}");
+
+            // Parse selected post IDs for new photos
+            var selectedPostIds = new List<int>();
+            if (!string.IsNullOrEmpty(EditAlbumInput.SelectedPostIds))
+            {
+                var postIdStrings = EditAlbumInput.SelectedPostIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var postIdString in postIdStrings)
+                {
+                    if (int.TryParse(postIdString.Trim(), out var postId))
+                    {
+                        selectedPostIds.Add(postId);
+                    }
+                }
+            }
+
+            // Validate uploaded photos
+            if (EditAlbumInput.Photos.Count > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                foreach (var photo in EditAlbumInput.Photos)
+                {
+                    var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        ModelState.AddModelError("EditAlbumInput.Photos", $"File '{photo.FileName}' is not a valid image. Please upload only JPG, PNG, or GIF files.");
+                    }
+
+                    if (photo.Length > 5 * 1024 * 1024) // 5MB limit
+                    {
+                        ModelState.AddModelError("EditAlbumInput.Photos", $"File '{photo.FileName}' exceeds the 5MB size limit.");
+                    }
+                }
+            }
+
+            // Validate selected posts exist and belong to the user
+            if (selectedPostIds.Count > 0)
+            {
+                var validPostIds = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+
+                var invalidPostIds = selectedPostIds.Except(validPostIds).ToList();
+                if (invalidPostIds.Any())
+                {
+                    ModelState.AddModelError("EditAlbumInput.SelectedPostIds", "Some selected posts are not valid or don't belong to you.");
+                }
+            }
+
+            // Check if album will have at least one photo after changes
+            var remainingPhotosCount = album.Photos.Count - photosToRemove.Count;
+            var newPhotosCount = EditAlbumInput.Photos.Count + selectedPostIds.Count;
+            
+            if (remainingPhotosCount + newPhotosCount == 0)
+            {
+                ModelState.AddModelError("EditAlbumInput.Photos", "Album must have at least one photo.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                CurrentUser = user;
+                IsOwnProfile = true;
+                CanViewProfile = true;
+                await LoadPostsAsync(user.Id);
+                Albums = await _context.Albums
+                    .Where(a => a.UserId == user.Id && !a.IsDeleted)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                    .Include(a => a.User)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Likes)
+                    .Include(a => a.Photos)
+                        .ThenInclude(p => p.Comments.Where(c => !c.IsDeleted))
+                            .ThenInclude(c => c.User)
+                    .ToListAsync();
+                return Page();
+            }
+
+            // Update album details
+            album.Name = EditAlbumInput.Name;
+            album.Description = EditAlbumInput.Description;
+            album.UpdatedAt = DateTime.UtcNow;
+
+            // Remove selected photos
+            if (photosToRemove.Count > 0)
+            {
+                Console.WriteLine($"DEBUG: Starting photo removal process for {photosToRemove.Count} photos");
+                var photosToDelete = album.Photos.Where(p => photosToRemove.Contains(p.Id)).ToList();
+                Console.WriteLine($"DEBUG: Found {photosToDelete.Count} photos to delete in album");
+                
+                foreach (var photo in photosToDelete)
+                {
+                    Console.WriteLine($"DEBUG: Deleting photo ID: {photo.Id}, URL: {photo.Url}");
+                    photo.IsDeleted = true;
+                    photo.DeletedAt = DateTime.UtcNow;
+                    photo.DeletedByUserId = user.Id;
+
+                    // Delete physical file if it exists
+                    var physicalPath = Path.Combine("wwwroot", photo.Url.TrimStart('/'));
+                    Console.WriteLine($"DEBUG: Attempting to delete physical file: {physicalPath}");
+                    if (System.IO.File.Exists(physicalPath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(physicalPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error deleting photo file: {ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            // Add new photos
+            var uploadsFolder = Path.Combine("wwwroot", "uploads", "albums", album.Id.ToString());
+            Directory.CreateDirectory(uploadsFolder);
+
+            // Get the highest order index for new photos
+            int orderIndex = album.Photos.Where(p => !p.IsDeleted).Max(p => (int?)p.OrderIndex) ?? -1;
+            orderIndex++;
+
+            // Process uploaded photos
+            foreach (var photo in EditAlbumInput.Photos)
+            {
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(photo.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await photo.CopyToAsync(fileStream);
+                }
+
+                var albumPhoto = new AlbumPhoto
+                {
+                    AlbumId = album.Id,
+                    Url = $"/uploads/albums/{album.Id}/{uniqueFileName}",
+                    Name = Path.GetFileNameWithoutExtension(photo.FileName),
+                    CreatedAt = DateTime.UtcNow,
+                    OrderIndex = orderIndex++
+                };
+
+                _context.AlbumPhotos.Add(albumPhoto);
+            }
+
+            // Process selected existing photos
+            if (selectedPostIds.Count > 0)
+            {
+                var selectedPosts = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .ToListAsync();
+
+                foreach (var post in selectedPosts)
+                {
+                    var sourceImagePath = Path.Combine("wwwroot", post.ImageUrl!.TrimStart('/'));
+                    var extension = Path.GetExtension(sourceImagePath);
+                    var uniqueFileName = Guid.NewGuid().ToString() + extension;
+                    var destinationPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    try
+                    {
+                        if (System.IO.File.Exists(sourceImagePath))
+                        {
+                            System.IO.File.Copy(sourceImagePath, destinationPath);
+                        }
+
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = System.IO.File.Exists(sourceImagePath) ? $"/uploads/albums/{album.Id}/{uniqueFileName}" : post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error copying image from post {post.Id}: {ex.Message}");
+                        
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            StatusMessage = "Album has been updated successfully.";
+            return RedirectToPage(new { id = user.Id });
+        }
+
+        public async Task<IActionResult> OnPostDeleteAlbumAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            // Find the album
+            var album = await _context.Albums
+                .Include(a => a.Photos.Where(p => !p.IsDeleted))
+                .FirstOrDefaultAsync(a => a.Id == DeleteAlbumInput.AlbumId && a.UserId == user.Id && !a.IsDeleted);
+
+            if (album == null)
+            {
+                return NotFound();
+            }
+
+            // Soft delete the album
+            album.IsDeleted = true;
+            album.DeletedAt = DateTime.UtcNow;
+            album.DeletedByUserId = user.Id;
+
+            // Soft delete all photos in the album
+            foreach (var photo in album.Photos)
+            {
+                photo.IsDeleted = true;
+                photo.DeletedAt = DateTime.UtcNow;
+                photo.DeletedByUserId = user.Id;
+
+                // Delete physical file if it exists
+                var physicalPath = Path.Combine("wwwroot", photo.Url.TrimStart('/'));
+                if (System.IO.File.Exists(physicalPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(physicalPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting photo file: {ex.Message}");
+                    }
+                }
+            }
+
+            // Try to delete the album directory if it's empty
+            var albumDirectory = Path.Combine("wwwroot", "uploads", "albums", album.Id.ToString());
+            if (Directory.Exists(albumDirectory))
+            {
+                try
+                {
+                    Directory.Delete(albumDirectory, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deleting album directory: {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            StatusMessage = "Album has been deleted successfully.";
+            return RedirectToPage(new { id = user.Id });
+        }
+
+        public async Task<IActionResult> OnPostLikeAlbumPhotoAsync(int photoId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            var photo = await _context.AlbumPhotos.FindAsync(photoId);
+            if (photo == null)
+            {
+                return new JsonResult(new { success = false, message = "Photo not found" });
+            }
+
+            // Check if user already liked this photo
+            var existingLike = await _context.AlbumPhotoLikes
+                .FirstOrDefaultAsync(l => l.PhotoId == photoId && l.UserId == user.Id);
+
+            bool isLiked;
+
+            if (existingLike != null)
+            {
+                // Unlike the photo
+                _context.AlbumPhotoLikes.Remove(existingLike);
+                isLiked = false;
+            }
+            else
+            {
+                // Like the photo
+                var like = new AlbumPhotoLike
+                {
+                    PhotoId = photoId,
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.AlbumPhotoLikes.Add(like);
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Get updated likes count
+            var likesCount = await _context.AlbumPhotoLikes
+                .CountAsync(l => l.PhotoId == photoId);
+
+            return new JsonResult(new { 
+                success = true, 
+                liked = isLiked, 
+                likeCount = likesCount
+            });
+        }
+
+        public async Task<IActionResult> OnPostAddAlbumPhotoCommentAsync(int photoId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "User not authenticated" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return new JsonResult(new { success = false, message = "Comment cannot be empty" });
+            }
+
+            var photo = await _context.AlbumPhotos.FindAsync(photoId);
+            if (photo == null)
+            {
+                return new JsonResult(new { success = false, message = "Photo not found" });
+            }
+
+            var comment = new AlbumPhotoComment
+            {
+                PhotoId = photoId,
+                UserId = user.Id,
+                Content = content,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.AlbumPhotoComments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            // Load the comment with user data
+            var commentWithUser = await _context.AlbumPhotoComments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == comment.Id);
+
+            if (commentWithUser == null)
+            {
+                return new JsonResult(new { success = false, message = "Comment not found" });
+            }
+
+            return new JsonResult(new 
+            { 
+                success = true, 
+                comment = new 
+                {
+                    id = commentWithUser.Id,
+                    content = commentWithUser.Content,
+                    createdAt = commentWithUser.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = new 
+                    {
+                        firstName = commentWithUser.User?.FirstName,
+                        lastName = commentWithUser.User?.LastName,
+                        profilePictureUrl = commentWithUser.User?.ProfilePictureUrl
+                    }
+                }
+            });
         }
     }
 }

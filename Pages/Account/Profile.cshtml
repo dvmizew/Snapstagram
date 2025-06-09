@@ -14,7 +14,6 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    
     <script>
         window.postsData = @Html.Raw(Json.Serialize(Model.Posts.Select(p => new {
             id = p.Id,
@@ -63,7 +62,41 @@
             likeCount = p.Likes.Count,
             isLikedByCurrentUser = p.Likes.Any(l => l.UserId == Model.CurrentUser.Id)
         }).ToList()));
-        
+        // Expose albums data for album modal/gallery
+        window.albumsData = @Html.Raw(Json.Serialize(Model.Albums.Select(a => new {
+            id = a.Id,
+            name = a.Name,
+            description = a.Description,
+            createdAt = a.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+            user = a.User == null ? null : new {
+                firstName = a.User.FirstName,
+                lastName = a.User.LastName,
+                profilePictureUrl = a.User.ProfilePictureUrl
+            },
+            photos = a.Photos.OrderBy(p => p.OrderIndex).Select(p => new {
+                id = p.Id,
+                url = p.Url,
+                description = p.Description,
+                createdAt = p.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                user = p.Album != null && p.Album.User != null ? new {
+                    firstName = p.Album.User.FirstName,
+                    lastName = p.Album.User.LastName,
+                    profilePictureUrl = p.Album.User.ProfilePictureUrl
+                } : null,
+                likeCount = p.Likes.Count,
+                isLikedByCurrentUser = p.Likes.Any(l => l.UserId == Model.CurrentUser.Id),
+                comments = p.Comments.Where(c => !c.IsDeleted).Select(c => new {
+                    id = c.Id,
+                    content = c.Content,
+                    createdAt = c.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt"),
+                    user = c.User == null ? null : new {
+                        firstName = c.User.FirstName,
+                        lastName = c.User.LastName,
+                        profilePictureUrl = c.User.ProfilePictureUrl
+                    }
+                }).ToList()
+            }).ToList()
+        }).ToList()));
         // Pass current user data for UI
         window.currentUserData = {
             id: '@Model.CurrentUser.Id',
@@ -73,6 +106,28 @@
         };
     </script>
     
+    <script>
+        function previewAlbumImages(input) {
+            const previewContainer = document.getElementById('albumImagePreview');
+            previewContainer.innerHTML = '';
+            if (input.files) {
+                Array.from(input.files).forEach(file => {
+                    if (!file.type.startsWith('image/')) return;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'rounded';
+                        img.style.width = '80px';
+                        img.style.height = '80px';
+                        img.style.objectFit = 'cover';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+    </script>
     <script src="~/js/profile.js" asp-append-version="true"></script>
 }
 
@@ -243,6 +298,9 @@
                     <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                         <i class="fas fa-edit me-2"></i>Edit Profile
                     </button>
+                    <button type="button" class="btn btn-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#createAlbumModal">
+                        <i class="fas fa-images me-2"></i>Create an Album
+                    </button>
                 </div>
             }
         </div>
@@ -261,6 +319,91 @@
                     </div>
                 }
 
+                <!-- Albums Grid -->
+                @if (Model.Albums != null && Model.Albums.Any())
+                {
+                    <div class="albums-grid-container mb-4">
+                        <h5 class="text-primary mb-3"><i class="fas fa-images me-2"></i>My Albums</h5>
+                        <div class="row g-2">
+                            @foreach (var album in Model.Albums)
+                            {
+                                <div class="col-md-4 col-6">
+                                    <div class="album-grid-item card h-100 position-relative">
+                                        <!-- Album Management Dropdown (Only for own profile) -->
+                                        @if (Model.IsOwnProfile)
+                                        {
+                                            <div class="position-absolute top-0 end-0 p-2 z-index-10">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm action-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation();">
+                                                        <i class="fas fa-ellipsis-v text-white"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                                        <li>
+                                                            <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editAlbum(@album.Id); event.stopPropagation();">
+                                                                <i class="fas fa-edit me-2 text-accent icon-sm"></i>
+                                                                Edit Album
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider my-1"></li>
+                                                        <li>
+                                                            <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deleteAlbum(@album.Id); event.stopPropagation();">
+                                                                <i class="fas fa-trash me-2 icon-sm"></i>
+                                                                Delete Album
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        }
+                                        
+                                        <div class="album-cover-container cursor-pointer" onclick="openAlbumModal(@album.Id)">
+                                            <div class="position-relative album-cover">
+                                                @if (album.Photos.Any())
+                                                {
+                                                    var coverPhoto = album.Photos.FirstOrDefault();
+                                                    if (coverPhoto != null)
+                                                    {
+                                                        <img src="@coverPhoto.Url" alt="@album.Name" class="cover-image" />
+                                                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 album-hover-overlay">
+                                                            <div class="text-white text-center">
+                                                                <h6 class="album-title mb-2">@album.Name</h6>
+                                                                <p class="album-meta mb-0">
+                                                                    <span class="me-3"><i class="fas fa-image"></i> @album.Photos.Count</span>
+                                                                    <span><i class="fas fa-heart"></i> @album.Photos.Sum(p => p.Likes.Count)</span>
+                                                                </p>
+                                                                @if (!string.IsNullOrEmpty(album.Description))
+                                                                {
+                                                                    <small class="album-description d-block mt-2">@(album.Description.Length > 50 ? album.Description.Substring(0, 47) + "..." : album.Description)</small>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+                                                        <div class="text-center text-muted">
+                                                            <i class="fas fa-images fa-2x mb-2"></i>
+                                                            <p class="mb-0">Empty Album</p>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No albums to show.</h5>
+                    </div>
+                }
+
                 <!-- Posts Grid -->
                 <div class="posts-grid-container">
                     @if (Model.Posts.Any())
@@ -269,11 +412,11 @@
                             @foreach (var post in Model.Posts)
                             {
                                 <div class="col-md-4 col-6">
-                                    <div class="post-grid-item" onclick="openPostModal(@post.Id)" data-post-id="@post.Id" style="cursor: pointer;">
+                                    <div class="post-grid-item cursor-pointer" onclick="openPostModal(@post.Id)" data-post-id="@post.Id">
                                         @if (!string.IsNullOrEmpty(post.ImageUrl))
                                         {
-                                            <div class="position-relative" style="aspect-ratio: 1; overflow: hidden;">
-                                                <img src="@post.ImageUrl" alt="Post" class="w-100 h-100" style="object-fit: cover;" />
+                                            <div class="position-relative aspect-ratio-1">
+                                                <img src="@post.ImageUrl" alt="Post" class="post-image" />
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
                                                     <div class="text-white text-center">
                                                         <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
@@ -284,7 +427,7 @@
                                         }
                                         else
                                         {
-                                            <div class="position-relative text-post-grid-item" style="aspect-ratio: 1; overflow: hidden;">
+                                            <div class="position-relative text-post-grid-item">
                                                 <div class="text-post-background">
                                                     <div class="text-post-content">
                                                         <div class="text-post-icon">
@@ -293,12 +436,6 @@
                                                         <div class="text-post-text">
                                                             @(post.Caption.Length > 80 ? post.Caption.Substring(0, 80) + "..." : post.Caption)
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-overlay">
-                                                    <div class="text-white text-center">
-                                                        <span class="me-3"><i class="fas fa-heart"></i> @post.Likes.Count</span>
-                                                        <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -384,7 +521,7 @@
                                 </div>
                                 
                                 <!-- Image Preview -->
-                                <div id="imagePreview" class="image-preview-container" style="display: none;">
+                                <div id="imagePreview" class="image-preview-container d-none">
                                     <div class="image-preview-wrapper">
                                         <img id="previewImg" src="" alt="Preview" class="preview-image" />
                                         <div class="image-overlay">
@@ -450,17 +587,16 @@
                             </h6>
                             
                             <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
-                                    {
-                                        <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Current Profile Picture" id="currentProfilePic" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" />
-                                    }
-                                    else
-                                    {
-                                        <div id="currentProfilePic" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-user fa-2x text-white"></i>
-                                        </div>
-                                    }
+                                <div class="me-3">                                        @if (!string.IsNullOrEmpty(Model.CurrentUser.ProfilePictureUrl))
+                                        {
+                                            <img src="@Model.CurrentUser.ProfilePictureUrl" alt="Current Profile Picture" id="currentProfilePic" class="profile-picture" />
+                                        }
+                                        else
+                                        {
+                                            <div id="currentProfilePic" class="profile-picture-placeholder">
+                                                <i class="fas fa-user fa-2x text-white"></i>
+                                            </div>
+                                        }
                                 </div>
                                 <div class="flex-grow-1">
                                     <label asp-for="Input.ProfilePicture" class="form-label">
@@ -613,6 +749,253 @@
     </div>
 }
 
+<!-- Create Album Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="createAlbumModal" tabindex="-1" aria-labelledby="createAlbumModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="createAlbumModalLabel">
+                        <i class="fas fa-images me-2"></i>Create New Album
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="CreateAlbum" enctype="multipart/form-data" id="createAlbumForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Album Details -->
+                        <div class="mb-3">
+                            <label for="AlbumName" class="form-label">Album Name</label>
+                            <input type="text" class="form-control" id="AlbumName" name="AlbumInput.Name" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="AlbumDescription" class="form-label">Description (optional)</label>
+                            <textarea class="form-control" id="AlbumDescription" name="AlbumInput.Description" rows="2"></textarea>
+                        </div>
+
+                        <!-- Photo Selection Tabs -->
+                        <div class="mb-3">
+                            <label class="form-label">Add Photos</label>
+                            <ul class="nav nav-tabs" id="photoSelectionTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button" role="tab" aria-controls="upload-pane" aria-selected="true">
+                                        <i class="fas fa-upload me-1"></i>Upload New Photos
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing-pane" type="button" role="tab" aria-controls="existing-pane" aria-selected="false">
+                                        <i class="fas fa-images me-1"></i>Select from Posts
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="photoSelectionTabContent">
+                                <!-- Upload New Photos Tab -->
+                                <div class="tab-pane fade show active" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab">
+                                    <div class="mt-3">
+                                        <input type="file" class="form-control" id="AlbumPhotos" name="AlbumInput.Photos" accept="image/*" multiple onchange="previewAlbumImages(this)" />
+                                        <small class="form-text text-muted">You can select multiple images (JPG, PNG, GIF, max 5MB each).</small>
+                                        <div id="albumImagePreview" class="preview-grid"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Select from Existing Posts Tab -->
+                                <div class="tab-pane fade" id="existing-pane" role="tabpanel" aria-labelledby="existing-tab">
+                                    <div class="mt-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <small class="text-muted">Select photos from your existing posts</small>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearExistingPhotoSelection()">
+                                                <i class="fas fa-times me-1"></i>Clear All
+                                            </button>
+                                        </div>
+                                        <div id="existingPhotosGrid" class="scrollable-grid">
+                                            <!-- Existing photos will be populated here -->
+                                        </div>
+                                        <div id="selectedPhotosPreview" class="mt-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <small class="text-muted me-2">Selected:</small>
+                                                <span id="selectedPhotoCount" class="badge bg-primary">0</span>
+                                            </div>
+                                            <div id="selectedPhotosList" class="selected-photos-list">
+                                                <!-- Selected photos preview will appear here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden input to store selected existing photo IDs -->
+                            <input type="hidden" id="selectedExistingPhotos" name="AlbumInput.SelectedPostIds" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="createAlbumForm" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Album
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Album Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="editAlbumModal" tabindex="-1" aria-labelledby="editAlbumModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-accent text-white">
+                    <h5 class="modal-title" id="editAlbumModalLabel">
+                        <i class="fas fa-edit me-2"></i>Edit Album
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-page-handler="EditAlbum" enctype="multipart/form-data" id="editAlbumForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Hidden field for album ID -->
+                        <input type="hidden" id="editAlbumId" name="EditAlbumInput.AlbumId" />
+                        
+                        <!-- Album Details -->
+                        <div class="mb-3">
+                            <label for="editAlbumName" class="form-label">Album Name</label>
+                            <input type="text" class="form-control" id="editAlbumName" name="EditAlbumInput.Name" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="editAlbumDescription" class="form-label">Description (optional)</label>
+                            <textarea class="form-control" id="editAlbumDescription" name="EditAlbumInput.Description" rows="2"></textarea>
+                        </div>
+
+                        <!-- Current Photos Management -->
+                        <div class="mb-3">
+                            <label class="form-label">Current Photos</label>
+                            <div id="currentAlbumPhotos" class="current-album-photos">
+                                <!-- Current photos will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Add New Photos -->
+                        <div class="mb-3">
+                            <label class="form-label">Add New Photos</label>
+                            <ul class="nav nav-tabs" id="editPhotoSelectionTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="edit-upload-tab" data-bs-toggle="tab" data-bs-target="#edit-upload-pane" type="button" role="tab" aria-controls="edit-upload-pane" aria-selected="true">
+                                        <i class="fas fa-upload me-1"></i>Upload New Photos
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="edit-existing-tab" data-bs-toggle="tab" data-bs-target="#edit-existing-pane" type="button" role="tab" aria-controls="edit-existing-pane" aria-selected="false">
+                                        <i class="fas fa-images me-1"></i>Select from Posts
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="editPhotoSelectionTabContent">
+                                <!-- Upload New Photos Tab -->
+                                <div class="tab-pane fade show active" id="edit-upload-pane" role="tabpanel" aria-labelledby="edit-upload-tab">
+                                    <div class="mt-3">
+                                        <input type="file" class="form-control" id="editAlbumPhotos" name="EditAlbumInput.Photos" accept="image/*" multiple onchange="previewEditAlbumImages(this)" />
+                                        <small class="form-text text-muted">You can select multiple images (JPG, PNG, GIF, max 5MB each).</small>
+                                        <div id="editAlbumImagePreview" class="preview-grid"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Select from Existing Posts Tab -->
+                                <div class="tab-pane fade" id="edit-existing-pane" role="tabpanel" aria-labelledby="edit-existing-tab">
+                                    <div class="mt-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <small class="text-muted">Select photos from your existing posts</small>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearEditExistingPhotoSelection()">
+                                                <i class="fas fa-times me-1"></i>Clear All
+                                            </button>
+                                        </div>
+                                        <div id="editExistingPhotosGrid" class="scrollable-grid">
+                                            <!-- Existing photos will be populated here -->
+                                        </div>
+                                        <div id="editSelectedPhotosPreview" class="mt-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <small class="text-muted me-2">Selected:</small>
+                                                <span id="editSelectedPhotoCount" class="badge bg-primary">0</span>
+                                            </div>
+                                            <div id="editSelectedPhotosList" class="selected-photos-list">
+                                                <!-- Selected photos preview will appear here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden input to store selected existing photo IDs -->
+                            <input type="hidden" id="editSelectedExistingPhotos" name="EditAlbumInput.SelectedPostIds" />
+                            <!-- Hidden input to store photos to remove -->
+                            <input type="hidden" id="photosToRemove" name="EditAlbumInput.PhotosToRemove" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="editAlbumForm" class="btn btn-accent">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Album Confirmation Modal -->
+@if (Model.IsOwnProfile)
+{
+    <div class="modal fade" id="deleteAlbumModal" tabindex="-1" aria-labelledby="deleteAlbumModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteAlbumModalLabel">
+                        <i class="fas fa-trash me-2"></i>Delete Album
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h6>Are you sure you want to delete this album?</h6>
+                        <p class="text-muted mb-3">
+                            Album: <strong id="deleteAlbumName"></strong>
+                        </p>
+                        <p class="text-danger small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            This action cannot be undone. The album and all its photos will be permanently deleted.
+                        </p>
+                    </div>
+                    <form method="post" asp-page-handler="DeleteAlbum" id="deleteAlbumForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="deleteAlbumId" name="DeleteAlbumInput.AlbumId" />
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" form="deleteAlbumForm" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Album
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Post View Modal -->
 <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -635,14 +1018,14 @@
                             <ul class="dropdown-menu dropdown-menu-end shadow">
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="editPost()">
-                                        <i class="fas fa-edit me-2 text-accent" style="width: 16px;"></i>
+                                        <i class="fas fa-edit me-2 text-accent icon-sm"></i>
                                         Edit Post
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider my-1"></li>
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="#" onclick="deletePost()">
-                                        <i class="fas fa-trash me-2" style="width: 16px;"></i>
+                                        <i class="fas fa-trash me-2 icon-sm"></i>
                                         Delete Post
                                     </a>
                                 </li>
@@ -770,3 +1153,161 @@
         </div>
     </div>
 }
+
+<!-- Album View Modal -->
+<div class="modal fade" id="albumModal" tabindex="-1" aria-labelledby="albumModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="albumModalLabel">
+                    <i class="fas fa-images me-2"></i>Album Photos
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="min-height: 600px;">
+                <div class="row g-0" style="height: 600px;">
+                    <!-- Gallery Section -->
+                    <div class="col-lg-8 d-flex align-items-center justify-content-center bg-secondary position-relative">
+                        <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y" id="albumPrevBtn" style="z-index:2;" onclick="showPrevAlbumPhoto()"><i class="fas fa-chevron-left"></i></button>
+                        <img id="albumPhotoImage" src="" alt="Album Photo" class="img-fluid" style="max-height: 600px; max-width: 100%; object-fit: contain;" />
+                        <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y" id="albumNextBtn" style="z-index:2;" onclick="showNextAlbumPhoto()"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <!-- Like/Comment Section -->
+                    <div class="col-lg-4" style="border-left: 1px solid var(--border-color);">
+                        <div class="h-100 d-flex flex-column">
+                            <div class="p-4 border-bottom">
+                                <div class="d-flex align-items-center mb-2">
+                                    <img id="albumPhotoUserAvatar" src="" alt="User Avatar" class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--border-color);" />
+                                    <div>
+                                        <span class="fw-bold" id="albumPhotoUserName"></span><br />
+                                        <small class="text-muted" id="albumPhotoDate"></small>
+                                    </div>
+                                </div>
+                                <p id="albumPhotoCaption" class="mb-0"></p>
+                            </div>
+                            <div class="flex-grow-1 p-4" style="overflow-y: auto; max-height: 400px;">
+                                <div id="albumPhotoCommentsSection"></div>
+                            </div>
+                            <div class="p-4 border-top">
+                                <div class="mb-3">
+                                    <button id="albumPhotoLikeBtn" class="btn btn-link p-0 text-decoration-none me-3 like-button" onclick="toggleAlbumPhotoLike()">
+                                        <i class="far fa-heart fa-lg"></i>
+                                    </button>
+                                    <span id="albumPhotoLikeCount" class="small fw-bold" style="cursor: pointer;">0 likes</span>
+                                </div>
+                                <form id="albumPhotoCommentForm" class="d-flex" onsubmit="submitAlbumPhotoComment(event)">
+                                    <input type="text" id="albumPhotoCommentInput" class="form-control form-control-sm me-2" placeholder="Add a comment..." style="border-radius: 20px;" />
+                                    <button type="submit" class="btn btn-accent btn-sm" style="border-radius: 20px; padding: 0.4rem 1rem;">Post</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Album modal logic
+let currentAlbumPhotos = [];
+let currentAlbumPhotoIndex = 0;
+let currentAlbumPhotoData = null;
+
+function openAlbumModal(albumId) {
+    // Find album data from window.albumsData (you may need to expose this from backend)
+    const album = (window.albumsData || []).find(a => a.id === albumId);
+    if (!album || !album.photos || album.photos.length === 0) return;
+    currentAlbumPhotos = album.photos;
+    currentAlbumPhotoIndex = 0;
+    showAlbumPhoto();
+    const modal = new bootstrap.Modal(document.getElementById('albumModal'));
+    modal.show();
+}
+
+function showAlbumPhoto() {
+    const photo = currentAlbumPhotos[currentAlbumPhotoIndex];
+    if (!photo) return;
+    currentAlbumPhotoData = photo;
+    document.getElementById('albumPhotoImage').src = photo.url;
+    document.getElementById('albumPhotoUserAvatar').src = photo.user?.profilePictureUrl || '';
+    document.getElementById('albumPhotoUserName').textContent = (photo.user?.firstName || '') + ' ' + (photo.user?.lastName || '');
+    document.getElementById('albumPhotoDate').textContent = photo.createdAt || '';
+    document.getElementById('albumPhotoCaption').textContent = photo.description || '';
+    document.getElementById('albumPhotoLikeCount').textContent = (photo.likeCount || 0) + ' likes';
+    document.getElementById('albumPhotoLikeBtn').classList.toggle('liked', photo.isLikedByCurrentUser);
+    loadAlbumPhotoComments(photo);
+}
+
+function showPrevAlbumPhoto() {
+    if (currentAlbumPhotoIndex > 0) {
+        currentAlbumPhotoIndex--;
+        showAlbumPhoto();
+    }
+}
+function showNextAlbumPhoto() {
+    if (currentAlbumPhotoIndex < currentAlbumPhotos.length - 1) {
+        currentAlbumPhotoIndex++;
+        showAlbumPhoto();
+    }
+}
+function toggleAlbumPhotoLike() {
+    if (!currentAlbumPhotoData) return;
+    const photoId = currentAlbumPhotoData.id;
+    const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]').value;
+    fetch(`/api/albumphotos/${photoId}/like`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token
+        },
+        body: JSON.stringify({})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Toggle like state in local data
+            currentAlbumPhotoData.isLikedByCurrentUser = data.isLiked;
+            currentAlbumPhotoData.likeCount = data.likeCount;
+            showAlbumPhoto();
+        }
+    });
+}
+function loadAlbumPhotoComments(photo) {
+    // Render comments for the current photo
+    const section = document.getElementById('albumPhotoCommentsSection');
+    section.innerHTML = '';
+    (photo.comments || []).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'mb-2';
+        div.innerHTML = `<div class='d-flex align-items-center mb-1'><img src='${c.user?.profilePictureUrl || ''}' class='rounded-circle me-2' style='width:28px;height:28px;object-fit:cover;'><strong>${c.user?.firstName || ''} ${c.user?.lastName || ''}</strong><small class='text-muted ms-2'>${c.createdAt || ''}</small></div><div>${c.content}</div>`;
+        section.appendChild(div);
+    });
+}
+function submitAlbumPhotoComment(e) {
+    e.preventDefault();
+    if (!currentAlbumPhotoData) return;
+    const input = document.getElementById('albumPhotoCommentInput');
+    const content = input.value.trim();
+    if (!content) return;
+    const photoId = currentAlbumPhotoData.id;
+    const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]').value;
+    fetch(`/api/albumphotos/${photoId}/comments`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token
+        },
+        body: JSON.stringify({ content })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.comment) {
+            // Add new comment to local data and refresh UI
+            currentAlbumPhotoData.comments.push(data.comment);
+            loadAlbumPhotoComments(currentAlbumPhotoData);
+            input.value = '';
+        }
+    });
+}
+</script>
