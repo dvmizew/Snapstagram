@@ -164,6 +164,18 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePostTypeHint();
     addCommentAnimations();
     enhanceCommentInteractions();
+
+    // Set up album modal
+    const createAlbumModal = document.getElementById('createAlbumModal');
+    if (createAlbumModal) {
+        createAlbumModal.addEventListener('shown.bs.modal', function() {
+            initializeAlbumModal();
+        });
+        
+        createAlbumModal.addEventListener('hidden.bs.modal', function() {
+            resetAlbumModal();
+        });
+    }
 });
 
 // Enhanced notification system for comments
@@ -1875,4 +1887,196 @@ function removeFriend(friendId) {
         console.error('Error:', error);
         showNotification('An error occurred while removing friend', 'error');
     });
+}
+
+// Album creation functionality
+let selectedExistingPhotos = new Set();
+
+// Initialize album modal when shown
+function initializeAlbumModal() {
+    // Reset state
+    selectedExistingPhotos.clear();
+    updateSelectedPhotosDisplay();
+    
+    // Populate existing photos grid when the "Select from Posts" tab is first clicked
+    const existingTab = document.getElementById('existing-tab');
+    if (existingTab) {
+        existingTab.addEventListener('click', function() {
+            if (!this.dataset.loaded) {
+                populateExistingPhotosGrid();
+                this.dataset.loaded = 'true';
+            }
+        });
+    }
+}
+
+function populateExistingPhotosGrid() {
+    const grid = document.getElementById('existingPhotosGrid');
+    if (!grid || !window.postsData) return;
+    
+    // Filter posts that have images
+    const postsWithImages = window.postsData.filter(post => post.imageUrl);
+    
+    if (postsWithImages.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No photos found in your posts. Upload some photos first!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = '';
+    
+    postsWithImages.forEach(post => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-6 col-md-4 col-lg-3';
+        
+        colDiv.innerHTML = `
+            <div class="existing-photo-item position-relative" 
+                 onclick="toggleExistingPhotoSelection(${post.id})" 
+                 style="cursor: pointer; border-radius: 8px; overflow: hidden; aspect-ratio: 1;">
+                <img src="${post.imageUrl}" 
+                     alt="Post photo" 
+                     class="w-100 h-100" 
+                     style="object-fit: cover; transition: all 0.3s ease;" />
+                <div class="photo-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+                     style="background: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s ease;">
+                    <i class="fas fa-check-circle text-success fa-2x"></i>
+                </div>
+                <div class="selection-indicator position-absolute top-2 end-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="photo_${post.id}" style="transform: scale(1.2);">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        grid.appendChild(colDiv);
+    });
+}
+
+function toggleExistingPhotoSelection(postId) {
+    const post = window.postsData.find(p => p.id === postId);
+    if (!post) return;
+    
+    const photoItem = document.querySelector(`#existingPhotosGrid .existing-photo-item img[src="${post.imageUrl}"]`).closest('.existing-photo-item');
+    const checkbox = document.getElementById(`photo_${postId}`);
+    const overlay = photoItem.querySelector('.photo-overlay');
+    
+    if (selectedExistingPhotos.has(postId)) {
+        // Deselect
+        selectedExistingPhotos.delete(postId);
+        checkbox.checked = false;
+        photoItem.style.border = 'none';
+        overlay.style.opacity = '0';
+    } else {
+        // Select
+        selectedExistingPhotos.add(postId);
+        checkbox.checked = true;
+        photoItem.style.border = '3px solid #0d6efd';
+        overlay.style.opacity = '1';
+    }
+    
+    updateSelectedPhotosDisplay();
+    updateSelectedExistingPhotosInput();
+}
+
+function updateSelectedPhotosDisplay() {
+    const countBadge = document.getElementById('selectedPhotoCount');
+    const previewsList = document.getElementById('selectedPhotosList');
+    
+    if (!countBadge || !previewsList) return;
+    
+    countBadge.textContent = selectedExistingPhotos.size;
+    previewsList.innerHTML = '';
+    
+    if (selectedExistingPhotos.size === 0) return;
+    
+    selectedExistingPhotos.forEach(postId => {
+        const post = window.postsData.find(p => p.id === postId);
+        if (!post) return;
+        
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'position-relative';
+        previewDiv.innerHTML = `
+            <img src="${post.imageUrl}" 
+                 alt="Selected photo" 
+                 class="rounded" 
+                 style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #0d6efd;">
+            <button type="button" 
+                    class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle" 
+                    style="width: 20px; height: 20px; padding: 0; font-size: 10px; line-height: 1;"
+                    onclick="toggleExistingPhotoSelection(${postId})" 
+                    title="Remove photo">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        previewsList.appendChild(previewDiv);
+    });
+}
+
+function updateSelectedExistingPhotosInput() {
+    const hiddenInput = document.getElementById('selectedExistingPhotos');
+    if (hiddenInput) {
+        hiddenInput.value = Array.from(selectedExistingPhotos).join(',');
+    }
+}
+
+function clearExistingPhotoSelection() {
+    selectedExistingPhotos.clear();
+    
+    // Update UI
+    document.querySelectorAll('#existingPhotosGrid .existing-photo-item').forEach(item => {
+        item.style.border = 'none';
+        const overlay = item.querySelector('.photo-overlay');
+        if (overlay) overlay.style.opacity = '0';
+    });
+    
+    document.querySelectorAll('#existingPhotosGrid input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    updateSelectedPhotosDisplay();
+    updateSelectedExistingPhotosInput();
+}
+
+function resetAlbumModal() {
+    // Reset form
+    const form = document.getElementById('createAlbumForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Reset selected photos
+    selectedExistingPhotos.clear();
+    updateSelectedPhotosDisplay();
+    updateSelectedExistingPhotosInput();
+    
+    // Reset existing photos grid
+    const existingTab = document.getElementById('existing-tab');
+    if (existingTab) {
+        existingTab.removeAttribute('data-loaded');
+    }
+    
+    // Reset album image preview
+    const albumPreview = document.getElementById('albumImagePreview');
+    if (albumPreview) {
+        albumPreview.innerHTML = '';
+    }
+    
+    // Reset to first tab
+    const uploadTab = document.getElementById('upload-tab');
+    const existingTabEl = document.getElementById('existing-tab');
+    const uploadPane = document.getElementById('upload-pane');
+    const existingPane = document.getElementById('existing-pane');
+    
+    if (uploadTab && existingTabEl && uploadPane && existingPane) {
+        uploadTab.classList.add('active');
+        existingTabEl.classList.remove('active');
+        uploadPane.classList.add('show', 'active');
+        existingPane.classList.remove('show', 'active');
+    }
 }

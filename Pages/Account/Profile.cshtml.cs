@@ -128,9 +128,11 @@ namespace Snapstagram.Pages.Account
             [StringLength(500)]
             public string? Description { get; set; }
 
-            [Required]
             [Display(Name = "Photos")]
             public List<IFormFile> Photos { get; set; } = new List<IFormFile>();
+            
+            [Display(Name = "Selected Post IDs")]
+            public string? SelectedPostIds { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync(string? id = null)
@@ -1145,12 +1147,28 @@ namespace Snapstagram.Pages.Account
                 ModelState.Remove(key);
             }
 
-            // Validate photos
-            if (AlbumInput.Photos.Count == 0)
+            // Parse selected post IDs
+            var selectedPostIds = new List<int>();
+            if (!string.IsNullOrEmpty(AlbumInput.SelectedPostIds))
+            {
+                var postIdStrings = AlbumInput.SelectedPostIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var postIdString in postIdStrings)
+                {
+                    if (int.TryParse(postIdString.Trim(), out var postId))
+                    {
+                        selectedPostIds.Add(postId);
+                    }
+                }
+            }
+
+            // Validate that at least one photo is provided (either uploaded or selected)
+            if (AlbumInput.Photos.Count == 0 && selectedPostIds.Count == 0)
             {
                 ModelState.AddModelError("AlbumInput.Photos", "Please select at least one photo for the album.");
             }
-            else
+
+            // Validate uploaded photos
+            if (AlbumInput.Photos.Count > 0)
             {
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
                 foreach (var photo in AlbumInput.Photos)
@@ -1164,6 +1182,21 @@ namespace Snapstagram.Pages.Account
                     {
                         ModelState.AddModelError("AlbumInput.Photos", $"File '{photo.FileName}' exceeds the 5MB size limit.");
                     }
+                }
+            }
+
+            // Validate selected posts exist and belong to the user
+            if (selectedPostIds.Count > 0)
+            {
+                var validPostIds = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+
+                var invalidPostIds = selectedPostIds.Except(validPostIds).ToList();
+                if (invalidPostIds.Any())
+                {
+                    ModelState.AddModelError("AlbumInput.SelectedPostIds", "Some selected posts are not valid or don't belong to you.");
                 }
             }
 
@@ -1193,6 +1226,8 @@ namespace Snapstagram.Pages.Account
             Directory.CreateDirectory(uploadsFolder);
 
             int orderIndex = 0;
+            
+            // Process uploaded photos
             foreach (var photo in AlbumInput.Photos)
             {
                 var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(photo.FileName);
@@ -1213,6 +1248,67 @@ namespace Snapstagram.Pages.Account
                 };
 
                 _context.AlbumPhotos.Add(albumPhoto);
+            }
+
+            // Process selected existing photos
+            if (selectedPostIds.Count > 0)
+            {
+                var selectedPosts = await _context.Posts
+                    .Where(p => selectedPostIds.Contains(p.Id) && p.UserId == user.Id && !p.IsDeleted && p.ImageUrl != null)
+                    .ToListAsync();
+
+                foreach (var post in selectedPosts)
+                {
+                    // Copy the existing post image to the album folder
+                    var sourceImagePath = Path.Combine("wwwroot", post.ImageUrl!.TrimStart('/'));
+                    var extension = Path.GetExtension(sourceImagePath);
+                    var uniqueFileName = Guid.NewGuid().ToString() + extension;
+                    var destinationPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    try
+                    {
+                        if (System.IO.File.Exists(sourceImagePath))
+                        {
+                            System.IO.File.Copy(sourceImagePath, destinationPath);
+                        }
+                        else
+                        {
+                            // If the original file doesn't exist, we'll still create the album photo record
+                            // but use the original URL (this handles cases where images might be stored elsewhere)
+                        }
+
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = System.IO.File.Exists(sourceImagePath) ? $"/uploads/albums/{album.Id}/{uniqueFileName}" : post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but continue with other photos
+                        // In a production app, you'd want proper logging here
+                        Console.WriteLine($"Error copying image from post {post.Id}: {ex.Message}");
+                        
+                        // Still create the album photo record with the original URL
+                        var albumPhoto = new AlbumPhoto
+                        {
+                            AlbumId = album.Id,
+                            Url = post.ImageUrl,
+                            Name = $"From Post {post.Id}",
+                            Description = !string.IsNullOrEmpty(post.Caption) ? post.Caption.Substring(0, Math.Min(post.Caption.Length, 256)) : null,
+                            CreatedAt = DateTime.UtcNow,
+                            OrderIndex = orderIndex++
+                        };
+
+                        _context.AlbumPhotos.Add(albumPhoto);
+                    }
+                }
             }
 
             await _context.SaveChangesAsync();
