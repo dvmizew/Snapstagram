@@ -47,16 +47,18 @@ namespace Snapstagram.Pages
                 .Where(fr => fr.Status == FriendRequestStatus.Accepted &&
                            (fr.SenderId == user.Id || fr.ReceiverId == user.Id))
                 .Select(fr => fr.SenderId == user.Id ? fr.ReceiverId : fr.SenderId)
+                .Where(id => id != null)
                 .ToListAsync();
 
             // Add the current user's ID to see their own posts
             var userIds = new List<string> { user.Id };
-            userIds.AddRange(friendIds);
+            userIds.AddRange(friendIds!);
 
             // Get posts from the user and their friends, or from public profiles
             Posts = await _context.Posts
                 .Where(p => p.IsActive && !p.IsDeleted && 
-                          (userIds.Contains(p.UserId) || p.User.IsProfilePublic))
+                          ((p.UserId != null && userIds.Contains(p.UserId)) || 
+                           (p.User != null && p.User.IsProfilePublic)))
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.User)
                 .Include(p => p.Comments.Where(c => !c.IsDeleted))

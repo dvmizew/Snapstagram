@@ -14,6 +14,86 @@ function initializeFeed() {
     // Add any feed-specific initialization here
     addPostAnimations();
     setupInfiniteScroll();
+    setupCommentForm();
+}
+
+function setupCommentForm() {
+    const commentForm = document.getElementById('commentForm');
+    if (commentForm) {
+        commentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const commentInput = document.getElementById('commentInput');
+            const submitBtn = commentForm.querySelector('button[type="submit"]');
+            const content = commentInput.value.trim();
+            
+            if (!content) {
+                showNotification('Please enter a comment', 'error');
+                return;
+            }
+            
+            if (content.length > 500) {
+                showNotification('Comment is too long (max 500 characters)', 'error');
+                return;
+            }
+            
+            if (!currentPostId) {
+                showNotification('Please select a post first', 'error');
+                return;
+            }
+            
+            const token = getSecurityToken();
+            if (!token) {
+                showNotification('Security token not found. Please refresh the page.', 'error');
+                return;
+            }
+            
+            // Disable form during submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            commentInput.disabled = true;
+            
+            fetch('/Feed?handler=AddComment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `CommentInput.PostId=${currentPostId}&CommentInput.Content=${encodeURIComponent(content)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add comment to current post data
+                    if (currentPostData) {
+                        currentPostData.comments.push(data.comment);
+                    }
+                    
+                    // Reload comments
+                    loadComments();
+                    
+                    // Clear input
+                    commentInput.value = '';
+                    
+                    // Show success feedback
+                    showNotification('Comment added successfully!', 'success');
+                    
+                } else {
+                    showNotification('Failed to add comment: ' + (data.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while adding the comment', 'error');
+            })
+            .finally(() => {
+                // Re-enable form
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Post';
+                commentInput.disabled = false;
+            });
+        });
+    }
 }
 
 function addPostAnimations() {
