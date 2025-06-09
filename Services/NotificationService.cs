@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Snapstagram.Data;
 using Snapstagram.Models;
+using Snapstagram.Hubs;
 
 namespace Snapstagram.Services
 {
@@ -8,11 +10,13 @@ namespace Snapstagram.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<NotificationService> _logger;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public NotificationService(ApplicationDbContext context, ILogger<NotificationService> logger)
+        public NotificationService(ApplicationDbContext context, ILogger<NotificationService> logger, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         public async Task<List<Notification>> GetUserNotificationsAsync(string userId)
@@ -30,12 +34,13 @@ namespace Snapstagram.Services
                 .CountAsync();
         }
 
-        public async Task SendNotificationAsync(string userId, string message, NotificationType type, string? relatedItemId = null)
+        public async Task SendNotificationAsync(string userId, string message, NotificationType type, string? relatedItemId = null, string? senderName = null)
         {
             var notification = new Notification
             {
                 UserId = userId,
                 Message = message,
+                SenderName = senderName,
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
                 Type = type,
@@ -45,16 +50,53 @@ namespace Snapstagram.Services
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
             _logger.LogInformation($"Notification sent to user {userId}: {message}");
+
+            // Send real-time notification via SignalR
+            try
+            {
+                await _hubContext.Clients.Group($"user_{userId}").SendAsync("ReceiveNotification", new
+                {
+                    id = notification.Id,
+                    message = notification.Message,
+                    type = notification.Type.ToString(),
+                    createdAt = notification.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    isRead = notification.IsRead,
+                    relatedItemId = notification.RelatedItemId
+                });
+                
+                // Also send updated notification count
+                var unreadCount = await GetUnreadNotificationCountAsync(userId);
+                await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateNotificationCount", unreadCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send real-time notification to user {UserId}", userId);
+            }
         }
 
         public async Task MarkNotificationAsReadAsync(int notificationId)
         {
             var notification = await _context.Notifications.FindAsync(notificationId);
             
-            if (notification != null)
+            if (notification != null && !notification.IsRead)
             {
                 notification.IsRead = true;
                 await _context.SaveChangesAsync();
+
+                // Send updated notification count via SignalR
+                if (!string.IsNullOrEmpty(notification.UserId))
+                {
+                    try
+                    {
+                        var unreadCount = await GetUnreadNotificationCountAsync(notification.UserId);
+                        await _hubContext.Clients.Group($"user_{notification.UserId}").SendAsync("UpdateNotificationCount", unreadCount);
+                        await _hubContext.Clients.Group($"user_{notification.UserId}").SendAsync("MarkNotificationRead", notificationId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send real-time notification update for user {UserId}", notification.UserId);
+                    }
+                }
             }
         }
 
@@ -70,6 +112,17 @@ namespace Snapstagram.Services
             }
 
             await _context.SaveChangesAsync();
+
+            // Send updated notification count via SignalR
+            try
+            {
+                await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateNotificationCount", 0);
+                await _hubContext.Clients.Group($"user_{userId}").SendAsync("MarkAllNotificationsRead");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send real-time notification update for user {UserId}", userId);
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 // Add Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -77,6 +78,8 @@ app.UseAuthorization();
 // Configure routing
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<Snapstagram.Hubs.NotificationHub>("/notificationHub");
+app.MapHub<Snapstagram.Hubs.ChatHub>("/chatHub");
 
 // Set default page
 app.MapGet("/", context => {

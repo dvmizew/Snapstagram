@@ -4,7 +4,10 @@
     ViewData["Title"] = $"Chat with {Model.OtherUser?.FirstName} {Model.OtherUser?.LastName}";
 }
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4" 
+     data-current-user-id="@Model.CurrentUserId" 
+     data-recipient-id="@Model.OtherUser?.Id"
+     data-user-authenticated="true">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm h-100">
@@ -27,19 +30,32 @@
 
                 <!-- Messages Container -->
                 <div class="card-body p-0" style="height: 60vh;">
-                    <div id="messagesContainer" class="h-100 overflow-auto p-3">
+                    <div id="messagesContainer" class="messages-container h-100 overflow-auto p-3">
                         @if (Model.Messages.Any())
                         {
                             @foreach (var message in Model.Messages)
                             {
-                                <div class="message-item mb-3 @(message.SenderId == Model.CurrentUserId ? "text-end" : "text-start")">
-                                    <div class="message-bubble @(message.SenderId == Model.CurrentUserId ? "sent" : "received")">
-                                        <div class="message-content">@message.Content</div>
+                                <div class="message @(message.SenderId == Model.CurrentUserId ? "message-own" : "message-other")" 
+                                     data-message-id="@message.Id">
+                                    @if (message.SenderId != Model.CurrentUserId)
+                                    {
+                                        <div class="message-avatar">
+                                            <img src="@(Model.OtherUser?.ProfilePictureUrl ?? "/images/default-avatar.png")" 
+                                                 alt="@Model.OtherUser?.UserName" 
+                                                 class="rounded-circle" width="32" height="32">
+                                        </div>
+                                    }
+                                    <div class="message-content" data-sender-id="@message.SenderId">
+                                        @if (message.SenderId != Model.CurrentUserId)
+                                        {
+                                            <div class="message-sender">@Model.OtherUser?.FirstName @Model.OtherUser?.LastName</div>
+                                        }
+                                        <div class="message-text">@message.Content</div>
                                         <div class="message-time">
                                             @message.SentAt.ToString("HH:mm")
-                                            @if (message.SenderId == Model.CurrentUserId)
+                                            @if (message.SenderId == Model.CurrentUserId && message.IsRead)
                                             {
-                                                <i class="fas fa-check @(message.IsRead ? "text-success" : "text-muted") ms-1"></i>
+                                                <span class="ms-1">✓✓</span>
                                             }
                                         </div>
                                     </div>
@@ -54,6 +70,9 @@
                             </div>
                         }
                     </div>
+                    
+                    <!-- Typing Indicator -->
+                    <div id="typingIndicator" style="display: none;"></div>
                 </div>
 
                 <!-- Message Input -->
@@ -75,160 +94,6 @@
     </div>
 </div>
 
-@section Styles {
-    <style>
-        .message-bubble {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            margin-bottom: 5px;
-            word-wrap: break-word;
-            position: relative;
-        }
-
-        .message-bubble.sent {
-            background-color: var(--bs-primary);
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 5px;
-        }
-
-        .message-bubble.received {
-            background-color: var(--bs-light);
-            color: var(--bs-dark);
-            margin-right: auto;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message-content {
-            margin-bottom: 5px;
-        }
-
-        .message-time {
-            font-size: 0.75rem;
-            opacity: 0.8;
-        }
-
-        .message-bubble.sent .message-time {
-            text-align: right;
-        }
-
-        .message-bubble.received .message-time {
-            text-align: left;
-        }
-
-        #messagesContainer {
-            scrollbar-width: thin;
-            scrollbar-color: var(--bs-secondary) transparent;
-        }
-
-        #messagesContainer::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #messagesContainer::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        #messagesContainer::-webkit-scrollbar-thumb {
-            background: var(--bs-secondary);
-            border-radius: 3px;
-        }
-    </style>
-}
-
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const messagesContainer = document.getElementById('messagesContainer');
-            const messageForm = document.getElementById('messageForm');
-            const messageInput = document.getElementById('messageInput');
-            const recipientId = document.getElementById('recipientId').value;
-
-            // Scroll to bottom on load
-            scrollToBottom();
-
-            // Handle form submission
-            messageForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const content = messageInput.value.trim();
-                if (!content) return;
-
-                // Add message to UI immediately
-                addMessageToUI(content, '@Model.CurrentUserId', new Date());
-                messageInput.value = '';
-                scrollToBottom();
-
-                // Send message to server
-                try {
-                    const formData = new FormData();
-                    formData.append('Content', content);
-                    formData.append('RecipientId', recipientId);
-
-                    const response = await fetch('/Chat/SendMessage', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                        }
-                    });
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        console.error('Failed to send message:', result.message);
-                        // You might want to show an error message to the user
-                    }
-                } catch (error) {
-                    console.error('Error sending message:', error);
-                }
-            });
-
-            function addMessageToUI(content, senderId, sentAt) {
-                const messageDiv = document.createElement('div');
-                const isCurrentUser = senderId === '@Model.CurrentUserId';
-                
-                messageDiv.className = `message-item mb-3 ${isCurrentUser ? 'text-end' : 'text-start'}`;
-                messageDiv.innerHTML = `
-                    <div class="message-bubble ${isCurrentUser ? 'sent' : 'received'}">
-                        <div class="message-content">${escapeHtml(content)}</div>
-                        <div class="message-time">
-                            ${formatTime(sentAt)}
-                            ${isCurrentUser ? '<i class="fas fa-check text-muted ms-1"></i>' : ''}
-                        </div>
-                    </div>
-                `;
-
-                messagesContainer.appendChild(messageDiv);
-            }
-
-            function scrollToBottom() {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            function formatTime(date) {
-                return new Intl.DateTimeFormat('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                }).format(date);
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            // Mark messages as read
-            markMessagesAsRead();
-
-            function markMessagesAsRead() {
-                const unreadMessages = document.querySelectorAll('.message-bubble.received');
-                unreadMessages.forEach(async (bubble) => {
-                    // Implementation for marking as read would go here
-                });
-            }
-        });
-    </script>
+    <script src="~/js/chat.js" asp-append-version="true"></script>
 }

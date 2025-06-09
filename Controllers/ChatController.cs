@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Snapstagram.Data;
+using Snapstagram.Hubs;
 using Snapstagram.Models;
 using Snapstagram.Services;
 using System.Security.Claims;
@@ -14,11 +16,13 @@ namespace Snapstagram.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly NotificationService _notificationService;
+        private readonly IHubContext<ChatHub> _chatHubContext;
 
-        public ChatController(ApplicationDbContext context, NotificationService notificationService)
+        public ChatController(ApplicationDbContext context, NotificationService notificationService, IHubContext<ChatHub> chatHubContext)
         {
             _context = context;
             _notificationService = notificationService;
+            _chatHubContext = chatHubContext;
         }
 
         [HttpGet("StartConversation")]
@@ -152,17 +156,41 @@ namespace Snapstagram.Controllers
                     _context.Messages.Add(message);
                     await _context.SaveChangesAsync();
 
+                    // Get sender information for real-time broadcast
+                    var sender = await _context.Users.FindAsync(currentUserId);
+                    
+                    // Broadcast message in real-time via SignalR
+                    if (sender != null)
+                    {
+                        var messageData = new
+                        {
+                            id = message.Id,
+                            senderId = currentUserId,
+                            senderName = $"{sender.FirstName} {sender.LastName}",
+                            senderAvatar = sender.ProfilePictureUrl ?? "/images/default-avatar.png",
+                            content = message.Content,
+                            sentAt = message.SentAt,
+                            isRead = false
+                        };
+
+                        // Send to both users in the conversation
+                        await _chatHubContext.Clients.Group($"user_{currentUserId}")
+                            .SendAsync("ReceiveMessage", messageData);
+                        await _chatHubContext.Clients.Group($"user_{request.RecipientId}")
+                            .SendAsync("ReceiveMessage", messageData);
+                    }
+
                     // Send notification to the recipient
                     try
                     {
-                        var sender = await _context.Users.FindAsync(currentUserId);
                         if (sender != null && !string.IsNullOrEmpty(request.RecipientId))
                         {
                             await _notificationService.SendNotificationAsync(
                                 request.RecipientId,
                                 $"{sender.FirstName} {sender.LastName} sent you a message",
                                 NotificationType.NewMessage,
-                                message.Id.ToString()
+                                message.Id.ToString(),
+                                $"{sender.FirstName} {sender.LastName}"
                             );
                         }
                     }
@@ -198,36 +226,47 @@ namespace Snapstagram.Controllers
                     _context.GroupMessages.Add(groupMessage);
                     await _context.SaveChangesAsync();
 
-                    // Send notifications to all group members (except sender)
-                    try
+                    // Get sender and group information for real-time broadcast
+                    var sender = await _context.Users.FindAsync(currentUserId);
+                    var group = await _context.ChatGroups.FindAsync(request.GroupId.Value);
+                    
+                    // Broadcast group message in real-time via SignalR
+                    if (sender != null && group != null)
                     {
-                        var sender = await _context.Users.FindAsync(currentUserId);
-                        var group = await _context.ChatGroups.FindAsync(request.GroupId.Value);
-                        
-                        if (sender != null && group != null)
+                        var messageData = new
                         {
-                            var groupMembers = await _context.ChatGroupMembers
-                                .Where(m => m.ChatGroupId == request.GroupId.Value && m.IsActive && m.UserId != currentUserId)
-                                .ToListAsync();
+                            id = groupMessage.Id,
+                            senderId = currentUserId,
+                            senderName = $"{sender.FirstName} {sender.LastName}",
+                            senderAvatar = sender.ProfilePictureUrl ?? "/images/default-avatar.png",
+                            content = groupMessage.Content,
+                            sentAt = groupMessage.SentAt,
+                            groupId = request.GroupId.Value,
+                            groupName = group.Name
+                        };
 
-                            foreach (var member in groupMembers)
+                        // Send to all group members
+                        await _chatHubContext.Clients.Group($"chatgroup_{request.GroupId.Value}")
+                            .SendAsync("ReceiveGroupMessage", messageData);
+
+                        // Send notifications to all group members (except sender)
+                        var groupMembers = await _context.ChatGroupMembers
+                            .Where(m => m.ChatGroupId == request.GroupId.Value && m.IsActive && m.UserId != currentUserId)
+                            .ToListAsync();
+
+                        foreach (var member in groupMembers)
+                        {
+                            if (!string.IsNullOrEmpty(member.UserId))
                             {
-                                if (!string.IsNullOrEmpty(member.UserId))
-                                {
-                                    await _notificationService.SendNotificationAsync(
-                                        member.UserId,
-                                        $"{sender.FirstName} {sender.LastName} sent a message in '{group.Name}'",
-                                        NotificationType.NewGroupMessage,
-                                        groupMessage.Id.ToString()
-                                    );
-                                }
+                                await _notificationService.SendNotificationAsync(
+                                    member.UserId,
+                                    $"{sender.FirstName} {sender.LastName} sent a message in '{group.Name}'",
+                                    NotificationType.NewGroupMessage,
+                                    groupMessage.Id.ToString(),
+                                    $"{sender.FirstName} {sender.LastName}"
+                                );
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error but don't fail the message sending
-                        Console.WriteLine($"Failed to send group notification: {ex.Message}");
                     }
 
                     return Json(new { success = true, messageId = groupMessage.Id });
