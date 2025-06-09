@@ -36,6 +36,7 @@ namespace Snapstagram.Controllers
                 {
                     id = n.Id,
                     message = n.Message,
+                    senderName = n.SenderName,
                     type = n.Type.ToString(),
                     createdAt = n.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     isRead = n.IsRead,
@@ -102,6 +103,46 @@ namespace Snapstagram.Controllers
             catch (Exception)
             {
                 return Json(new { success = false, message = "Failed to get notification count" });
+            }
+        }
+
+        [HttpPost("Delete")]
+        public async Task<IActionResult> DeleteNotification([FromForm] int notificationId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "User not authenticated" });
+            }
+
+            try
+            {
+                await _notificationService.DeleteNotificationAsync(notificationId, userId);
+                return Json(new { success = true });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "Failed to delete notification" });
+            }
+        }
+
+        [HttpPost("DeleteAll")]
+        public async Task<IActionResult> DeleteAllNotifications()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "User not authenticated" });
+            }
+
+            try
+            {
+                await _notificationService.DeleteAllNotificationsAsync(userId);
+                return Json(new { success = true });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "Failed to delete all notifications" });
             }
         }
 

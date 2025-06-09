@@ -48,6 +48,27 @@ class NotificationManager {
             this.updateBadgeCount(count);
         });
 
+        // Handle notification deletion
+        this.connection.on("NotificationDeleted", (notificationId) => {
+            const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.remove();
+            }
+        });
+
+        // Handle all notifications deletion
+        this.connection.on("AllNotificationsDeleted", () => {
+            const container = document.getElementById('notificationList');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center p-3 text-muted">
+                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                        <div>No notifications yet</div>
+                    </div>
+                `;
+            }
+        });
+
         // Handle connection events
         this.connection.onreconnected(() => {
             console.log("SignalR reconnected");
@@ -83,10 +104,16 @@ class NotificationManager {
 
     async loadNotifications() {
         try {
-            const response = await fetch('/api/notifications/recent');
+            const response = await fetch('/Notification/GetRecent');
             if (response.ok) {
-                const notifications = await response.json();
-                this.renderNotifications(notifications);
+                const data = await response.json();
+                if (data.success) {
+                    this.renderNotifications(data.notifications);
+                } else {
+                    this.showErrorInDropdown();
+                }
+            } else {
+                this.showErrorInDropdown();
             }
         } catch (err) {
             console.error("Error loading notifications:", err);
@@ -96,10 +123,12 @@ class NotificationManager {
 
     async updateNotificationCount() {
         try {
-            const response = await fetch('/api/notifications/count');
+            const response = await fetch('/Notification/GetCount');
             if (response.ok) {
                 const data = await response.json();
-                this.updateBadgeCount(data.count);
+                if (data.success) {
+                    this.updateBadgeCount(data.count);
+                }
             }
         } catch (err) {
             console.error("Error updating notification count:", err);
@@ -108,23 +137,27 @@ class NotificationManager {
 
     async markAsRead(notificationId) {
         try {
-            const response = await fetch(`/api/notifications/${notificationId}/read`, {
+            const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value || '';
+            const response = await fetch('/Notification/MarkAsRead', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value || ''
-                }
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `notificationId=${notificationId}&__RequestVerificationToken=${encodeURIComponent(token)}`
             });
 
             if (response.ok) {
-                // Update UI immediately
-                const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
-                if (notificationItem) {
-                    notificationItem.setAttribute('data-is-read', 'true');
-                    notificationItem.classList.remove('notification-unread');
-                    notificationItem.classList.add('notification-read');
+                const data = await response.json();
+                if (data.success) {
+                    // Update UI immediately
+                    const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.setAttribute('data-is-read', 'true');
+                        notificationItem.classList.remove('notification-unread');
+                        notificationItem.classList.add('notification-read');
+                    }
+                    await this.updateNotificationCount();
                 }
-                await this.updateNotificationCount();
             }
         } catch (err) {
             console.error("Error marking notification as read:", err);
@@ -133,22 +166,26 @@ class NotificationManager {
 
     async markAllAsRead() {
         try {
-            const response = await fetch('/api/notifications/read-all', {
+            const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value || '';
+            const response = await fetch('/Notification/MarkAllAsRead', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value || ''
-                }
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `__RequestVerificationToken=${encodeURIComponent(token)}`
             });
 
             if (response.ok) {
-                // Update UI immediately
-                document.querySelectorAll('.notification-item').forEach(item => {
-                    item.setAttribute('data-is-read', 'true');
-                    item.classList.remove('notification-unread');
-                    item.classList.add('notification-read');
-                });
-                this.updateBadgeCount(0);
+                const data = await response.json();
+                if (data.success) {
+                    // Update UI immediately
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.setAttribute('data-is-read', 'true');
+                        item.classList.remove('notification-unread');
+                        item.classList.add('notification-read');
+                    });
+                    this.updateBadgeCount(0);
+                }
             }
         } catch (err) {
             console.error("Error marking all notifications as read:", err);
@@ -192,16 +229,40 @@ class NotificationManager {
                 actionText = 'accepted your friend request';
                 break;
             case 'NewMessage':
-                icon = 'fas fa-message';
+                icon = 'fas fa-envelope';
                 actionText = 'sent you a message';
                 break;
-            case 'PostLike':
+            case 'NewGroupMessage':
+                icon = 'fas fa-users';
+                actionText = 'sent a message in a group';
+                break;
+            case 'Like':
                 icon = 'fas fa-heart';
                 actionText = 'liked your post';
                 break;
-            case 'PostComment':
+            case 'Comment':
                 icon = 'fas fa-comment';
                 actionText = 'commented on your post';
+                break;
+            case 'Reply':
+                icon = 'fas fa-reply';
+                actionText = 'replied to your comment';
+                break;
+            case 'ContentRemoved':
+                icon = 'fas fa-exclamation-triangle';
+                actionText = notification.message;
+                break;
+            case 'Warning':
+                icon = 'fas fa-exclamation-circle';
+                actionText = notification.message;
+                break;
+            case 'Information':
+                icon = 'fas fa-info-circle';
+                actionText = notification.message;
+                break;
+            case 'System':
+                icon = 'fas fa-cog';
+                actionText = notification.message;
                 break;
             default:
                 actionText = notification.message;

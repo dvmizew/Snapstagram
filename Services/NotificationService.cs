@@ -124,5 +124,53 @@ namespace Snapstagram.Services
                 _logger.LogError(ex, "Failed to send real-time notification update for user {UserId}", userId);
             }
         }
+
+        public async Task DeleteNotificationAsync(int notificationId, string userId)
+        {
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
+            
+            if (notification != null)
+            {
+                _context.Notifications.Remove(notification);
+                await _context.SaveChangesAsync();
+
+                // Send updated notification count via SignalR
+                try
+                {
+                    var unreadCount = await GetUnreadNotificationCountAsync(userId);
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateNotificationCount", unreadCount);
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("NotificationDeleted", notificationId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send real-time notification update for user {UserId}", userId);
+                }
+            }
+        }
+
+        public async Task DeleteAllNotificationsAsync(string userId)
+        {
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == userId)
+                .ToListAsync();
+
+            if (notifications.Any())
+            {
+                _context.Notifications.RemoveRange(notifications);
+                await _context.SaveChangesAsync();
+
+                // Send updated notification count via SignalR
+                try
+                {
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateNotificationCount", 0);
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("AllNotificationsDeleted");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send real-time notification update for user {UserId}", userId);
+                }
+            }
+        }
     }
 }
