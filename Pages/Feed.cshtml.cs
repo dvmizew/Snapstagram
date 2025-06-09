@@ -16,17 +16,20 @@ namespace Snapstagram.Pages
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
         private readonly NotificationService _notificationService;
+        private readonly ContentModerationService _moderationService;
 
-        public FeedModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context, NotificationService notificationService)
+        public FeedModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context, NotificationService notificationService, ContentModerationService moderationService)
         {
             _userManager = userManager;
             _context = context;
             _notificationService = notificationService;
+            _moderationService = moderationService;
         }
 
         public List<Post> Posts { get; set; } = new List<Post>();
         public ApplicationUser CurrentUser { get; set; } = default!;
         public string? StatusMessage { get; set; }
+        public bool IsAdministrator { get; set; } = false;
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -37,22 +40,25 @@ namespace Snapstagram.Pages
             }
 
             CurrentUser = user;
+            IsAdministrator = await _userManager.IsInRoleAsync(user, "Administrator");
 
             // Get friend IDs where the friendship is accepted
             var friendIds = await _context.FriendRequests
                 .Where(fr => fr.Status == FriendRequestStatus.Accepted &&
                            (fr.SenderId == user.Id || fr.ReceiverId == user.Id))
                 .Select(fr => fr.SenderId == user.Id ? fr.ReceiverId : fr.SenderId)
+                .Where(id => id != null)
                 .ToListAsync();
 
             // Add the current user's ID to see their own posts
             var userIds = new List<string> { user.Id };
-            userIds.AddRange(friendIds);
+            userIds.AddRange(friendIds!);
 
             // Get posts from the user and their friends, or from public profiles
             Posts = await _context.Posts
                 .Where(p => p.IsActive && !p.IsDeleted && 
-                          (userIds.Contains(p.UserId) || p.User.IsProfilePublic))
+                          ((p.UserId != null && userIds.Contains(p.UserId)) || 
+                           (p.User != null && p.User.IsProfilePublic)))
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.User)
                 .Include(p => p.Comments.Where(c => !c.IsDeleted))
@@ -276,6 +282,54 @@ namespace Snapstagram.Pages
                 liked = isLiked, 
                 likeCount = likeCount
             });
+        }
+
+        public async Task<IActionResult> OnPostRemovePostAsync(int postId, string reason)
+        {
+            if (!User.IsInRole("Administrator"))
+            {
+                return new JsonResult(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    return new JsonResult(new { success = false, message = "User not authenticated" });
+                }
+
+                await _moderationService.RemovePostAsync(postId, currentUser.Id, reason);
+                return new JsonResult(new { success = true, message = "Post removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, message = $"Error removing post: {ex.Message}" });
+            }
+        }
+
+        public async Task<IActionResult> OnPostRemoveCommentAsync(int commentId, string reason)
+        {
+            if (!User.IsInRole("Administrator"))
+            {
+                return new JsonResult(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    return new JsonResult(new { success = false, message = "User not authenticated" });
+                }
+
+                await _moderationService.RemoveCommentAsync(commentId, currentUser.Id, reason);
+                return new JsonResult(new { success = true, message = "Comment removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, message = $"Error removing comment: {ex.Message}" });
+            }
         }
     }
 }

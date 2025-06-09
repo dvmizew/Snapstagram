@@ -6,6 +6,7 @@ namespace Snapstagram.Models
         public string? UserId { get; set; }
         public ApplicationUser? User { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string? SenderName { get; set; } // Name of the user who triggered the notification
         public bool IsRead { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public NotificationType Type { get; set; }
@@ -22,6 +23,8 @@ namespace Snapstagram.Models
         Comment,
         Reply,
         FriendRequest,
-        FriendRequestAccepted
+        FriendRequestAccepted,
+        NewMessage,
+        NewGroupMessage
     }
 }

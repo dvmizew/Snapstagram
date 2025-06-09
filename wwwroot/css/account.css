@@ -1,21 +1,29 @@
 /* Account pages (login/register) customization */
 
-/* Fix for Bootstrap floating labels to ensure placeholders are visible until focus */
+/* Enhanced floating labels consistent with theme */
 .form-floating input::placeholder {
-  color: #999 !important;
+  color: var(--placeholder-color) !important;
   opacity: 0.7 !important;
 }
 
-/* Override Bootstrap floating label behavior to keep placeholder visible until focus */
+/* Override Bootstrap floating label behavior */
 .form-floating > .form-control:placeholder-shown:not(:focus) + label {
   opacity: 0.65;
   transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  color: var(--text-secondary);
 }
 
 /* When input is focused or contains text, hide the placeholder */
 .form-floating > .form-control:focus::placeholder {
   opacity: 0 !important;
   transition: opacity 0.2s ease;
+}
+
+/* Enhanced floating label focus state */
+.form-floating > .form-control:focus + label,
+.form-floating > .form-control:not(:placeholder-shown) + label {
+  color: var(--accent-color);
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
 }
 
 /* ===== PHOTO UPLOAD STYLES ===== */
@@ -228,11 +236,12 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-weight: 700;
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
   text-align: center;
   transition: all 0.3s ease;
+  font-size: 2.5rem;
 }
 
 .text-accent:hover {
@@ -245,21 +254,125 @@
   max-width: 400px;
   margin: 0 auto;
   padding: 1rem;
+  animation: slideUp 0.6s ease-out;
 }
 
-/* Enhanced Card Styling for Login */
+/* Enhanced Card Styling for Login - Consistent with theme.css */
 .card.login-card {
-  border-radius: 20px;
-  border: none;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: calc(var(--border-radius) + 8px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-medium);
   backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
-  transition: all 0.4s ease;
+  background: var(--background-primary);
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .card.login-card:hover {
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
-  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Login page specific form controls */
+.login-card .form-control {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--background-primary);
+  color: white;
+}
+
+.login-card .form-control:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 0.2rem var(--input-border-focus);
+  outline: none;
+  color: white;
+}
+
+.login-card .form-floating > .form-control {
+  padding: 1rem 0.75rem 0.25rem 0.75rem;
+  height: calc(3.5rem + 2px);
+  line-height: 1.25;
+}
+
+.login-card .form-floating > label {
+  padding: 1rem 0.75rem;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Login page buttons */
+.login-card .btn {
+  border-radius: var(--border-radius);
+  font-weight: var(--font-weight-medium);
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.login-card .btn-primary {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.login-card .btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.login-card .btn-outline-primary {
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+  background: transparent;
+}
+
+.login-card .btn-outline-primary:hover {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+/* Animation for login container */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Additional login/register page enhancements */
+.login-card .form-check-input:checked {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.login-card .form-check-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 0.25rem var(--input-border-focus);
+}
+
+.login-card .text-danger {
+  color: var(--danger-color);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.login-card hr {
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+/* Login page background */
+.min-vh-100 {
+  background: #000000;
 }
 
 /* ===== FRIENDS PAGE STYLES ===== */
@@ -488,7 +601,7 @@
     margin-bottom: 1rem;
   }
 
-  /* Login Page Logo Responsive */
+  /* Login Page Responsive - Consistent with theme */
   .text-accent {
     font-size: 2rem;
     margin-bottom: 1rem;
@@ -500,11 +613,11 @@
   }
   
   .card.login-card {
-    border-radius: 18px;
+    border-radius: calc(var(--border-radius) + 6px);
     margin: 0.5rem;
   }
   
-  .card-body {
+  .card.login-card .card-body {
     padding: 2rem 1.5rem;
   }
 }
@@ -544,7 +657,7 @@
     font-size: 0.9rem;
   }
 
-  /* Login Page Logo Responsive */
+  /* Login Page Responsive - Consistent with theme */
   .text-accent {
     font-size: 1.75rem;
     margin-bottom: 0.75rem;
@@ -557,9 +670,13 @@
   }
   
   .card.login-card {
-    border-radius: 16px;
+    border-radius: var(--border-radius);
     margin: 0.25rem;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-medium);
+  }
+  
+  .card.login-card .card-body {
+    padding: 1.5rem 1.25rem;
   }
 }
 
@@ -610,7 +727,7 @@
     font-size: 16px; /* Prevents zoom on iOS */
   }
 
-  /* Login Page Logo Responsive */
+  /* Login Page Responsive - Mobile optimized */
   .text-accent {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
@@ -624,61 +741,71 @@
   }
   
   .card.login-card {
-    border-radius: 14px;
+    border-radius: calc(var(--border-radius) - 2px);
     margin: 0.125rem;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-light);
   }
   
-  .card-body {
+  .card.login-card .card-body {
     padding: 1.25rem 1rem;
   }
   
-  /* Mobile-specific adjustments */
-  .text-center.mb-4 {
-    margin-bottom: 1rem !important;
+  /* Mobile-specific form adjustments */
+  .login-card .form-control, 
+  .login-card .form-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .login-card .btn {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
   }
 }
 
-/* Form Focus States */
+/* Form Focus States - Consistent with theme */
 .form-control:focus,
 .form-select:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 0.2rem var(--input-border-focus);
 }
 
-/* Button Enhancements */
+/* Button Enhancements - Using theme variables */
 .btn-accent {
-  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+  background: var(--accent-color);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   padding: 0.75rem 1.5rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+  box-shadow: var(--shadow-light);
+  color: white;
 }
 
 .btn-accent:hover {
-  background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+  filter: brightness(1.1);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.4);
+  box-shadow: var(--shadow-medium);
+  color: white;
 }
 
-/* Card Enhancements */
-.card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+/* Card Enhancements - Consistent with theme */
+.account-card {
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-light);
   transition: all 0.3s ease;
+  background: var(--background-primary);
 }
 
-.card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
+.account-card:hover {
+  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
 }
 
-.card-header {
-  border-radius: 16px 16px 0 0 !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+.account-card .card-header {
+  border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-primary);
 }
 
 /* Success States */

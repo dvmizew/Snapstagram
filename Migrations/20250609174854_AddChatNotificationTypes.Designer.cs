@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Snapstagram.Data;
 
@@ -11,9 +12,11 @@ using Snapstagram.Data;
 namespace Snapstagram.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250609174854_AddChatNotificationTypes")]
+    partial class AddChatNotificationTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -446,8 +449,8 @@ namespace Snapstagram.Migrations
                         {
                             Id = "admin-id",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "5a4e71c2-d28b-4494-8c1b-fd45e7ce1360",
-                            CreatedAt = new DateTime(2025, 6, 9, 19, 5, 45, 443, DateTimeKind.Utc).AddTicks(2558),
+                            ConcurrencyStamp = "8cad76c9-a13d-43e9-a537-9010358bcb5b",
+                            CreatedAt = new DateTime(2025, 6, 9, 17, 48, 53, 523, DateTimeKind.Utc).AddTicks(6225),
                             Email = "admin@snapstagram.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -457,9 +460,9 @@ namespace Snapstagram.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@SNAPSTAGRAM.COM",
                             NormalizedUserName = "ADMIN@SNAPSTAGRAM.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEODMPTQssrvPngvaAx6yA0y7Z6C2/jzLXwArOo80hgAdAzk6rL+hhaQKF8EOGZv7FA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGv7QiIy1baAiif0i1yBtz8hXW9L7NHDzvgwmdC/+bl9m2heKmrBPAsTuOdVPVWy4w==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "e25ee7f6-76d7-4ce6-9b4c-73a737ce41de",
+                            SecurityStamp = "5d6f17c1-5baa-4b9c-9452-cb4393544aae",
                             TwoFactorEnabled = false,
                             UserName = "admin@snapstagram.com"
                         });
@@ -879,9 +882,6 @@ namespace Snapstagram.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RelatedItemId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SenderName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Type")
