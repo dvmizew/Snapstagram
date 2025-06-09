@@ -2190,7 +2190,7 @@ function initializeEditAlbumModal(album) {
                              class="w-100 rounded" style="aspect-ratio: 1; object-fit: cover;">
                         <div class="position-absolute top-0 end-0 p-1">
                             <button type="button" class="btn btn-sm btn-danger rounded-circle photo-remove-btn" 
-                                    onclick="togglePhotoRemoval(${photo.id})" 
+                                    onclick="togglePhotoRemoval(${photo.id}, event)" 
                                     title="Remove this photo">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -2239,8 +2239,17 @@ function initializeEditAlbumModal(album) {
 // Photo removal functionality for edit modal
 let photosToRemove = new Set();
 
-function togglePhotoRemoval(photoId) {
+// Debounce mechanism to prevent double-clicks
+let togglePhotoRemovalDebounce = new Map();
+
+function togglePhotoRemoval(photoId, event) {
     console.log('togglePhotoRemoval called with photoId:', photoId);
+    
+    // Prevent event bubbling to avoid multiple triggers
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     
     // Ensure photoId is a number for consistent comparison
     const numericPhotoId = parseInt(photoId);
@@ -2248,6 +2257,18 @@ function togglePhotoRemoval(photoId) {
         console.error('Invalid photoId provided:', photoId);
         return;
     }
+    
+    // Debounce mechanism - prevent multiple rapid calls
+    const debounceKey = `photo-${numericPhotoId}`;
+    const now = Date.now();
+    const lastCall = togglePhotoRemovalDebounce.get(debounceKey) || 0;
+    
+    if (now - lastCall < 500) { // 500ms debounce
+        console.log('Debounced duplicate call for photo:', numericPhotoId);
+        return;
+    }
+    
+    togglePhotoRemovalDebounce.set(debounceKey, now);
     
     const photoItem = document.querySelector(`[data-photo-id="${numericPhotoId}"]`);
     console.log('Found photoItem:', photoItem);
@@ -2475,6 +2496,9 @@ function resetEditAlbumModal() {
     photosToRemove.clear();
     updateEditSelectedPhotosDisplay();
     updateEditSelectedExistingPhotosInput();
+    
+    // Clear debounce tracking
+    togglePhotoRemovalDebounce.clear();
     
     // Reset existing photos grid
     const editExistingTab = document.getElementById('edit-existing-tab');
