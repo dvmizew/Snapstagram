@@ -231,8 +231,19 @@ function createCommentElement(comment) {
             </div>
             <div class="flex-grow-1">
                 <div class="comment-content rounded px-3 py-2">
-                    <strong class="comment-author small" style="color: white;">${comment.user.firstName} ${comment.user.lastName}</strong>
-                    <p class="comment-text mb-1 small" style="color: white;">${escapeHtml(comment.content)}</p>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <strong class="comment-author small" style="color: white;">${comment.user.firstName} ${comment.user.lastName}</strong>
+                            <p class="comment-text mb-1 small" style="color: white;">${escapeHtml(comment.content)}</p>
+                        </div>
+                        ${window.currentUserData?.isAdministrator ? `
+                            <button class="btn btn-link btn-sm p-0 text-danger ms-2" 
+                                    onclick="openRemoveCommentModal(${comment.id})" 
+                                    title="Remove Comment (Admin)">
+                                <i class="fas fa-shield-alt"></i>
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
                 <div class="comment-actions d-flex align-items-center mt-1">
                     <small class="text-muted me-3">${timeAgo}</small>
@@ -407,3 +418,191 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Moderation functions (Admin only)
+let currentModerationPostId = null;
+let currentModerationCommentId = null;
+
+function openRemovePostModal(postId) {
+    if (!window.currentUserData?.isAdministrator) {
+        showNotification('Access denied. Administrator privileges required.', 'error');
+        return;
+    }
+    
+    currentModerationPostId = postId;
+    document.getElementById('removePostReason').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('removePostModal'));
+    modal.show();
+}
+
+function openRemoveCommentModal(commentId) {
+    if (!window.currentUserData?.isAdministrator) {
+        showNotification('Access denied. Administrator privileges required.', 'error');
+        return;
+    }
+    
+    currentModerationCommentId = commentId;
+    document.getElementById('removeCommentReason').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('removeCommentModal'));
+    modal.show();
+}
+
+function confirmRemovePost() {
+    const reason = document.getElementById('removePostReason').value.trim();
+    
+    if (!reason) {
+        showNotification('Please provide a reason for removing this post.', 'error');
+        return;
+    }
+    
+    if (!currentModerationPostId) {
+        showNotification('No post selected for removal.', 'error');
+        return;
+    }
+    
+    const token = getSecurityToken();
+    if (!token) {
+        showNotification('Security token not found. Please refresh the page.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const btn = document.querySelector('#removePostModal .btn-danger');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Removing...';
+    btn.disabled = true;
+    
+    fetch('/Feed?handler=RemovePost', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `__RequestVerificationToken=${encodeURIComponent(token)}&postId=${currentModerationPostId}&reason=${encodeURIComponent(reason)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Post removed successfully and user notified.', 'success');
+            
+            // Remove the post from the UI
+            const postCard = document.querySelector(`[data-post-id="${currentModerationPostId}"]`);
+            if (postCard) {
+                postCard.style.transition = 'all 0.5s ease';
+                postCard.style.opacity = '0';
+                postCard.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    postCard.remove();
+                }, 500);
+            }
+            
+            // Remove from posts data
+            postsData = postsData.filter(p => p.id !== currentModerationPostId);
+            
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('removePostModal'));
+            modal.hide();
+            
+        } else {
+            showNotification('Failed to remove post: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing post:', error);
+        showNotification('An error occurred while removing the post.', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function confirmRemoveComment() {
+    const reason = document.getElementById('removeCommentReason').value.trim();
+    
+    if (!reason) {
+        showNotification('Please provide a reason for removing this comment.', 'error');
+        return;
+    }
+    
+    if (!currentModerationCommentId) {
+        showNotification('No comment selected for removal.', 'error');
+        return;
+    }
+    
+    const token = getSecurityToken();
+    if (!token) {
+        showNotification('Security token not found. Please refresh the page.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const btn = document.querySelector('#removeCommentModal .btn-danger');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Removing...';
+    btn.disabled = true;
+    
+    fetch('/Feed?handler=RemoveComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `__RequestVerificationToken=${encodeURIComponent(token)}&commentId=${currentModerationCommentId}&reason=${encodeURIComponent(reason)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Comment removed successfully and user notified.', 'success');
+            
+            // Remove the comment from the UI
+            const commentElement = document.querySelector(`[data-comment-id="${currentModerationCommentId}"]`);
+            if (commentElement) {
+                commentElement.style.transition = 'all 0.5s ease';
+                commentElement.style.opacity = '0';
+                setTimeout(() => {
+                    commentElement.remove();
+                }, 500);
+            }
+            
+            // Update posts data - remove comment from the relevant post
+            const post = postsData.find(p => p.comments?.some(c => c.id === currentModerationCommentId));
+            if (post) {
+                post.comments = post.comments.filter(c => c.id !== currentModerationCommentId);
+                // Update comment count in UI
+                updateCommentCountInUI(post.id, post.comments.length);
+            }
+            
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('removeCommentModal'));
+            modal.hide();
+            
+        } else {
+            showNotification('Failed to remove comment: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing comment:', error);
+        showNotification('An error occurred while removing the comment.', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function updateCommentCountInUI(postId, newCount) {
+    // Update comment count in the feed view
+    const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+    const commentBtn = postCard?.querySelector('.fa-comment')?.closest('button')?.querySelector('span');
+    if (commentBtn) {
+        commentBtn.textContent = newCount;
+    }
+    
+    // Update comment count in modal if open
+    if (currentPostId === postId) {
+        loadComments();
+    }
+}
