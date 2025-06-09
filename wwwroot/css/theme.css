@@ -1173,3 +1173,197 @@ body {
 .like-button.animate-like {
   animation: heartBeat 0.3s ease-in-out;
 }
+
+/* ========================================
+   ALBUM & POST GRID UTILITIES
+   ======================================== */
+
+/* Album Cover Styling */
+.album-cover-container {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.album-cover-container:hover {
+  transform: scale(1.02);
+}
+
+.album-cover {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+}
+
+/* Post Grid Styling */
+.post-grid-item {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.post-grid-item:hover {
+  transform: scale(1.02);
+}
+
+.post-grid-item .position-relative {
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.text-post-grid-item {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* Image Styling */
+.cover-image, .post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.post-grid-item:hover .post-image {
+  transform: scale(1.05);
+}
+
+/* Profile Picture Styling */
+.profile-picture {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.profile-picture-placeholder {
+  width: 80px;
+  height: 80px;
+  background: var(--background-secondary);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+/* Album/Post Action Buttons */
+.action-dropdown-btn {
+  border: none !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(5px);
+  color: white !important;
+  border-radius: var(--border-radius) !important;
+}
+
+.action-dropdown-btn:hover {
+  background: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Image Preview Containers */
+.image-preview-container {
+  max-width: 100%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 0.5rem;
+}
+
+.preview-grid-item {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Scrollable Containers */
+.scrollable-grid {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.scrollable-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-grid::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 3px;
+}
+
+.scrollable-grid::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.scrollable-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Selected Photo Display */
+.selected-photos-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0.5rem;
+  background: var(--background-secondary);
+  border-radius: var(--border-radius);
+  min-height: 50px;
+}
+
+/* Current Album Photos Grid */
+.current-album-photos {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--background-primary);
+}
+
+/* Utility Classes */
+.aspect-ratio-1 {
+  aspect-ratio: 1;
+}
+
+.object-fit-cover {
+  object-fit: cover;
+}
+
+.z-index-10 {
+  z-index: 10;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.backdrop-blur {
+  backdrop-filter: blur(5px);
+}
+
+.bg-overlay-dark {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.bg-overlay-dark:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Icon Sizing */
+.icon-sm {
+  width: 16px;
+  font-size: 0.875rem;
+}

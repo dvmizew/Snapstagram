@@ -176,6 +176,37 @@ document.addEventListener('DOMContentLoaded', function() {
             resetAlbumModal();
         });
     }
+    
+    // Set up edit album modal
+    const editAlbumModal = document.getElementById('editAlbumModal');
+    if (editAlbumModal) {
+        editAlbumModal.addEventListener('hidden.bs.modal', function() {
+            resetEditAlbumModal();
+        });
+    }
+    
+    // Add form submission debugging for edit album
+    const editAlbumForm = document.getElementById('editAlbumForm');
+    if (editAlbumForm) {
+        editAlbumForm.addEventListener('submit', function(e) {
+            console.log('=== EDIT ALBUM FORM SUBMISSION ===');
+            
+            // Log all form data
+            const formData = new FormData(this);
+            for (let [key, value] of formData.entries()) {
+                console.log(`Form field: ${key} = ${value}`);
+            }
+            
+            // Specifically log photos to remove
+            const photosToRemoveInput = document.getElementById('photosToRemove');
+            console.log('Photos to remove input value:', photosToRemoveInput ? photosToRemoveInput.value : 'NOT FOUND');
+            console.log('Photos to remove set:', Array.from(photosToRemove));
+            
+            console.log('=== END FORM SUBMISSION DEBUG ===');
+            
+            // Let the form submit normally
+        });
+    }
 });
 
 // Enhanced notification system for comments
@@ -2079,4 +2110,484 @@ function resetAlbumModal() {
         uploadPane.classList.add('show', 'active');
         existingPane.classList.remove('show', 'active');
     }
+}
+
+// Edit Album functionality
+function editAlbum(albumId) {
+    console.log('editAlbum called with albumId:', albumId);
+    console.log('window.albumsData:', window.albumsData);
+    
+    // Validate modal elements exist
+    const editModalElement = document.getElementById('editAlbumModal');
+    const editAlbumIdInput = document.getElementById('editAlbumId');
+    const editAlbumNameInput = document.getElementById('editAlbumName');
+    const editAlbumDescriptionInput = document.getElementById('editAlbumDescription');
+    const currentPhotosGrid = document.getElementById('currentAlbumPhotos');
+    
+    console.log('Modal elements validation:', {
+        editModalElement: !!editModalElement,
+        editAlbumIdInput: !!editAlbumIdInput,
+        editAlbumNameInput: !!editAlbumNameInput,
+        editAlbumDescriptionInput: !!editAlbumDescriptionInput,
+        currentPhotosGrid: !!currentPhotosGrid
+    });
+    
+    if (!editModalElement) {
+        console.error('Edit modal element not found!');
+        showNotification('Edit modal not found', 'error');
+        return;
+    }
+    
+    // Find album data from window.albumsData (or fetch from server if needed)
+    const album = (window.albumsData || []).find(a => a.id === albumId);
+    console.log('Found album:', album);
+    
+    if (!album) {
+        console.error('Album not found for ID:', albumId);
+        showNotification('Album not found', 'error');
+        return;
+    }
+    
+    // Populate edit modal with current album data
+    if (editAlbumIdInput) editAlbumIdInput.value = album.id;
+    if (editAlbumNameInput) editAlbumNameInput.value = album.name || '';
+    if (editAlbumDescriptionInput) editAlbumDescriptionInput.value = album.description || '';
+    
+    // Initialize edit album state
+    initializeEditAlbumModal(album);
+    
+    // Show the edit modal
+    console.log('Showing edit modal...');
+    const editModal = new bootstrap.Modal(editModalElement);
+    editModal.show();
+    console.log('Modal should be shown now');
+}
+
+function initializeEditAlbumModal(album) {
+    console.log('initializeEditAlbumModal called with album:', album);
+    
+    // Reset any previous state
+    const currentPhotosGrid = document.getElementById('currentAlbumPhotos');
+    const photosToRemoveInput = document.getElementById('photosToRemove');
+    
+    console.log('Edit modal elements found:', {
+        currentPhotosGrid,
+        photosToRemoveInput
+    });
+    
+    if (currentPhotosGrid) {
+        currentPhotosGrid.innerHTML = '';
+        
+        // Populate current photos grid
+        if (album.photos && album.photos.length > 0) {
+            console.log('Populating current photos, count:', album.photos.length);
+            album.photos.forEach(photo => {
+                const photoDiv = document.createElement('div');
+                photoDiv.className = 'col-6 col-md-4 col-lg-3 mb-2';
+                photoDiv.innerHTML = `
+                    <div class="position-relative current-photo-item" data-photo-id="${photo.id}">
+                        <img src="${photo.url}" alt="${photo.name || 'Album photo'}" 
+                             class="w-100 rounded" style="aspect-ratio: 1; object-fit: cover;">
+                        <div class="position-absolute top-0 end-0 p-1">
+                            <button type="button" class="btn btn-sm btn-danger rounded-circle photo-remove-btn" 
+                                    onclick="togglePhotoRemoval(${photo.id})" 
+                                    title="Remove this photo">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger bg-opacity-50 d-none remove-overlay rounded">
+                            <div class="d-flex align-items-center justify-content-center h-100">
+                                <i class="fas fa-trash text-white fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                currentPhotosGrid.appendChild(photoDiv);
+            });
+        } else {
+            console.log('No photos in album, showing empty message');
+            currentPhotosGrid.innerHTML = `
+                <div class="col-12 text-center py-4">
+                    <i class="fas fa-images fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No photos in this album</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Reset photos to remove input
+    if (photosToRemoveInput) {
+        photosToRemoveInput.value = '';
+    }
+    
+    // Reset edit modal existing photos selection
+    selectedEditExistingPhotos.clear();
+    updateEditSelectedPhotosDisplay();
+    
+    // Setup existing photos tab for edit modal
+    const editExistingTab = document.getElementById('edit-existing-tab');
+    if (editExistingTab) {
+        editExistingTab.addEventListener('click', function() {
+            if (!this.dataset.loaded) {
+                populateEditExistingPhotosGrid();
+                this.dataset.loaded = 'true';
+            }
+        });
+    }
+}
+
+// Photo removal functionality for edit modal
+let photosToRemove = new Set();
+
+function togglePhotoRemoval(photoId) {
+    console.log('togglePhotoRemoval called with photoId:', photoId);
+    
+    const photoItem = document.querySelector(`[data-photo-id="${photoId}"]`);
+    console.log('Found photoItem:', photoItem);
+    
+    if (!photoItem) {
+        console.error('Photo item not found for photoId:', photoId);
+        return;
+    }
+    
+    const removeOverlay = photoItem.querySelector('.remove-overlay');
+    const removeBtn = photoItem.querySelector('.photo-remove-btn');
+    
+    console.log('Found removeOverlay:', removeOverlay);
+    console.log('Found removeBtn:', removeBtn);
+    
+    if (photosToRemove.has(photoId)) {
+        // Unmark for removal
+        console.log('Unmarking photo for removal');
+        photosToRemove.delete(photoId);
+        removeOverlay.classList.add('d-none');
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.classList.remove('btn-success');
+        removeBtn.classList.add('btn-danger');
+        removeBtn.title = 'Remove this photo';
+    } else {
+        // Mark for removal
+        console.log('Marking photo for removal');
+        photosToRemove.add(photoId);
+        removeOverlay.classList.remove('d-none');
+        removeBtn.innerHTML = '<i class="fas fa-undo"></i>';
+        removeBtn.classList.remove('btn-danger');
+        removeBtn.classList.add('btn-success');
+        removeBtn.title = 'Keep this photo';
+    }
+    
+    // Update hidden input
+    const hiddenInput = document.getElementById('photosToRemove');
+    const photosToRemoveArray = Array.from(photosToRemove);
+    console.log('Photos to remove array:', photosToRemoveArray);
+    
+    if (hiddenInput) {
+        hiddenInput.value = photosToRemoveArray.join(',');
+        console.log('Updated hidden input value:', hiddenInput.value);
+    } else {
+        console.error('photosToRemove hidden input not found');
+    }
+}
+
+// Edit modal existing photos selection
+let selectedEditExistingPhotos = new Set();
+
+function populateEditExistingPhotosGrid() {
+    console.log('populateEditExistingPhotosGrid called');
+    
+    const grid = document.getElementById('editExistingPhotosGrid');
+    console.log('Edit existing photos grid found:', !!grid);
+    console.log('window.postsData:', window.postsData);
+    
+    if (!grid || !window.postsData) {
+        console.error('Grid or postsData not found');
+        return;
+    }
+    
+    // Filter posts that have images
+    const postsWithImages = window.postsData.filter(post => post.imageUrl);
+    console.log('Posts with images:', postsWithImages.length);
+    
+    if (postsWithImages.length === 0) {
+        console.log('No posts with images found, showing empty message');
+        grid.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No photos found in your posts.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = '';
+    console.log('Populating grid with', postsWithImages.length, 'posts');
+    
+    postsWithImages.forEach(post => {
+        console.log('Processing post:', post.id, post.imageUrl);
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-6 col-md-4 col-lg-3';
+        
+        colDiv.innerHTML = `
+            <div class="existing-photo-item position-relative" 
+                 onclick="toggleEditExistingPhotoSelection(${post.id})" 
+                 style="cursor: pointer; border-radius: 8px; overflow: hidden; aspect-ratio: 1;">
+                <img src="${post.imageUrl}" 
+                     alt="Post photo" 
+                     class="w-100 h-100" 
+                     style="object-fit: cover; transition: all 0.3s ease;" />
+                <div class="photo-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+                     style="background: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s ease;">
+                    <i class="fas fa-check-circle text-success fa-2x"></i>
+                </div>
+                <div class="selection-indicator position-absolute top-2 end-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editPhoto_${post.id}" style="transform: scale(1.2);">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        grid.appendChild(colDiv);
+    });
+    
+    console.log('Grid population completed');
+}
+
+function toggleEditExistingPhotoSelection(postId) {
+    const post = window.postsData.find(p => p.id === postId);
+    if (!post) return;
+    
+    const photoItem = document.querySelector(`#editExistingPhotosGrid .existing-photo-item img[src="${post.imageUrl}"]`).closest('.existing-photo-item');
+    const checkbox = document.getElementById(`editPhoto_${postId}`);
+    const overlay = photoItem.querySelector('.photo-overlay');
+    
+    if (selectedEditExistingPhotos.has(postId)) {
+        // Deselect
+        selectedEditExistingPhotos.delete(postId);
+        checkbox.checked = false;
+        photoItem.style.border = 'none';
+        overlay.style.opacity = '0';
+    } else {
+        // Select
+        selectedEditExistingPhotos.add(postId);
+        checkbox.checked = true;
+        photoItem.style.border = '3px solid #0d6efd';
+        overlay.style.opacity = '1';
+    }
+    
+    updateEditSelectedPhotosDisplay();
+    updateEditSelectedExistingPhotosInput();
+}
+
+function updateEditSelectedPhotosDisplay() {
+    const countBadge = document.getElementById('editSelectedPhotoCount');
+    const previewsList = document.getElementById('editSelectedPhotosList');
+    
+    if (!countBadge || !previewsList) return;
+    
+    countBadge.textContent = selectedEditExistingPhotos.size;
+    previewsList.innerHTML = '';
+    
+    if (selectedEditExistingPhotos.size === 0) return;
+    
+    selectedEditExistingPhotos.forEach(postId => {
+        const post = window.postsData.find(p => p.id === postId);
+        if (!post) return;
+        
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'position-relative';
+        previewDiv.innerHTML = `
+            <img src="${post.imageUrl}" 
+                 alt="Selected photo" 
+                 class="rounded" 
+                 style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #0d6efd;">
+            <button type="button" 
+                    class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle" 
+                    style="width: 20px; height: 20px; padding: 0; font-size: 10px; line-height: 1;"
+                    onclick="toggleEditExistingPhotoSelection(${postId})" 
+                    title="Remove photo">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        previewsList.appendChild(previewDiv);
+    });
+}
+
+function updateEditSelectedExistingPhotosInput() {
+    const hiddenInput = document.getElementById('editSelectedExistingPhotos');
+    if (hiddenInput) {
+        hiddenInput.value = Array.from(selectedEditExistingPhotos).join(',');
+    }
+}
+
+function clearEditExistingPhotoSelection() {
+    selectedEditExistingPhotos.clear();
+    
+    // Update UI
+    document.querySelectorAll('#editExistingPhotosGrid .existing-photo-item').forEach(item => {
+        item.style.border = 'none';
+        const overlay = item.querySelector('.photo-overlay');
+        if (overlay) overlay.style.opacity = '0';
+    });
+    
+    document.querySelectorAll('#editExistingPhotosGrid input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    updateEditSelectedPhotosDisplay();
+    updateEditSelectedExistingPhotosInput();
+}
+
+function resetEditAlbumModal() {
+    // Reset form
+    const form = document.getElementById('editAlbumForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Reset selected photos for edit
+    selectedEditExistingPhotos.clear();
+    photosToRemove.clear();
+    updateEditSelectedPhotosDisplay();
+    updateEditSelectedExistingPhotosInput();
+    
+    // Reset existing photos grid
+    const editExistingTab = document.getElementById('edit-existing-tab');
+    if (editExistingTab) {
+        editExistingTab.removeAttribute('data-loaded');
+    }
+    
+    // Reset edit album image preview
+    const editAlbumPreview = document.getElementById('editAlbumImagePreview');
+    if (editAlbumPreview) {
+        editAlbumPreview.innerHTML = '';
+    }
+    
+    // Clear photos to remove input
+    const photosToRemoveInput = document.getElementById('photosToRemove');
+    if (photosToRemoveInput) {
+        photosToRemoveInput.value = '';
+    }
+    
+    // Reset to first tab
+    const uploadTab = document.getElementById('edit-upload-tab');
+    const existingTabEl = document.getElementById('edit-existing-tab');
+    const uploadPane = document.getElementById('edit-upload-pane');
+    const existingPane = document.getElementById('edit-existing-pane');
+    
+    if (uploadTab && existingTabEl && uploadPane && existingPane) {
+        uploadTab.classList.add('active');
+        existingTabEl.classList.remove('active');
+        uploadPane.classList.add('show', 'active');
+        existingPane.classList.remove('show', 'active');
+    }
+}
+
+// Delete Album functionality
+function deleteAlbum(albumId) {
+    // Find album data to get the album name for confirmation
+    const album = (window.albumsData || []).find(a => a.id === albumId);
+    const albumName = album ? album.name : 'this album';
+    
+    // Populate delete modal with album info
+    document.getElementById('deleteAlbumId').value = albumId;
+    document.getElementById('deleteAlbumName').textContent = albumName;
+    
+    // Show the delete confirmation modal
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteAlbumModal'));
+    deleteModal.show();
+}
+
+// Album image preview functions
+function previewAlbumImages(input) {
+    const preview = document.getElementById('albumImagePreview');
+    if (!preview) return;
+    
+    preview.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        Array.from(input.files).forEach((file, index) => {
+            if (isValidImageFile(file)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'position-relative';
+                    previewDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview" class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle" 
+                                style="transform: translate(50%, -50%); width: 20px; height: 20px; padding: 0;" 
+                                onclick="removeAlbumPreviewImage(this, ${index})" title="Remove">
+                            <i class="fas fa-times" style="font-size: 10px;"></i>
+                        </button>
+                    `;
+                    preview.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+}
+
+function previewEditAlbumImages(input) {
+    console.log('previewEditAlbumImages called with input:', input);
+    console.log('Files selected:', input.files ? input.files.length : 'No files');
+    
+    const preview = document.getElementById('editAlbumImagePreview');
+    console.log('Preview element found:', !!preview);
+    
+    if (!preview) {
+        console.error('editAlbumImagePreview element not found!');
+        return;
+    }
+    
+    preview.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        console.log('Processing', input.files.length, 'files');
+        Array.from(input.files).forEach((file, index) => {
+            console.log(`Processing file ${index}: ${file.name}, size: ${file.size}, type: ${file.type}`);
+            
+            if (isValidImageFile(file)) {
+                console.log(`File ${index} is valid, creating preview`);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    console.log(`FileReader loaded for file ${index}`);
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'position-relative';
+                    previewDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview" class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle" 
+                                style="transform: translate(50%, -50%); width: 20px; height: 20px; padding: 0;" 
+                                onclick="removeEditAlbumPreviewImage(this, ${index})" title="Remove">
+                            <i class="fas fa-times" style="font-size: 10px;"></i>
+                        </button>
+                    `;
+                    preview.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                console.log(`File ${index} is not valid`);
+            }
+        });
+    } else {
+        console.log('No files to process');
+    }
+}
+
+function removeAlbumPreviewImage(button, index) {
+    // Remove the preview
+    button.closest('.position-relative').remove();
+    
+    // Note: Removing individual files from FileList is complex
+    // For now, we'll let the user re-select if needed
+    // In a production app, you might want to use a more sophisticated file management system
+}
+
+function removeEditAlbumPreviewImage(button, index) {
+    // Remove the preview
+    button.closest('.position-relative').remove();
+    
+    // Note: Removing individual files from FileList is complex
+    // For now, we'll let the user re-select if needed
 }
