@@ -160,18 +160,21 @@
         </div>
     </header>
     <div class="container mt-4">
-        <main role="main" class="pb-5 fade-in">
+        <main role="main" class="@(ViewData["Title"]?.ToString() == "Feed" ? "fade-in" : "pb-5 fade-in")">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer">
-        <div class="container">
-            <div class="d-flex justify-content-center align-items-center">
-                <div>&copy; 2025 - Snapstagram</div>
+    @if (ViewData["Title"]?.ToString() != "Feed")
+    {
+        <footer class="border-top footer">
+            <div class="container">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div>&copy; 2025 - Snapstagram</div>
+                </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <!-- Bootstrap 5.3 JS CDN -->
